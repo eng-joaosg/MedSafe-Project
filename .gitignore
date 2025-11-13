@@ -1,0 +1,134 @@
+# ===========================================
+# 🔧 NODE / TYPESCRIPT / MONOREPO IGNORE
+# ===========================================
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.cache/
+.tmp/
+temp/
+tmp/
+coverage/
+lib/
+
+# TypeScript
+*.tsbuildinfo
+
+# ===========================================
+# 🧱 NESTJS / BACKEND
+# ===========================================
+
+# Compiled source
+**/apps/**/dist/
+**/libs/**/dist/
+
+# Logs
+logs/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Environment files
+.env
+.env.*.local
+.env.local
+.env.test
+.env.development
+.env.production
+
+# ===========================================
+# ⚛️ NEXT.JS / FRONTEND
+# ===========================================
+
+# Next.js build output
+.next/
+out/
+
+# Static files
+public/.next/
+public/static/
+
+# Local env files (public vars handled by Vercel)
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ===========================================
+# 🐳 DOCKER / DEPLOY
+# ===========================================
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Local docker volumes
+**/data/
+**/postgres-data/
+**/redis-data/
+
+# AWS / Vercel / Deployment
+.aws/
+.vercel/
+.vercel_build_output/
+
+# ===========================================
+# 🧪 TESTS
+# ===========================================
+
+# Jest
+coverage/
+**/__tests__/**
+**/__mocks__/**
+*.spec.ts
+*.spec.js
+*.test.ts
+*.test.js
+jest.config.js
+jest.config.ts
+jest.config.mjs
+
+# Vitest / Cypress / Playwright
+.vitest/
+cypress/videos/
+cypress/screenshots/
+playwright-report/
+test-results/
+
+# ===========================================
+# 💻 IDEs / SYSTEM FILES
+# ===========================================
+
+# VSCode
+.vscode/
+.history/
+*.code-workspace
+
+# JetBrains
+.idea/
+
+# Mac / Windows
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===========================================
+# ⚙️ NX / TURBOREPO (caso use)
+# ===========================================
+nx-cache/
+.turbo/
