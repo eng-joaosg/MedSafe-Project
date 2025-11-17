@@ -1,26 +1,35 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
-Description: Notification Service Lambda using existing SQS queue and IAM role
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Notification Service Stack
+
+Parameters:
+  DeploymentBucket:
+    Type: String
+  S3Key:
+    Type: String
 
 Resources:
 
-  NotificationFunction:
-    Type: AWS::Serverless::Function
+  NotificationLambda:
+    Type: AWS::Lambda::Function
     Properties:
-      FunctionName: NotificationFunction
+      FunctionName: medsafe-notification-service
       Handler: lambda.handler
       Runtime: nodejs20.x
-      MemorySize: 512
-      Timeout: 10
       Role: arn:aws:iam::326993352985:role/MedSafe-NotificationService
-      CodeUri: dist/
+
+      Code:
+        S3Bucket: !Ref DeploymentBucket
+        S3Key: !Ref S3Key
+
       Environment:
         Variables:
           NODE_ENV: production
           DYNAMO_TABLE_NAME: MedSafe-Events
-          SQS_QUEUE_ARN: arn:aws:sqs:sa-east-1:326993352985:medsafe-auth-to-notification
-      Events:
-        NotificationQueueEvent:
-          Type: SQS
-          Properties:
-            Queue: arn:aws:sqs:sa-east-1:326993352985:medsafe-auth-to-notification
+
+  NotificationSQSTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: arn:aws:sqs:sa-east-1:326993352985:medsafe-auth-to-notification
+      FunctionName: !Ref NotificationLambda
+      BatchSize: 10
+      Enabled: true
