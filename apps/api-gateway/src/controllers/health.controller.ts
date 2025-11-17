@@ -13,10 +13,7 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check() {
-    const apiGatewayUrl = this.config.get<string>(
-      'API_GATEWAY_URL',
-      'http://localhost:3000/health/self',
-    );
+    const apiGatewayUrl = this.config.get<string>('API_GATEWAY_URL', 'http://localhost:3000/health/self');
 
     return this.health.check([() => this.http.pingCheck('api-gateway', apiGatewayUrl)]);
   }

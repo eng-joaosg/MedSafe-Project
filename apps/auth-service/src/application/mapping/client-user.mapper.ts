@@ -1,8 +1,10 @@
-import { ClienteUser } from '../../domain/entities/client-user.entity';
+import { ClientUser } from '../../domain/entities/client-user.entity';
 import { ClientUserDbtDto } from '../dtos/client-user/client-user-db.dto';
+import { RegisterClientUserDto } from '../dtos/client-user/register-client-user.dto';
+import { IClientUserMapper } from './i-client-user.mapper';
 
-export class ClientUserMapper {
-  public toDbRequestDto(entity: ClienteUser): ClientUserDbtDto {
+export class ClientUserMapper implements IClientUserMapper {
+  public toDbRequestDto(entity: ClientUser): ClientUserDbtDto {
     return new ClientUserDbtDto(
       entity.getId().toString(),
       entity.getEmail(),
@@ -18,7 +20,7 @@ export class ClientUserMapper {
     );
   }
   public dbResponseToEntity(dto: ClientUserDbtDto) {
-    return new ClienteUser(
+    return new ClientUser(
       dto.id,
       dto.email,
       dto.passwordHash,
@@ -30,6 +32,21 @@ export class ClientUserMapper {
       dto.codeExpiresAt,
       dto.createdAt,
       dto.updatedAt,
+    );
+  }
+  public registerDtoToEntity(dto: RegisterClientUserDto, id: string, passwordHash: string, verificationCode: string, codeExpiresAt: Date) {
+    return new ClientUser(
+      id,
+      dto.email,
+      passwordHash,
+      null,
+      dto.firstName,
+      dto.lastName,
+      false,
+      verificationCode,
+      codeExpiresAt,
+      null,
+      null,
     );
   }
 }

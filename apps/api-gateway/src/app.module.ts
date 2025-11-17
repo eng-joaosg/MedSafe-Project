@@ -1,18 +1,25 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { AuthModule } from './auth/auth.module';
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
-import { GatewayModule } from './controllers/gateway.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
+import { GatewayController } from './controllers/gateway.controller';
+import { ServicesConfig } from './controllers/service-config';
+import { JwtModule } from '@nestjs/jwt';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 @Module({
-  imports: [AuthModule, GatewayModule, HttpModule],
-  controllers: [],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    HttpModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'default_secret',
+        signOptions: { expiresIn: '1h' },
+      }),
+    }),
   ],
+  controllers: [GatewayController],
+  providers: [ServicesConfig, JwtAuthGuard],
 })
 export class AppModule {}

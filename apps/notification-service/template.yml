@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Notification Service Lambda
+
+Resources:
+
+  NotificationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: notification-queue
+
+  NotificationLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: NotificationLambdaRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: NotificationPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt NotificationQueue.Arn
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                Resource: arn:aws:dynamodb:<REGION>:<ACCOUNT_ID>:table/MedSafe-Events
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  NotificationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: NotificationFunction
+      Handler: lambda.handler
+      Runtime: nodejs20.x
+      MemorySize: 512
+      Timeout: 10
+      Role: !GetAtt NotificationLambdaRole.Arn
+      CodeUri: dist/
+      Environment:
+        Variables:
+          NODE_ENV: production
+          DYNAMO_TABLE_NAME: MedSafe-Events
+          SQS_QUEUE_URL: !Ref NotificationQueue
+      Events:
+        NotificationQueue:
+          Type: SQS
+          Properties:
+            Queue: !Ref NotificationQueue

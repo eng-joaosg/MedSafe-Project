@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { lastValueFrom } from 'rxjs';
-import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { lastValueFrom, map, Observable } from 'rxjs';
 import { DatabaseServiceUrls } from 'src/common/utils/database-service.urls';
 import { ConfigurationException } from 'src/common/exceptions/app.exception';
 import { ClientUserDbtDto } from 'src/application/dtos/client-user/client-user-db.dto';
+import { RequestContextService } from 'src/common/request-context/request-context.service';
 
 @Injectable()
 export class DatabaseGateway {
@@ -15,76 +15,63 @@ export class DatabaseGateway {
     private readonly configService: ConfigService,
     private readonly urls: DatabaseServiceUrls,
     private readonly httpService: HttpService,
+    private readonly requestContext: RequestContextService,
   ) {
-    const key = this.configService.get<string>('DATABASE_X_AUTH_API_KEY');
+    const key = this.configService.get<string>('DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY');
     if (!key) {
-      throw new ConfigurationException(
-        'DATABASE_X_AUTH_API_KEY não configurada.',
-      );
+      throw new ConfigurationException('DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY não configurada.');
     }
     this.apiKey = key;
   }
 
-  private get headers(): AxiosRequestConfig['headers'] {
+  private get headers() {
+    const requestId = this.requestContext.get<string>('requestId');
     return {
       'x-api-key': this.apiKey,
       'Content-Type': 'application/json',
+      ...(requestId ? { 'x-request-id': requestId } : {}),
     };
   }
 
   // ---------- CLIENT USER ----------
-
-  public async saveClientUser(
-    dto: ClientUserDbtDto,
-  ): Promise<ClientUserDbtDto> {
+  public async saveClientUser(dto: ClientUserDbtDto): Promise<ClientUserDbtDto> {
     const url = this.urls.clientUser.save(dto.id);
-    const response: AxiosResponse<ClientUserDbtDto> = await lastValueFrom(
-      this.httpService.patch(url, dto, { headers: this.headers }),
-    );
-    return response.data;
+    const observable$: Observable<ClientUserDbtDto> = this.httpService
+      .patch(url, dto, { headers: this.headers })
+      .pipe(map((res) => res.data));
+    return await lastValueFrom(observable$);
   }
 
-  public async createClientUser(
-    dto: ClientUserDbtDto,
-  ): Promise<ClientUserDbtDto> {
+  public async createClientUser(dto: ClientUserDbtDto): Promise<ClientUserDbtDto> {
     const url = this.urls.clientUser.create();
-    const response: AxiosResponse<ClientUserDbtDto> = await lastValueFrom(
-      this.httpService.post(url, dto, { headers: this.headers }),
-    );
-    return response.data;
+    const observable$: Observable<ClientUserDbtDto> = this.httpService
+      .post(url, dto, { headers: this.headers })
+      .pipe(map((res) => res.data));
+    return await lastValueFrom(observable$);
   }
 
   public async getClientUserByEmail(email: string): Promise<ClientUserDbtDto> {
     const url = this.urls.clientUser.getByEmail(email);
-    const response: AxiosResponse<ClientUserDbtDto> = await lastValueFrom(
-      this.httpService.get(url, { headers: this.headers }),
-    );
-    return response.data;
+    const observable$: Observable<ClientUserDbtDto> = this.httpService.get(url, { headers: this.headers }).pipe(map((res) => res.data));
+    return await lastValueFrom(observable$);
   }
 
   public async getClientUserById(id: string): Promise<ClientUserDbtDto> {
     const url = this.urls.clientUser.getById(id);
-    const response: AxiosResponse<ClientUserDbtDto> = await lastValueFrom(
-      this.httpService.get(url, { headers: this.headers }),
-    );
-    return response.data;
+    const observable$: Observable<ClientUserDbtDto> = this.httpService.get(url, { headers: this.headers }).pipe(map((res) => res.data));
+    return await lastValueFrom(observable$);
   }
 
   public async findEmail(email: string): Promise<boolean> {
     const url = this.urls.clientUser.findEmail(email);
-    const response: AxiosResponse<boolean> = await lastValueFrom(
-      this.httpService.get(url, { headers: this.headers }),
-    );
-    return response.data;
+    const observable$: Observable<boolean> = this.httpService.get(url, { headers: this.headers }).pipe(map((res) => res.data));
+    return await lastValueFrom(observable$);
   }
 
   // ---------- CLINICAL INFO RECORD ----------
-
   public async findPublicPasswordById<T>(recordId: string): Promise<T> {
     const url = this.urls.medicalRecord.findById(recordId);
-    const response: AxiosResponse<T> = await lastValueFrom(
-      this.httpService.get(url, { headers: this.headers }),
-    );
-    return response.data;
+    const observable$: Observable<T> = this.httpService.get(url, { headers: this.headers }).pipe(map((res) => res.data));
+    return await lastValueFrom(observable$);
   }
 }

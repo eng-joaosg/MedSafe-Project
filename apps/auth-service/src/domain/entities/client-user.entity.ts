@@ -1,7 +1,7 @@
 import { UserRole } from 'src/common/enums/user-role.enum';
 import { UserEntity } from './user.entity';
 
-export class ClienteUser extends UserEntity {
+export class ClientUser extends UserEntity {
   private clinicalInfoId: string | null;
   private verificationCode: string | null;
   private verificationCodeExpiresAt: Date | null;
@@ -19,17 +19,7 @@ export class ClienteUser extends UserEntity {
     createdAt: Date | null,
     updatedAt: Date | null,
   ) {
-    super(
-      id,
-      email,
-      passwordHash,
-      UserRole.CLIENT,
-      firstName,
-      lastName,
-      isActive,
-      createdAt,
-      updatedAt,
-    );
+    super(id, email, passwordHash, UserRole.CLIENT, firstName, lastName, isActive, createdAt, updatedAt);
     this.verificationCode = verificationCode;
     this.verificationCodeExpiresAt = verificationCodeExpiresAt;
     this.clinicalInfoId = clinicalInfoId;

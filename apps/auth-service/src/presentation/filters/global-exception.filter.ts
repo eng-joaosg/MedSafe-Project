@@ -1,16 +1,11 @@
-import {
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
 import {
   AppException,
   RemoteServiceError,
   ConfigurationException,
 } from 'src/common/exceptions/app.exception';
-import { CommonLogger } from 'src/common/logger/common-logger';
+import { CommonLogger } from 'src/common/logger/common.logger';
 
 /**
  * Sanitiza mensagens de erro, evitando exposição de dados sensíveis
@@ -59,9 +54,7 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
     // --- AppException e subclasses
     if (exception instanceof AppException) {
       const appErr = exception;
-      status = appErr.getStatus
-        ? appErr.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      status = appErr.getStatus ? appErr.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
       message = appErr.message;
 
       CommonLogger.warn(
@@ -90,8 +83,7 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
     else if (exception instanceof RemoteServiceError) {
       const remoteErr = exception;
       status = HttpStatus.SERVICE_UNAVAILABLE;
-      message =
-        'O serviço de dados está temporariamente indisponível. Tente novamente.';
+      message = 'O serviço de dados está temporariamente indisponível. Tente novamente.';
 
       CommonLogger.error(
         'GlobalExceptionFilter',

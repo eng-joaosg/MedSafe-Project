@@ -1,26 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+    --color-primary-50: oklch(86.5% 0.127 207.078);
+    --color-primary-100: oklch(0.645 0.1099 225.31);
+    --color-primary-300: oklch(0.5101 0.0937 231.33);
+    --color-primary-500: oklch(0.3634 0.0744 237.13);
+    --color-primary-700: oklch(0.3152 0.063 235.63);
+    --color-primary-900: oklch(0.2729 0.0531 233.82);
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+    --color-grayscale-50: oklch(0.9851 0 0);
+    --color-grayscale-200: oklch(0.8975 0 0);
+    --color-grayscale-500: oklch(0.4495 0 0);
+    --color-grayscale-700: oklch(0.3211 0 0);
+    --color-grayscale-900: oklch(0.2178 0 0);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+    --color-error: oklch(0.6307 0.194 29.44);
+    --color-success: oklch(0.7067 0.2134 145.85);
+    --color-info: oklch(0.7721 0.1462 227.44);
+    --color-warning: oklch(0.8358 0.169 91.77);
+
+    --font-standard: "Roboto", "sans-serif";
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    font-family: var(--font-standard);
+    color: var(--color-gray-50)
+}
+
+@keyframes blink-border {
+  0% {
+    border-color: transparent;
+  }
+  50% {
+    border-color: var(--color-info);
+  }
+  100% {
+    border-color: transparent;
+  }
+}
+
+.blink-border {
+  animation: blink-border 1s infinite;
+}
+
+@keyframes fade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade {
+  animation: fade 0.3s ease-out;
 }

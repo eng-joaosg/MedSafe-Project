@@ -43,17 +43,13 @@ export class UserAlreadyActiveException extends AppException {
 }
 
 export class UserNotActiveException extends AppException {
-  constructor(
-    message = 'Conta de usuário não está ativa. Por favor, verifique seu e-mail.',
-  ) {
+  constructor(message = 'Conta de usuário não está ativa. Por favor, verifique seu e-mail.') {
     super(message, HttpStatus.FORBIDDEN);
   }
 }
 
 export class InvalidCredentialsException extends AppException {
-  constructor(
-    message = 'Credenciais de acesso inválidas (E-mail ou senha incorretos)',
-  ) {
+  constructor(message = 'Credenciais de acesso inválidas (E-mail ou senha incorretos)') {
     super(message, HttpStatus.UNAUTHORIZED);
   }
 }
@@ -89,9 +85,7 @@ export class RemoteServiceError extends Error {
 
 export class ExternalServiceException extends AppException {
   constructor(serviceName: string, details?: string) {
-    const message =
-      `Erro ao comunicar com serviço externo: ${serviceName}.` +
-      (details ? ` Detalhes: ${details}` : '');
+    const message = `Erro ao comunicar com serviço externo: ${serviceName}.` + (details ? ` Detalhes: ${details}` : '');
     super(message, HttpStatus.BAD_GATEWAY);
   }
 }
@@ -99,10 +93,7 @@ export class ExternalServiceException extends AppException {
 export class DatabaseOperationException extends AppException {
   public readonly originalError?: unknown;
 
-  constructor(
-    message = 'Erro ao executar operação no banco de dados.',
-    error?: unknown,
-  ) {
+  constructor(message = 'Erro ao executar operação no banco de dados.', error?: unknown) {
     super(message, HttpStatus.INTERNAL_SERVER_ERROR);
     this.originalError = error;
   }

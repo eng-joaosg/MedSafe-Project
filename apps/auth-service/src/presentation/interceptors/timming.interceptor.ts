@@ -1,11 +1,6 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
-import { CommonLogger } from 'src/common/logger/common-logger';
+import { CommonLogger } from 'src/common/logger/common.logger';
 
 @Injectable()
 export class TimingInterceptor implements NestInterceptor {
@@ -23,19 +18,11 @@ export class TimingInterceptor implements NestInterceptor {
       tap({
         next: () => {
           const duration = Date.now() - start;
-          CommonLogger.info(
-            'TimingInterceptor',
-            'REQUEST_DURATION',
-            `[${requestId}] [${method}] ${url} - ${duration}ms`,
-          );
+          CommonLogger.info('TimingInterceptor', 'REQUEST_DURATION', `[${requestId}] [${method}] ${url} - ${duration}ms`);
         },
         error: () => {
           const duration = Date.now() - start;
-          CommonLogger.warn(
-            'TimingInterceptor',
-            'REQUEST_DURATION',
-            `[${requestId}] [${method}] ${url} - ${duration}ms (erro)`,
-          );
+          CommonLogger.warn('TimingInterceptor', 'REQUEST_DURATION', `[${requestId}] [${method}] ${url} - ${duration}ms (erro)`);
         },
       }),
     );
