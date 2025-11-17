@@ -31,7 +31,7 @@ export class SendVerificationEmailUseCase extends BaseUseCase {
     );
 
     const subject = 'Verifique seu e-mail';
-    const html = EmailTemplates.verificationEmail(name, verificationCode);
+    const html = EmailTemplates.verificationEmail(name, email, verificationCode);
 
     try {
       await this.mailer.sendEmail(email, subject, html);
