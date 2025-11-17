@@ -18,9 +18,9 @@ Resources:
         Variables:
           NODE_ENV: production
           DYNAMO_TABLE_NAME: MedSafe-Events
-          SQS_QUEUE_URL: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
+          SQS_QUEUE_ARN: arn:aws:sqs:sa-east-1:326993352985:medsafe-auth-to-notification
       Events:
         NotificationQueueEvent:
           Type: SQS
           Properties:
-            Queue: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
+            Queue: arn:aws:sqs:sa-east-1:326993352985:medsafe-auth-to-notification
