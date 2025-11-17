@@ -1,48 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Notification Service Lambda
+Description: Notification Service Lambda using existing SQS queue and IAM role
 
 Resources:
-
-  NotificationQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: notification-queue
-
-  NotificationLambdaRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: NotificationLambdaRole
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: NotificationPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - sqs:ReceiveMessage
-                  - sqs:DeleteMessage
-                  - sqs:GetQueueAttributes
-                Resource: !GetAtt NotificationQueue.Arn
-              - Effect: Allow
-                Action:
-                  - dynamodb:PutItem
-                  - dynamodb:GetItem
-                  - dynamodb:Query
-                Resource: arn:aws:dynamodb:<REGION>:<ACCOUNT_ID>:table/MedSafe-Events
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: "*"
 
   NotificationFunction:
     Type: AWS::Serverless::Function
@@ -52,15 +12,15 @@ Resources:
       Runtime: nodejs20.x
       MemorySize: 512
       Timeout: 10
-      Role: !GetAtt NotificationLambdaRole.Arn
+      Role: arn:aws:iam::326993352985:role/MedSafe-NotificationService
       CodeUri: dist/
       Environment:
         Variables:
           NODE_ENV: production
           DYNAMO_TABLE_NAME: MedSafe-Events
-          SQS_QUEUE_URL: !Ref NotificationQueue
+          SQS_QUEUE_URL: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
       Events:
-        NotificationQueue:
+        NotificationQueueEvent:
           Type: SQS
           Properties:
-            Queue: !Ref NotificationQueue
+            Queue: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
