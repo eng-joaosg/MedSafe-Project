@@ -3,7 +3,7 @@ name: Deploy Notification Service
 on:
   push:
     branches:
-      - notification-service-PROD
+      - Notification-Service-PROD
 
 jobs:
   deploy:
