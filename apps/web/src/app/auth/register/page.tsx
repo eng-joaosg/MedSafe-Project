@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import ConfirmButton from "@/components/ConfirmButton";
 import Input from "@/components/Input";
-import { api } from "@/services/api";
+import { findEmail, register } from "@/lib/api";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -16,7 +16,12 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const senhaConfere = senha.length > 0 && confirmSenha.length > 0 && senha === confirmSenha;
+  const [registered, setRegistered] = useState(false);
+
+  const senhaConfere =
+    senha.length > 0 &&
+    confirmSenha.length > 0 &&
+    senha === confirmSenha;
 
   useEffect(() => {
     if (!message) return;
@@ -41,15 +46,57 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await api.findEmail(email);
+      await findEmail(email);
       setCanProceed(true);
     } catch (err: any) {
-      if (err.status === 409) setMessage("Este e-mail já está em uso.");
-      else setMessage("Erro ao conectar ao servidor.");
+      setMessage("Este e-mail já está em uso.");
     }
     setLoading(false);
   }
 
+  // 🟢 REGISTRAR
+  async function handleRegister() {
+    if (!senhaConfere) return;
+
+    setLoading(true);
+    try {
+      await register({
+        email,
+        nome,
+        sobrenome,
+        senha,
+      });
+
+      setRegistered(true); // <-- MUDA PARA TELA DE SUCESSO
+
+    } catch (err) {
+      setMessage("Erro ao registrar. Tente novamente.");
+    }
+    setLoading(false);
+  }
+
+  // 🟢 TELA DE SUCESSO APÓS REGISTRO (SEM BOTÃO)
+  if (registered) {
+    return (
+      <div className="flex flex-col min-h-screen items-center pt-20 px-6 text-center">
+        <h2 className="text-xl font-semibold mb-4">
+          Verifique seu e-mail 📩
+        </h2>
+
+        <p className="text-sm text-gray-600 max-w-sm">
+          Enviamos um e-mail com o código de verificação para:
+        </p>
+
+        <p className="text-sm font-medium mt-1">{email}</p>
+
+        <p className="text-xs text-gray-500 mt-4">
+          Caso não encontre, verifique sua caixa de spam.
+        </p>
+      </div>
+    );
+  }
+
+  // 🟢 FORMULARIO NORMAL
   return (
     <div className="flex flex-col min-h-screen items-center pt-6 px-4 w-full">
       <div className="h-6 flex justify-center items-center mb-2">
@@ -59,8 +106,6 @@ export default function RegisterPage() {
       </div>
 
       <div className="w-full max-w-md">
-
-        {/* Campo de e-mail */}
         <Input fieldName="E-mail" value={email} onChange={setEmail} />
 
         {/* Campos extras */}
@@ -74,7 +119,7 @@ export default function RegisterPage() {
           <Input fieldName="Sobrenome" value={sobrenome} onChange={setSobrenome} />
           <Input fieldName="Senha" value={senha} onChange={setSenha} />
 
-          {/* Confirmação de senha */}
+          {/* confirmar senha */}
           <div className="mt-2">
             <Input
               fieldName="Confirmar Senha"
@@ -99,10 +144,9 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Botão */}
         <div className="w-full flex justify-center mt-4">
           <ConfirmButton
-            onClick={canProceed ? undefined : handleConfirmEmail}
+            onClick={canProceed ? handleRegister : handleConfirmEmail}
             label={canProceed ? "Registrar" : "Confirmar e-mail"}
             loading={loading}
             disabled={

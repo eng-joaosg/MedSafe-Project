@@ -7,6 +7,7 @@ import type { IVerificationCodeService } from 'src/domain/services/i-verificatio
 import type { INotificationService } from 'src/domain/services/i-notification.service';
 import { UserAlreadyExistsException } from 'src/common/exceptions/app.exception';
 import { v4 as uuidv4 } from 'uuid';
+import { CommonLogger } from 'src/common/logger/common.logger';
 
 @Injectable()
 export class RegisterClientUserUsecase {
@@ -31,9 +32,17 @@ export class RegisterClientUserUsecase {
     const id = uuidv4();
     const verificationCode = this.verificationCodeService.generateCode();
     const codeExpireAt = new Date(Date.now() + this.verificationCodeService.getLongExpirationTime() * 1000);
+
     const entity = this.clientUSerMapper.registerDtoToEntity(dto, id, passwordHash, verificationCode, codeExpireAt);
-    await this.clientUserRepository.create(entity);
+
+    const created = await this.clientUserRepository.create(entity);
+
+    CommonLogger.info('Auth', 'REGISTER_CLIENT_USER_SUCCESS', {
+      email: created.getEmail(),
+    });
+
     await this.notificationService.sendVerification(entity, verificationCode);
+
     return;
   }
 }

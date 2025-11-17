@@ -13,7 +13,7 @@ import {
 import { RequestContextService } from 'src/common/request-context/request-context.service';
 
 @Injectable()
-export class NotificationService implements INotificationService {
+export class SqsNotificationService implements INotificationService {
   constructor(
     @Inject('INotificationGateway')
     private readonly gateway: INotificationGateway,

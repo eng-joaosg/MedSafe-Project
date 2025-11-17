@@ -58,7 +58,7 @@ export class GatewayController {
   async findEmail(@Param('email') email: string, @Headers('x-request-id') requestId: string): Promise<boolean> {
     CommonLoggerGateway.logStart('Gateway', 'FIND_EMAIL', email, requestId);
     const observable$: Observable<{ emailAlreadyExists: boolean }> = this.httpService
-      .get(`${this.servicesConfig.authServiceUrl}/auth/client-user/find-email`, {
+      .get(`${this.servicesConfig.authServiceUrl}/client-user/find-email`, {
         headers: this.getAuthHeaders('AUTH_SERVICE', requestId),
         params: { email },
       })
@@ -76,7 +76,7 @@ export class GatewayController {
     try {
       await lastValueFrom(
         this.httpService
-          .post(`${this.servicesConfig.authServiceUrl}/auth/client-user/register`, dto, {
+          .post(`${this.servicesConfig.authServiceUrl}/client-user/register`, dto, {
             headers: this.getAuthHeaders('AUTH_SERVICE', requestId),
           })
           .pipe(map((res) => res.data)),

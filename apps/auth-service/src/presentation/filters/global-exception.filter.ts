@@ -1,10 +1,6 @@
 import { Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
-import {
-  AppException,
-  RemoteServiceError,
-  ConfigurationException,
-} from 'src/common/exceptions/app.exception';
+import { AppException, RemoteServiceError, ConfigurationException } from 'src/common/exceptions/app.exception';
 import { CommonLogger } from 'src/common/logger/common.logger';
 
 /**
@@ -68,10 +64,7 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
       const httpErr = exception;
       status = httpErr.getStatus();
       const responseBody = httpErr.getResponse();
-      message =
-        typeof responseBody === 'string'
-          ? responseBody
-          : (responseBody as any).message || httpErr.message;
+      message = typeof responseBody === 'string' ? responseBody : (responseBody as any).message || httpErr.message;
 
       CommonLogger.warn(
         'GlobalExceptionFilter',

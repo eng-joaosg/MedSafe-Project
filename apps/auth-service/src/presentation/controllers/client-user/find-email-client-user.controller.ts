@@ -5,7 +5,7 @@ import { RequestContextService } from 'src/common/request-context/request-contex
 import { ApiTags, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('Auth - Client User')
-@Controller('auth/client-user/find-email')
+@Controller('client-user/find-email')
 export class FindEmailClientUserController {
   constructor(
     private readonly findEmailUsecase: FindEmailClientUserUsecase,

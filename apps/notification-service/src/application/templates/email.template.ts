@@ -1,8 +1,8 @@
 import { AppLinks } from '../../common/constants/urls.contants';
 
 export class EmailTemplates {
-  static verificationEmail(name: string, code: string): string {
-    const verifyUrl = `${AppLinks.VERIFY_EMAIL}?code=${code}`;
+  static verificationEmail(name: string, email: string, code: string): string {
+    const verifyUrl = `${AppLinks.VERIFY_EMAIL}/${encodeURIComponent(email)}`;
 
     return `
     <div style="font-family: Arial, sans-serif; padding: 20px;">
@@ -11,7 +11,7 @@ export class EmailTemplates {
 
       <h3 style="color: #2e6c80;">${code}</h3>
 
-      <p>Clieque no botão abaixo para validar seu e-mail:</p>
+      <p>Clique no botão abaixo para validar seu e-mail:</p>
 
       <a href="${verifyUrl}" 
          style="

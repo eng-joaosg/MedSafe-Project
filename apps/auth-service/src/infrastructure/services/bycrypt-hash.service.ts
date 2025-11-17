@@ -2,22 +2,23 @@ import { Injectable, InternalServerErrorException, BadRequestException } from '@
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { IHashService } from 'src/domain/services/i-hash.service';
+import { CommonLogger } from 'src/common/logger/common.logger';
 
 @Injectable()
 export class BcryptHashService implements IHashService {
   private readonly saltRounds: number;
+  private readonly serviceName = 'BcryptHashService';
 
   constructor(private readonly configService: ConfigService) {
     const raw = this.configService.get<string | number>('HASH_SALT_ROUNDS');
     const rounds = typeof raw === 'string' ? parseInt(raw, 10) : (raw as number);
     this.saltRounds = Number.isFinite(rounds) ? rounds : 10;
 
-    console.log(`[BcryptHashService] saltRounds do config:`, raw, '=> usado:', this.saltRounds);
-
     if (this.saltRounds < 10) {
       throw new InternalServerErrorException('HASH_SALT_ROUNDS deve ser pelo menos 10.');
     }
   }
+
   private validarSenha(senha: string) {
     if (!senha) {
       throw new BadRequestException('A senha não pode ser vazia.');
@@ -43,12 +44,12 @@ export class BcryptHashService implements IHashService {
     try {
       this.validarSenha(data);
 
-      console.log('[BcryptHashService] gerando hash para a senha, comprimento:', data?.length);
+      CommonLogger.info(this.serviceName, 'hash', `Gerando hash para a senha, comprimento: ${data?.length}`);
       const hash = await bcrypt.hash(data, this.saltRounds);
-      console.log('[BcryptHashService] hash gerado (len):', hash.length);
+      CommonLogger.info(this.serviceName, 'hash', `Hash gerado (len): ${hash.length}`);
       return hash;
     } catch (error) {
-      console.error('[BcryptHashService] erro ao gerar hash:', error);
+      CommonLogger.error(this.serviceName, 'hash', 'Erro ao gerar hash', error);
       throw new InternalServerErrorException('Falha ao gerar o hash da senha. ' + (error?.message ?? ''));
     }
   }
@@ -57,7 +58,7 @@ export class BcryptHashService implements IHashService {
     try {
       return await bcrypt.compare(data, encrypted);
     } catch (error) {
-      console.error('[BcryptHashService] erro ao comparar senha:', error);
+      CommonLogger.error(this.serviceName, 'compare', 'Erro ao comparar senha', error);
       return false;
     }
   }
