@@ -21,21 +21,6 @@ Resources:
         S3Bucket: !Ref DeploymentBucket
         S3Key: !Ref S3Key
 
-      Environment:
-        Variables:
-          NODE_ENV: production
-          DYNAMO_TABLE_NAME: MedSafe-Events
-          KINGHOST_API_BASE_URL: https://api.kinghost.net/v1/emails
-          KINGHOST_API_TOKEN: demo-token-123456
-          KINGHOST_API_USER: no-reply@medsafe.com
-          KINGHOST_SMTP_HOST: smtp.kinghost.net
-          KINGHOST_SMTP_PORT: "587"
-          KINGHOST_SMTP_USER: smtp-user@medsafe.com
-          KINGHOST_SMTP_PASS: demo-smtp-pass-123
-          KINGHOST_SMTP_FROM: MedSafe Notifications <no-reply@medsafe.com>
-          SQS_QUEUE_URL: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
-          SQS_QUEUE_NAME: medsafe-auth-to-notification
-
   NotificationSQSTrigger:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
