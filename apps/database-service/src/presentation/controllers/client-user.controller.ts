@@ -12,6 +12,7 @@ import {
   BadRequestException,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiResponse, ApiTags, ApiBody, ApiOperation } from '@nestjs/swagger';
 import { ParseUUIDPipe } from '@nestjs/common';
@@ -20,22 +21,23 @@ import { ClientUserService } from 'src/application/services/client-user.service'
 import { ClientUserModel } from 'src/application/models/client-user.model';
 import { UserNotFoundException } from 'src/common/exceptions/app.exceptions';
 
-@ApiTags('client-user/auth')
-@Controller('client-user/auth')
+@ApiTags('client-user')
+@Controller('client-user')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 @UseGuards(ApiKeyGuardForAuthService)
 export class ClientUserAuthController {
-  constructor(private readonly patientAuthService: ClientUserService) {}
+  constructor(private readonly clientUserService: ClientUserService) {}
 
-  @Get('find-email/:email')
+  @Get('find-email')
   @ApiOperation({ summary: 'Verifica se um email está cadastrado (retorna true/false).' })
-  @ApiResponse({
-    status: 200,
-    description: 'Retorna true se o email já está cadastrado, false se pode ser usado.',
-  })
+  @ApiResponse({ status: 200, description: 'Retorna true se o email já está cadastrado, false se pode ser usado.' })
+  @ApiResponse({ status: 400, description: 'E-mail inválido.' })
   @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
-  async findByEmail(@Param('email') email: string): Promise<boolean> {
-    return await this.patientAuthService.findEmail(email);
+  async findByEmail(@Query('email') email: string): Promise<boolean> {
+    if (!email || !email.includes('@')) {
+      throw new BadRequestException('E-mail inválido');
+    }
+    return await this.clientUserService.findEmail(email);
   }
 
   @Post()
@@ -46,7 +48,7 @@ export class ClientUserAuthController {
   @ApiResponse({ status: 400, description: 'Payload inválido.' })
   @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
   async createClientUser(@Body() payload: ClientUserModel): Promise<ClientUserModel> {
-    return this.patientAuthService.save(payload);
+    return this.clientUserService.save(payload);
   }
 
   @Patch(':id')
@@ -70,7 +72,7 @@ export class ClientUserAuthController {
     if (id !== payload.id) {
       throw new BadRequestException('O ID na URL deve ser igual ao ID do corpo da requisição.');
     }
-    return this.patientAuthService.save(payload);
+    return this.clientUserService.save(payload);
   }
 
   @Get(':id')
@@ -83,7 +85,7 @@ export class ClientUserAuthController {
   @ApiResponse({ status: 404, description: 'Paciente não encontrado.' })
   @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
   async findClientUserById(@Param('id', ParseUUIDPipe) id: string): Promise<ClientUserModel> {
-    const user = await this.patientAuthService.getById(id);
+    const user = await this.clientUserService.getById(id);
     if (!user) {
       throw new UserNotFoundException(`ClientUser com ID ${id} não encontrado.`);
     }
@@ -100,7 +102,7 @@ export class ClientUserAuthController {
   @ApiResponse({ status: 404, description: 'Paciente não encontrado.' })
   @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
   async findClientUserByEmail(@Param('email') email: string): Promise<ClientUserModel> {
-    const user = await this.patientAuthService.getByEmail(email);
+    const user = await this.clientUserService.getByEmail(email);
     if (!user) {
       throw new UserNotFoundException(`ClientUser com email ${email} não encontrado.`);
     }
@@ -113,10 +115,10 @@ export class ClientUserAuthController {
   @ApiResponse({ status: 404, description: 'Paciente não encontrado.' })
   @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
   async deleteClientUserAuth(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    const user = await this.patientAuthService.getById(id);
+    const user = await this.clientUserService.getById(id);
     if (!user) {
       throw new UserNotFoundException(`ClientUser com ID ${id} não encontrado.`);
     }
-    await this.patientAuthService.deleteById(id);
+    await this.clientUserService.deleteById(id);
   }
 }

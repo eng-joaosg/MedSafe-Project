@@ -13,7 +13,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: medsafe-notification-service
-      Handler: lambda.handler
+      Handler: dist/lambda.handler
       Runtime: nodejs20.x
       Role: arn:aws:iam::326993352985:role/MedSafe-NotificationService
 

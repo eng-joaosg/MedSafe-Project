@@ -1,10 +1,10 @@
-import { Controller, Get, Param, Headers, UseGuards, Post, Body, HttpCode, HttpStatus, HttpException } from '@nestjs/common';
+import { Controller, Get, Param, Headers, UseGuards, Post, Body, HttpCode, HttpStatus, HttpException, Query } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map, Observable } from 'rxjs';
 import { ServicesConfig } from './service-config';
-import { JwtAuthGuard, Public } from 'src/auth/jwt-auth.guard';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CommonLoggerGateway } from 'src/common/common.logger';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RegisterClientUserDto } from 'src/dtos/register-client-user.dto';
 
 @ApiTags('Gateway')
@@ -24,38 +24,16 @@ export class GatewayController {
     return headers;
   }
 
-  // -------------------------------------------------------
-  // Rotas protegidas
-  // -------------------------------------------------------
-  @UseGuards(JwtAuthGuard)
-  @Get('users/:id')
-  @ApiOperation({ summary: 'Retorna um usuário pelo ID' })
-  @ApiParam({ name: 'id', description: 'ID do usuário', type: String })
-  @ApiResponse({ status: 200, description: 'Usuário encontrado' })
-  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async getUserById(@Param('id') id: string, @Headers('x-request-id') requestId: string): Promise<string> {
-    CommonLoggerGateway.logStart('Gateway', 'GET_USER', id, requestId);
-
-    const observable$: Observable<string> = this.httpService
-      .get(`${this.servicesConfig.authServiceUrl}/users/${id}`, {
-        headers: this.getAuthHeaders('AUTH_SERVICE', requestId),
-      })
-      .pipe(map((res) => res.data));
-
-    return await lastValueFrom(observable$);
-  }
-
-  // -------------------------------------------------------
+  // -----------------------
   // Rotas públicas
-  // -------------------------------------------------------
-  @Public()
-  @Get('find-email/:email')
+  // -----------------------
+  @Get('client-user/find-email')
   @ApiOperation({ summary: 'Verifica se o e-mail já está cadastrado' })
-  @ApiParam({ name: 'email', description: 'E-mail a ser verificado', type: String })
   @ApiResponse({ status: 200, description: 'true = e-mail existe, false = não existe', type: Boolean })
+  @ApiResponse({ status: 400, description: 'Email não fornecido' })
   @ApiResponse({ status: 500, description: 'Erro interno' })
-  async findEmail(@Param('email') email: string, @Headers('x-request-id') requestId: string): Promise<boolean> {
+  async findEmail(@Query('email') email: string, @Headers('x-request-id') requestId: string): Promise<boolean> {
+    if (!email) throw new HttpException('Email não fornecido', HttpStatus.BAD_REQUEST);
     CommonLoggerGateway.logStart('Gateway', 'FIND_EMAIL', email, requestId);
     const observable$: Observable<{ emailAlreadyExists: boolean }> = this.httpService
       .get(`${this.servicesConfig.authServiceUrl}/client-user/find-email`, {
@@ -68,8 +46,7 @@ export class GatewayController {
     return response.emailAlreadyExists;
   }
 
-  @Public()
-  @Post('register')
+  @Post('client-user/register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterClientUserDto, @Headers('x-request-id') requestId: string) {
     CommonLoggerGateway.logStart('Gateway', 'REGISTER', dto.email, requestId);
@@ -91,5 +68,26 @@ export class GatewayController {
         throw new HttpException('Erro interno do servidor', HttpStatus.INTERNAL_SERVER_ERROR);
       }
     }
+  }
+
+  // -----------------------
+  // Rotas protegidas
+  // -----------------------
+  @UseGuards(JwtAuthGuard)
+  @Get('client-user/:id')
+  @ApiOperation({ summary: 'Retorna um usuário pelo ID' })
+  @ApiResponse({ status: 200, description: 'Usuário encontrado' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  async getUserById(@Param('id') id: string, @Headers('x-request-id') requestId: string): Promise<string> {
+    CommonLoggerGateway.logStart('Gateway', 'GET_USER', id, requestId);
+
+    const observable$: Observable<string> = this.httpService
+      .get(`${this.servicesConfig.authServiceUrl}/client-user/${id}`, {
+        headers: this.getAuthHeaders('AUTH_SERVICE', requestId),
+      })
+      .pipe(map((res) => res.data));
+
+    return await lastValueFrom(observable$);
   }
 }

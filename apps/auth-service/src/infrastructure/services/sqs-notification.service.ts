@@ -40,7 +40,6 @@ export class SqsNotificationService implements INotificationService {
         verificationCode: code,
       },
     };
-
     await this.gateway.publish(message);
   }
 

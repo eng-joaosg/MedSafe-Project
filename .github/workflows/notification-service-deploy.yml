@@ -26,8 +26,16 @@ jobs:
         working-directory: apps/notification-service
         run: npm run build
 
+      - name: Prepare Lambda package
+        working-directory: apps/notification-service
+        run: |
+          mkdir -p lambda-package
+          cp -r dist lambda-package/
+          cp package.json lambda-package/
+          cp -r node_modules lambda-package/
+
       - name: Zip Lambda code
-        working-directory: apps/notification-service/dist
+        working-directory: apps/notification-service/lambda-package
         run: zip -r ../notification-service.zip .
 
       - name: Configure AWS Credentials

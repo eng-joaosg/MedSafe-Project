@@ -5,14 +5,14 @@ import { RequestContextService } from 'src/common/request-context/request-contex
 import { ApiTags, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('Auth - Client User')
-@Controller('client-user/find-email')
+@Controller('client-user')
 export class FindEmailClientUserController {
   constructor(
     private readonly findEmailUsecase: FindEmailClientUserUsecase,
     private readonly requestContext: RequestContextService,
   ) {}
 
-  @Get()
+  @Get('find-email')
   @ApiOperation({
     summary: 'Verifica se o e-mail do client user está disponível',
     description: 'Retorna se o e-mail já está cadastrado no sistema. Se o e-mail não for válido, retorna 400.',

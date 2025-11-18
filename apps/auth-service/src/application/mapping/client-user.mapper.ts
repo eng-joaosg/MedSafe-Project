@@ -23,15 +23,15 @@ export class ClientUserMapper implements IClientUserMapper {
     return new ClientUser(
       dto.id,
       dto.email,
-      dto.passwordHash,
-      dto.clinicalInfoId,
-      dto.firstName,
-      dto.lastName,
-      dto.isActive,
-      dto.verificationCode,
-      dto.codeExpiresAt,
-      dto.createdAt,
-      dto.updatedAt,
+      dto.password_hash,
+      dto.clinical_info_id,
+      dto.first_name,
+      dto.last_name,
+      dto.is_active,
+      dto.verification_code,
+      dto.code_expires_at,
+      dto.created_at,
+      dto.updated_at,
     );
   }
   public registerDtoToEntity(dto: RegisterClientUserDto, id: string, passwordHash: string, verificationCode: string, codeExpiresAt: Date) {

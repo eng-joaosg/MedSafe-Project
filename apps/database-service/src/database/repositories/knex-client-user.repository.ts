@@ -20,6 +20,7 @@ export class KnexClientUserRepository implements IClientUserRepository {
       throw new DatabaseOperationException(`Erro de conexão ao buscar ClientUser por ID: ${id}`, error);
     }
   }
+
   async getByEmail(email: string): Promise<ClientUserModel | null> {
     try {
       const row = await this.knex(TABLES.CLIENT_USER).where({ email }).first();
@@ -28,13 +29,21 @@ export class KnexClientUserRepository implements IClientUserRepository {
       throw new DatabaseOperationException(`Erro de conexão ao buscar ClientUser por email: ${email}`, error);
     }
   }
+
   async save(model: ClientUserModel): Promise<ClientUserModel> {
     try {
       const existing = await this.knex(TABLES.CLIENT_USER).where({ id: model.id }).first();
 
       const data = {
-        name: model.first_name,
+        id: model.id,
         email: model.email,
+        password_hash: model.password_hash,
+        is_active: model.is_active,
+        first_name: model.first_name,
+        last_name: model.last_name,
+        verification_code: model.verification_code,
+        code_expires_at: model.code_expires_at,
+        clinical_info_id: model.clinical_info_id,
         updated_at: this.knex.fn.now(),
       };
 
@@ -44,7 +53,7 @@ export class KnexClientUserRepository implements IClientUserRepository {
         [row] = await this.knex(TABLES.CLIENT_USER).where({ id: model.id }).update(data).returning('*');
       } else {
         [row] = await this.knex(TABLES.CLIENT_USER)
-          .insert({ ...data, id: model.id, created_at: this.knex.fn.now() })
+          .insert({ ...data, created_at: this.knex.fn.now() })
           .returning('*');
       }
 
@@ -53,6 +62,7 @@ export class KnexClientUserRepository implements IClientUserRepository {
       throw new DatabaseOperationException(`Erro de conexão ao salvar ClientUser: ${model.id}`, error);
     }
   }
+
   async deleteById(id: string): Promise<void> {
     try {
       await this.knex(TABLES.CLIENT_USER).where({ id }).delete();

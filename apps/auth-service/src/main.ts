@@ -19,9 +19,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   const env = configService.get<string>('NODE_ENV');
-  if (env !== 'DEV') return;
+  if (env !== 'development') return;
 
-  const port = configService.get<number>('PORT') || 3003;
+  const port = configService.get<number>('PORT') || 3002;
   const apiVersion = configService.get<string>('API_VERSION') || '1.0';
   const allowedOrigins = configService.get<string>('CORS_ALLOWED_ORIGINS')?.split(',') || [];
 

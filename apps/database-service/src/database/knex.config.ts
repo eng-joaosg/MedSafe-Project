@@ -14,7 +14,7 @@ export default (configService: ConfigService): Knex.Config => {
     connection: {
       host: configService.get<string>('DB_HOST', 'localhost'),
       port: Number(configService.get<string>('DB_PORT', '5432')),
-      user: configService.get<string>('DB_USER', 'postgres'),
+      user: configService.get<string>('DB_USERNAME', 'postgres'),
       password: configService.get<string>('DB_PASSWORD', 'postgres'),
       database: configService.get<string>('DB_NAME', 'medsafe'),
       ssl: isProduction ? { rejectUnauthorized: false } : false,

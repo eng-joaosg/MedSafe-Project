@@ -10,11 +10,11 @@ export class DatabaseServiceUrls {
   }
 
   public clientUser = {
-    getByEmail: (email: string) => `${this.base}/client-user/auth/email/${email}`,
-    getById: (id: string) => `${this.base}/client-user/auth/id/${id}`,
-    findEmail: (email: string) => `${this.base}/client-user/auth/find-email/${email}`,
-    create: () => `${this.base}/client-user/auth`,
-    save: (userId: string) => `${this.base}/client-user/auth/${userId}`,
+    getByEmail: (email: string) => `${this.base}/client-user/email/${email}`,
+    getById: (id: string) => `${this.base}/client-user/id/${id}`,
+    findEmail: (email: string) => `${this.base}/client-user/find-email?email=${email}`,
+    create: () => `${this.base}/client-user`,
+    save: (userId: string) => `${this.base}/client-user/${userId}`,
   };
 
   public medicalRecord = {

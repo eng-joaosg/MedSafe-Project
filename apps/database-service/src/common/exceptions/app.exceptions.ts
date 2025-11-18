@@ -85,9 +85,7 @@ export class RemoteServiceError extends Error {
 
 export class ExternalServiceException extends AppException {
   constructor(serviceName: string, details?: string) {
-    const message =
-      `Erro ao comunicar com serviço externo: ${serviceName}.` +
-      (details ? ` Detalhes: ${details}` : '');
+    const message = `Erro ao comunicar com serviço externo: ${serviceName}.` + (details ? ` Detalhes: ${details}` : '');
     super(message, HttpStatus.BAD_GATEWAY);
   }
 }

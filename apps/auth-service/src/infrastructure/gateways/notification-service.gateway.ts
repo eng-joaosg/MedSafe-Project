@@ -30,7 +30,6 @@ export class NotificationGateway implements OnModuleInit, INotificationGateway {
     });
 
     this.queueUrl = queueUrl;
-    CommonLogger.info('NotificationGateway', 'INIT', 'SQSClient inicializado com sucesso');
   }
 
   async publish(message: Record<string, any>): Promise<void> {

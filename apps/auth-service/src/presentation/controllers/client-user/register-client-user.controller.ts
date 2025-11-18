@@ -7,11 +7,11 @@ import { RegisterClientUserUsecase } from 'src/application/usecases/client-user/
 import { CommonLogger } from 'src/common/logger/common.logger';
 
 @ApiTags('Auth - Client User')
-@Controller('register/client-user')
+@Controller('client-user')
 export class RegisterClientUserController {
   constructor(private readonly registerClientUserUseCase: RegisterClientUserUsecase) {}
 
-  @Post()
+  @Post('register')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Registra um novo client user',

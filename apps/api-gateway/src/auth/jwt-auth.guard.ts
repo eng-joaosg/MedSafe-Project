@@ -1,11 +1,8 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, SetMetadata } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { TokenPayload } from './token-payload';
-
-export const IS_PUBLIC_KEY = 'isPublic';
-export const Public = (): MethodDecorator & ClassDecorator => SetMetadata(IS_PUBLIC_KEY, true);
 
 function isJwtPayload(decoded: unknown): decoded is TokenPayload {
   if (typeof decoded !== 'object' || decoded === null) return false;
@@ -30,9 +27,6 @@ export class JwtAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request: Request = context.switchToHttp().getRequest<Request>();
-
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [context.getHandler(), context.getClass()]);
-    if (isPublic) return true;
 
     const authHeader: string = request.headers['authorization'] ?? '';
     const [type, token] = authHeader.split(' ');

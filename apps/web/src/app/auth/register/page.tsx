@@ -7,10 +7,10 @@ import { findEmail, register } from "@/lib/api";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
-  const [nome, setNome] = useState("");
-  const [sobrenome, setSobrenome] = useState("");
-  const [senha, setSenha] = useState("");
-  const [confirmSenha, setConfirmSenha] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [canProceed, setCanProceed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,10 +18,10 @@ export default function RegisterPage() {
 
   const [registered, setRegistered] = useState(false);
 
-  const senhaConfere =
-    senha.length > 0 &&
-    confirmSenha.length > 0 &&
-    senha === confirmSenha;
+  const passwordMatches =
+    password.length > 0 &&
+    confirmPassword.length > 0 &&
+    password === confirmPassword;
 
   useEffect(() => {
     if (!message) return;
@@ -54,17 +54,17 @@ export default function RegisterPage() {
     setLoading(false);
   }
 
-  // 🟢 REGISTRAR
+  // 🟢 REGISTER
   async function handleRegister() {
-    if (!senhaConfere) return;
+    if (!passwordMatches) return;
 
     setLoading(true);
     try {
       await register({
         email,
-        nome,
-        sobrenome,
-        senha,
+        firstName,
+        lastName,
+        password,
       });
 
       setRegistered(true); // <-- MUDA PARA TELA DE SUCESSO
@@ -75,7 +75,7 @@ export default function RegisterPage() {
     setLoading(false);
   }
 
-  // 🟢 TELA DE SUCESSO APÓS REGISTRO (SEM BOTÃO)
+  // 🟢 SUCCESS SCREEN AFTER REGISTER (NO BUTTON)
   if (registered) {
     return (
       <div className="flex flex-col min-h-screen items-center pt-20 px-6 text-center">
@@ -83,20 +83,20 @@ export default function RegisterPage() {
           Verifique seu e-mail 📩
         </h2>
 
-        <p className="text-sm text-gray-600 max-w-sm">
+        <p className="text-sm max-w-sm">
           Enviamos um e-mail com o código de verificação para:
         </p>
 
         <p className="text-sm font-medium mt-1">{email}</p>
 
-        <p className="text-xs text-gray-500 mt-4">
+        <p className="text-xs mt-4">
           Caso não encontre, verifique sua caixa de spam.
         </p>
       </div>
     );
   }
 
-  // 🟢 FORMULARIO NORMAL
+  // 🟢 NORMAL FORM
   return (
     <div className="flex flex-col min-h-screen items-center pt-6 px-4 w-full">
       <div className="h-6 flex justify-center items-center mb-2">
@@ -108,27 +108,27 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <Input fieldName="E-mail" value={email} onChange={setEmail} />
 
-        {/* Campos extras */}
+        {/* Extra fields */}
         <div
           className={`
             transition-all duration-300 ease-in-out overflow-hidden
             ${canProceed ? "mt-4 max-h-[1000px] opacity-100" : "max-h-0 opacity-0"}
           `}
         >
-          <Input fieldName="Nome" value={nome} onChange={setNome} />
-          <Input fieldName="Sobrenome" value={sobrenome} onChange={setSobrenome} />
-          <Input fieldName="Senha" value={senha} onChange={setSenha} />
+          <Input fieldName="Nome" value={firstName} onChange={setFirstName} />
+          <Input fieldName="Sobrenome" value={lastName} onChange={setLastName} />
+          <Input fieldName="Senha" value={password} onChange={setPassword} />
 
-          {/* confirmar senha */}
+          {/* confirm password */}
           <div className="mt-2">
             <Input
               fieldName="Confirmar Senha"
-              value={confirmSenha}
-              onChange={setConfirmSenha}
-              className={!senhaConfere && confirmSenha ? "border-red-500" : ""}
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              className={!passwordMatches && confirmPassword ? "border-red-500" : ""}
             />
 
-            {!senhaConfere && confirmSenha && (
+            {!passwordMatches && confirmPassword && (
               <p className="text-red-500 text-xs mt-1 animate-fade">
                 As senhas não coincidem.
               </p>
@@ -152,7 +152,7 @@ export default function RegisterPage() {
             disabled={
               loading ||
               (!canProceed && (!email.trim() || !isValidEmail(email))) ||
-              (canProceed && !senhaConfere)
+              (canProceed && !passwordMatches)
             }
           />
         </div>
