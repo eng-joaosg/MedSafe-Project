@@ -40,6 +40,10 @@ export class SqsNotificationService implements INotificationService {
         verificationCode: code,
       },
     };
+    //if (process.env.NODE_ENV === 'development') {
+    //  console.log(message);
+    //  return;
+    //}
     await this.gateway.publish(message);
   }
 

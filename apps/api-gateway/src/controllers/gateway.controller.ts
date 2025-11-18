@@ -6,6 +6,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CommonLoggerGateway } from 'src/common/common.logger';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RegisterClientUserDto } from 'src/dtos/register-client-user.dto';
+import { VerifyClientUserUserDto } from 'src/dtos/verify-client-user.dto';
 
 @ApiTags('Gateway')
 @Controller('gateway')
@@ -67,6 +68,42 @@ export class GatewayController {
       } else {
         throw new HttpException('Erro interno do servidor', HttpStatus.INTERNAL_SERVER_ERROR);
       }
+    }
+  }
+
+  @Post('client-user/verify-account')
+  @ApiOperation({ summary: 'Verifica o código de ativação da conta' })
+  @ApiResponse({ status: 200, description: 'Conta verificada com sucesso' })
+  @ApiResponse({ status: 400, description: 'E-mail ou código inválido' })
+  @ApiResponse({ status: 404, description: 'Conta não encontrada' })
+  @ApiResponse({ status: 409, description: 'Código incorreto ou expirado' })
+  @ApiResponse({ status: 500, description: 'Erro interno' })
+  async verifyAccount(@Body() verifyClientUserDto: VerifyClientUserUserDto, @Headers('x-request-id') requestId: string): Promise<void> {
+    CommonLoggerGateway.logStart('Gateway', 'VERIFY_ACCOUNT', verifyClientUserDto.email, requestId);
+
+    try {
+      const observable$ = this.httpService.post(`${this.servicesConfig.authServiceUrl}/client-user/verify-account`, verifyClientUserDto, {
+        headers: this.getAuthHeaders('AUTH_SERVICE', requestId),
+      });
+
+      await lastValueFrom(observable$);
+      return;
+    } catch (err: any) {
+      const status = err.response?.status;
+
+      if (status === 400) {
+        throw new HttpException('Código inválido', HttpStatus.BAD_REQUEST);
+      }
+
+      if (status === 404) {
+        throw new HttpException('Conta não encontrada', HttpStatus.NOT_FOUND);
+      }
+
+      if (status === 409) {
+        throw new HttpException('Código incorreto ou expirado', HttpStatus.CONFLICT);
+      }
+
+      throw new HttpException('Erro interno', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

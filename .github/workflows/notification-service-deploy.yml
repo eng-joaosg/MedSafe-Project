@@ -22,6 +22,10 @@ jobs:
         working-directory: apps/notification-service
         run: npm ci
 
+      - name: Run tests
+        working-directory: apps/notification-service
+        run: npm test
+
       - name: Build Notification Service
         working-directory: apps/notification-service
         run: npm run build

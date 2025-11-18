@@ -1,54 +1,88 @@
-import { NestFactory, HttpAdapterHost } from '@nestjs/core';
+// src/index.ts
+import { NestFactory } from '@nestjs/core';
+import { INestApplicationContext } from '@nestjs/common';
 import { AppModule } from './app.module';
-import serverlessExpress from '@vendia/serverless-express';
-import { Handler, APIGatewayProxyEvent, APIGatewayProxyResult, Context, Callback } from 'aws-lambda';
+import { FindEmailClientUserHandler } from './presentation/handlers/client-user/find-email-client-user.handler';
+import { RegisterClientUserHandler } from './presentation/handlers/client-user/register-client-user.handler';
+import { FindEmailPayload, RegisterClientUserPayload } from './presentation/handlers/client-user/types';
 import { ConfigService } from '@nestjs/config';
-import { ValidationPipe } from '@nestjs/common';
-import { TimingInterceptor } from './presentation/interceptors/timming.interceptor';
-import { ApiKeyGuard } from './presentation/guards/api-key.guard';
-import { RequestIdMiddleware } from './presentation/middleware/request-id.middleware';
 import { CommonLogger } from './common/logger/common.logger';
-import { RequestContextService } from './common/request-context/request-context.service';
-import { GlobalExceptionFilter } from './presentation/filters/global-exception.filter';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
-let cachedServer: Handler;
+let app: INestApplicationContext | null = null;
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  const requestContext = app.get(RequestContextService);
-  CommonLogger.setRequestContext(requestContext);
-  app.use(new RequestIdMiddleware(requestContext).use);
-
-  const configService = app.get(ConfigService);
-  const env = configService.get<string>('NODE_ENV');
-  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }));
-  app.useGlobalInterceptors(new TimingInterceptor());
-  const { httpAdapter } = app.get(HttpAdapterHost);
-  app.useGlobalFilters(new GlobalExceptionFilter(httpAdapter));
-  app.useGlobalGuards(new ApiKeyGuard(configService));
-
-  if (env === 'DEV') {
-    const apiVersion = configService.get<string>('API_VERSION') || '1.0';
-    const swaggerConfig = new DocumentBuilder()
-      .setTitle('MedSafe - Auth Service API')
-      .setDescription('API de Autenticação e Gestão de Identidade do Sistema MedSafe.')
-      .setVersion(apiVersion)
-      .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header', description: 'Chave de autenticação do serviço' }, 'api-key')
-      .build();
-    const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('api/docs', app, document);
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  if (!app) {
+    app = await NestFactory.createApplicationContext(AppModule);
   }
 
-  await app.init();
-  return serverlessExpress({ app: app.getHttpAdapter().getInstance() });
-}
-
-export const handler: Handler = async (event: APIGatewayProxyEvent, context: Context, callback: Callback<APIGatewayProxyResult>) => {
-  if (!cachedServer) {
-    cachedServer = await bootstrap();
+  const configService = app.get<ConfigService>(ConfigService);
+  const requestId = event.requestContext?.requestId;
+  const requiredKey = configService.get<string>('AUTH_SERVICE_API_KEY');
+  const incomingKey = event.headers?.['x-api-key'];
+  if (!requiredKey || requiredKey !== incomingKey) {
+    CommonLogger.warn('Auth', 'INVALID_API_KEY', `[${requestId}] API Key inválida`);
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: 'Chave de API inválida ou ausente', requestId }),
+    };
   }
 
-  return cachedServer(event, context, callback);
+  // 🔎 Parse do body
+  let payload: FindEmailPayload | RegisterClientUserPayload;
+  try {
+    payload = event.body ? JSON.parse(event.body) : ({} as any);
+  } catch {
+    CommonLogger.error('Payload', 'INVALID_JSON', `[${requestId}] JSON parse error`);
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'Payload inválido', requestId }),
+    };
+  }
+
+  const action: string = (payload as any).action ?? 'unknown';
+  const start = Date.now();
+
+  try {
+    if (action === 'findEmailClientUser') {
+      const handlerInstance = app.get<FindEmailClientUserHandler>(FindEmailClientUserHandler);
+      const result = await withTimeout(handlerInstance.execute(payload as FindEmailPayload), 7000);
+      logDuration(start, requestId, action);
+      return { statusCode: 200, body: JSON.stringify({ result, requestId }) };
+    }
+
+    if (action === 'registerClientUser') {
+      const handlerInstance = app.get<RegisterClientUserHandler>(RegisterClientUserHandler);
+      const result = await withTimeout(handlerInstance.execute(payload as RegisterClientUserPayload), 7000);
+      logDuration(start, requestId, action);
+      return { statusCode: 200, body: JSON.stringify({ result, requestId }) };
+    }
+
+    CommonLogger.warn('Action', 'UNKNOWN', `[${requestId}] ação desconhecida: ${action}`);
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'Unknown action', requestId }),
+    };
+  } catch (err) {
+    const duration = Date.now() - start;
+    CommonLogger.error('GlobalError', 'UNHANDLED', `[${requestId}] ${action} - ${duration}ms`, err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        statusCode: 500,
+        timestamp: new Date().toISOString(),
+        path: action,
+        message: err instanceof Error ? err.message : 'Erro desconhecido',
+        requestId,
+      }),
+    };
+  }
 };
+
+function logDuration(start: number, requestId: string | undefined, action: string) {
+  const duration = Date.now() - start;
+  CommonLogger.info('Timing', 'REQUEST_DURATION', `[${requestId}] ${action} - ${duration}ms`);
+}
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout de ${ms}ms`)), ms))]);
+}

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ClientUserApplicationModule } from 'src/application/modules/client-user-application.module';
-import { FindEmailClientUserController } from '../controllers/client-user/find-email-client-user.controller';
-import { RegisterClientUserController } from '../controllers/client-user/register-client-user.controller';
+import { FindEmailClientUserHandler } from '../handlers/client-user/find-email-client-user.handler';
+import { RegisterClientUserHandler } from '../handlers/client-user/register-client-user.handler';
 
 @Module({
   imports: [ClientUserApplicationModule],
-  controllers: [FindEmailClientUserController, RegisterClientUserController],
-  providers: [],
+  providers: [FindEmailClientUserHandler, RegisterClientUserHandler],
+  exports: [FindEmailClientUserHandler, RegisterClientUserHandler],
 })
 export class ClientUserModule {}

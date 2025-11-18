@@ -54,7 +54,6 @@ export default function RegisterPage() {
     setLoading(false);
   }
 
-  // 🟢 REGISTER
   async function handleRegister() {
     if (!passwordMatches) return;
 
@@ -67,7 +66,7 @@ export default function RegisterPage() {
         password,
       });
 
-      setRegistered(true); // <-- MUDA PARA TELA DE SUCESSO
+      setRegistered(true);
 
     } catch (err) {
       setMessage("Erro ao registrar. Tente novamente.");
@@ -75,10 +74,9 @@ export default function RegisterPage() {
     setLoading(false);
   }
 
-  // 🟢 SUCCESS SCREEN AFTER REGISTER (NO BUTTON)
   if (registered) {
     return (
-      <div className="flex flex-col min-h-screen items-center pt-20 px-6 text-center">
+      <div className="flex flex-col items-center pt-20 px-6 text-center">
         <h2 className="text-xl font-semibold mb-4">
           Verifique seu e-mail 📩
         </h2>
@@ -96,9 +94,8 @@ export default function RegisterPage() {
     );
   }
 
-  // 🟢 NORMAL FORM
   return (
-    <div className="flex flex-col min-h-screen items-center pt-6 px-4 w-full">
+    <div className="flex flex-col items-center pt-6 px-4 w-full">
       <div className="h-6 flex justify-center items-center mb-2">
         {message && (
           <span className="text-error text-sm animate-fade">{message}</span>
@@ -107,8 +104,6 @@ export default function RegisterPage() {
 
       <div className="w-full max-w-md">
         <Input fieldName="E-mail" value={email} onChange={setEmail} />
-
-        {/* Extra fields */}
         <div
           className={`
             transition-all duration-300 ease-in-out overflow-hidden
@@ -119,7 +114,6 @@ export default function RegisterPage() {
           <Input fieldName="Sobrenome" value={lastName} onChange={setLastName} />
           <Input fieldName="Senha" value={password} onChange={setPassword} />
 
-          {/* confirm password */}
           <div className="mt-2">
             <Input
               fieldName="Confirmar Senha"

@@ -1,50 +1,80 @@
 'use client';
 
 import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import ConfirmButton from "@/components/ConfirmButton";
-import { apiFetch } from "@/lib/api";
+import Input from "@/components/Input";
+import { verifyAccountCode } from "@/lib/api";
 
-type VerifyAccountEmailPageProps = {
-  params: { email: string };
-};
+export default function VerifyAccountEmailPage() {
+  const params = useParams();
+  const router = useRouter();
 
-export default function VerifyAccountEmailPage({ params }: VerifyAccountEmailPageProps) {
-  const { email } = params;
+  const emailParam = params.email;
+  if (!emailParam || Array.isArray(emailParam)) {
+    return (
+      <div className="flex flex-col items-center pt-20 px-6 w-full">
+        <p className="text-error">E-mail inválido na URL.</p>
+      </div>
+    );
+  }
+
+  const email = decodeURIComponent(emailParam);
+
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [loading, setLoading] = useState(false);
 
   async function handleVerify() {
     if (!code.trim()) return;
 
     setLoading(true);
+    setMessage("");
+    setMessageType("");
+
     try {
-      await apiFetch(`/auth/verify-code`, {
-        method: "POST",
-        body: JSON.stringify({ email, code }),
-      });
+      await verifyAccountCode(email, code);
 
       setMessage("Conta verificada com sucesso!");
+      setMessageType("success");
+
+      setTimeout(() => router.push("/auth/login"), 1500);
+
     } catch (err: any) {
-      setMessage("Código inválido ou expirado.");
+      setMessage(err.message || "Erro inesperado ao verificar código.");
+      setMessageType("error");
     }
+
     setLoading(false);
   }
 
   return (
-    <div className="flex flex-col min-h-screen items-center pt-20 px-6">
+    <div className="flex flex-col items-center pt-20 px-6">
       <h2 className="text-xl font-semibold mb-4">Verifique sua conta</h2>
-      <p className="text-sm text-gray-600 mb-4">Um código foi enviado para: <span className="font-medium">{email}</span></p>
 
-      <input
-        type="text"
-        placeholder="Digite o código"
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        className="border p-2 rounded w-full max-w-xs text-center"
-      />
+      <p className="text-sm mb-4 text-center">
+        Digite o código enviado para:{" "}
+        <span className="font-medium">{email}</span>
+      </p>
 
-      {message && <p className="text-sm text-center mt-2 text-red-500">{message}</p>}
+      <div className="w-full max-w-md">
+        <Input
+          fieldName="Código"
+          value={code}
+          onChange={(value) => setCode(value)}
+        />
+      </div>
+
+      {message && (
+        <p
+          className={`text-sm text-center mt-2 ${
+            messageType === "success" ? "text-success" : "text-error"
+          }`}
+        >
+          {message}
+        </p>
+      )}
 
       <div className="mt-4">
         <ConfirmButton
