@@ -6,6 +6,17 @@ Parameters:
     Type: String
   S3Key:
     Type: String
+    
+  KinghostApiToken:
+    Type: String
+    NoEcho: true
+  KinghostApiUser:
+    Type: String
+  KinghostSmtpUser:
+    Type: String
+  KinghostSmtpPass:
+    Type: String
+    NoEcho: true
 
 Resources:
 
@@ -20,6 +31,21 @@ Resources:
       Code:
         S3Bucket: !Ref DeploymentBucket
         S3Key: !Ref S3Key
+
+      Environment:
+        Variables:
+          NODE_ENV: production
+          DYNAMO_TABLE_NAME: MedSafe-Events
+          KINGHOST_API_BASE_URL: https://api.smtplw.com.br/v1/messages
+          KINGHOST_API_TOKEN: !Ref KinghostApiToken
+          KINGHOST_API_USER: !Ref KinghostApiUser
+          KINGHOST_SMTP_HOST: smtp.kinghost.net
+          KINGHOST_SMTP_PORT: "587"
+          KINGHOST_SMTP_USER: !Ref KinghostSmtpUser
+          KINGHOST_SMTP_PASS: !Ref KinghostSmtpPass
+          KINGHOST_SMTP_FROM: "Medsafe <medsafe@medsafe.goncdev.com.br>"
+          SQS_QUEUE_URL: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
+          SQS_QUEUE_NAME: medsafe-auth-to-notification
 
   NotificationSQSTrigger:
     Type: AWS::Lambda::EventSourceMapping

@@ -34,10 +34,6 @@ jobs:
           cp package.json lambda-package/
           cp -r node_modules lambda-package/
 
-      - name: List package contents
-        working-directory: apps/notification-service/lambda-package
-        run: ls -R
-
       - name: Zip Lambda code
         working-directory: apps/notification-service/lambda-package
         run: zip -r ../notification-service.zip .
@@ -61,8 +57,12 @@ jobs:
             --stack-name MedSafe-Notification-Stack \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
-                DeploymentBucket=medsafe-deploy-bucket \
-                S3Key=notification-service-${{ github.sha }}.zip \
+              DeploymentBucket=medsafe-deploy-bucket \
+              S3Key=notification-service-${{ github.sha }}.zip \
+              KinghostApiToken=${{ secrets.KINGHOST_API_TOKEN }} \
+              KinghostApiUser=${{ secrets.KINGHOST_API_USER }} \
+              KinghostSmtpUser=${{ secrets.KINGHOST_SMTP_USER }} \
+              KinghostSmtpPass=${{ secrets.KINGHOST_SMTP_PASS }} \
             --no-fail-on-empty-changeset
 
       - name: Debug CloudFormation failure
