@@ -18,29 +18,33 @@ export class KinghostMailerService implements IMailerService {
     const action = 'SEND_EMAIL_ATTEMPT';
 
     try {
-      await this.smtpMailer.sendEmail(to, subject, html);
-      CommonLogger.info(SERVICE_NAME, action, `E-mail enviado com sucesso para ${to} via SMTP.`);
+      // 1. Tentar enviar via API (MÉTODO PRINCIPAL)
+      await this.apiMailer.sendEmail(to, subject, html);
+      CommonLogger.info(SERVICE_NAME, action, `E-mail enviado com sucesso para ${to} via API.`);
       return;
-    } catch (smtpError: any) {
-      if (smtpError.response?.status === 400 && smtpError.response?.data?.code === 'INVALID_RECIPIENT') {
-        CommonLogger.error(SERVICE_NAME, action, `Falha fatal no SMTP (INVALID_RECIPIENT) para ${to}.`, smtpError as Error);
-        throw new EmailDeliveryException(to, smtpError as Error);
-      }
-
-      const smtpErrorMessage = `Falha ao enviar e-mail para ${to} via SMTP. Tentando fallback API. Erro: ${
-        smtpError instanceof Error ? smtpError.message : String(smtpError)
+    } catch (apiError) {
+      const apiErrorMessage = `Falha ao enviar e-mail para ${to} via API. Tentando fallback SMTP. Erro: ${
+        apiError instanceof Error ? apiError.message : String(apiError)
       }`;
 
-      CommonLogger.warn(SERVICE_NAME, action, smtpErrorMessage);
+      CommonLogger.warn(SERVICE_NAME, action, apiErrorMessage);
 
-      // fallback
+      // 2. Fallback para SMTP
       try {
-        await this.apiMailer.sendEmail(to, subject, html);
-        CommonLogger.info(SERVICE_NAME, action, `E-mail enviado com sucesso para ${to} via Fallback API.`);
+        await this.smtpMailer.sendEmail(to, subject, html);
+        CommonLogger.info(SERVICE_NAME, action, `E-mail enviado com sucesso para ${to} via Fallback SMTP.`);
         return;
-      } catch (apiError) {
-        CommonLogger.error(SERVICE_NAME, action, `Falha TOTAL ao enviar e-mail para ${to}. SMTP e API falharam.`, apiError as Error);
-        throw new EmailDeliveryException(to, apiError as Error);
+      } catch (smtpError: any) {
+        // 3. Falha Total: API e SMTP falharam
+        CommonLogger.error(SERVICE_NAME, action, `Falha TOTAL ao enviar e-mail para ${to}. API e SMTP falharam.`, smtpError as Error);
+
+        // Condição especial de erro do SMTP (lançamento imediato)
+        if (smtpError.response?.status === 400 && smtpError.response?.data?.code === 'INVALID_RECIPIENT') {
+          throw new EmailDeliveryException(to, smtpError as Error);
+        }
+
+        // Lançar exceção de falha na entrega, usando o último erro (SMTP)
+        throw new EmailDeliveryException(to, smtpError as Error);
       }
     }
   }
