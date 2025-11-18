@@ -39,7 +39,7 @@ Resources:
           KINGHOST_API_BASE_URL: https://api.smtplw.com.br/v1/messages
           KINGHOST_API_TOKEN: !Ref KinghostApiToken
           KINGHOST_API_USER: !Ref KinghostApiUser
-          KINGHOST_SMTP_HOST: smtp.kinghost.net
+          KINGHOST_SMTP_HOST: kinghost.smtpkl.com.br
           KINGHOST_SMTP_PORT: "587"
           KINGHOST_SMTP_USER: !Ref KinghostSmtpUser
           KINGHOST_SMTP_PASS: !Ref KinghostSmtpPass
