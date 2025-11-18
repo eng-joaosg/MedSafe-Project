@@ -9,28 +9,31 @@ export class IdempotencyStore implements IIdempotencyStore {
   private readonly isDev: boolean;
 
   constructor(
-    tableName?: string,
-    private readonly configService?: ConfigService,
+    tableName: string,
+    private readonly configService: ConfigService,
     private readonly clientOverride?: DynamoDBClient,
   ) {
-    this.isDev = process.env.NODE_ENV === 'DEV';
-    this.tableName = tableName?.trim() || process.env.DYNAMO_TABLE_NAME?.trim() || '';
+    this.isDev = this.configService.get<string>('NODE_ENV') === 'DEV';
+    this.tableName = tableName?.trim() || '';
 
     if (!this.tableName) {
-      throw new ConfigurationException('Table name must be defined');
+      throw new ConfigurationException('Table name must be defined by calling module (DYNAMO_TABLE_NAME is missing)');
     }
   }
 
   private get client(): DynamoDBClient | null {
     if (this.clientOverride) return this.clientOverride;
+
     if (this.isDev) return null;
     return new DynamoDBClient({
-      region: this.configService?.get<string>('AWS_REGION'),
+      region: this.configService.get<string>('AWS_REGION'),
     });
   }
 
   async check(id: string): Promise<boolean> {
     try {
+      if (this.isDev) return false;
+
       const result = await this.client!.send(
         new GetItemCommand({
           TableName: this.tableName,
@@ -48,6 +51,8 @@ export class IdempotencyStore implements IIdempotencyStore {
 
   async markProcessed(id: string, type: string, version: number, payload: any): Promise<void> {
     try {
+      if (this.isDev) return;
+
       await this.client!.send(
         new PutItemCommand({
           TableName: this.tableName,

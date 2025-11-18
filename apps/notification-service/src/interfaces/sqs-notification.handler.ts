@@ -29,11 +29,11 @@ export class NotificationHandler {
     private readonly passwordRecoveryUseCase: SendPasswordRecoveryEmailUseCase,
     private readonly publicDataAccessUseCase: SendPublicDataAccessAlertEmailUseCase,
   ) {
-    const tableName = this.configService.get<string>('IDEMPOTENCY_TABLE');
+    const tableName = this.configService.get<string>('DYNAMO_TABLE_NAME');
     if (!tableName) {
-      throw new Error('Variável de ambiente obrigatória ausente: IDEMPOTENCY_TABLE');
+      throw new Error('Variável de ambiente obrigatória ausente: DYNAMO_TABLE_NAME');
     }
-    this.idempotency = new IdempotencyStore(tableName);
+    this.idempotency = new IdempotencyStore(tableName, this.configService);
   }
 
   async handle(event: SQSEvent): Promise<SQSBatchResponse> {

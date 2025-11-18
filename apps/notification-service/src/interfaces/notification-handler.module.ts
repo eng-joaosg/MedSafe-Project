@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { NotificationModule } from '../infrastructure/modules/notification.module';
 import { NotificationHandler } from './sqs-notification.handler';
+import { NotificationModule } from 'src/infrastructure/modules/notification.module';
 
 @Module({
   imports: [NotificationModule],
