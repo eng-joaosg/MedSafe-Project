@@ -27,6 +27,7 @@ Resources:
       Handler: dist/lambda.handler
       Runtime: nodejs20.x
       Role: arn:aws:iam::326993352985:role/MedSafe-NotificationService
+      Timeout: 15
 
       Code:
         S3Bucket: !Ref DeploymentBucket

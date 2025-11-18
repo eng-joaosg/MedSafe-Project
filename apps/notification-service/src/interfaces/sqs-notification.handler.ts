@@ -41,40 +41,34 @@ export class NotificationHandler {
 
     await Promise.all(
       event.Records.map(async (record) => {
+        let msg: NotificationMessage | null = null;
         try {
-          const msg = JSON.parse(record.body) as NotificationMessage;
+          msg = JSON.parse(record.body) as NotificationMessage;
 
           if (await this.idempotency.check(msg.id)) {
             CommonLogger.info('NotificationHandler', 'SKIP_DUPLICATE', { id: msg.id, type: msg.type }, record.messageId);
             return;
           }
+          await this.idempotency.markProcessing(msg.id, msg.type, msg.version, msg.payload);
 
           switch (msg.type) {
-            case 'verification': {
-              const payload = msg.payload as VerificationEmailPayload;
-              await this.verificationUseCase.execute(payload);
+            case 'verification':
+              await this.verificationUseCase.execute(msg.payload as VerificationEmailPayload);
               break;
-            }
-            case 'account_created': {
-              const payload = msg.payload as AccountCreatedPayload;
-              await this.accountCreatedUseCase.execute(payload);
+            case 'account_created':
+              await this.accountCreatedUseCase.execute(msg.payload as AccountCreatedPayload);
               break;
-            }
-            case 'password_recovery': {
-              const payload = msg.payload as PasswordRecoveryPayload;
-              await this.passwordRecoveryUseCase.execute(payload);
+            case 'password_recovery':
+              await this.passwordRecoveryUseCase.execute(msg.payload as PasswordRecoveryPayload);
               break;
-            }
-            case 'public_data_access': {
-              const payload = msg.payload as PublicDataAccessPayload;
-              await this.publicDataAccessUseCase.execute(payload);
+            case 'public_data_access':
+              await this.publicDataAccessUseCase.execute(msg.payload as PublicDataAccessPayload);
               break;
-            }
             default:
               throw new Error(`Unknown notification type.`);
           }
 
-          await this.idempotency.markProcessed(msg.id, msg.type, msg.version, msg.payload);
+          await this.idempotency.markProcessed(msg.id);
 
           CommonLogger.info('NotificationHandler', 'SUCCESS', { id: msg.id, type: msg.type }, record.messageId);
         } catch (err: any) {

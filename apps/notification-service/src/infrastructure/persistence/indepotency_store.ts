@@ -1,4 +1,4 @@
-import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, PutItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { ConfigService } from '@nestjs/config';
 import { CommonLogger } from '../../common/logger/common.logger';
 import { IIdempotencyStore } from '../../domain/contracts/i-indepodency-store';
@@ -17,13 +17,12 @@ export class IdempotencyStore implements IIdempotencyStore {
     this.tableName = tableName?.trim() || '';
 
     if (!this.tableName) {
-      throw new ConfigurationException('Table name must be defined by calling module (DYNAMO_TABLE_NAME is missing)');
+      throw new ConfigurationException('Table name must be defined (DYNAMO_TABLE_NAME missing)');
     }
   }
 
   private get client(): DynamoDBClient | null {
     if (this.clientOverride) return this.clientOverride;
-
     if (this.isDev) return null;
     return new DynamoDBClient({
       region: this.configService.get<string>('AWS_REGION'),
@@ -31,45 +30,76 @@ export class IdempotencyStore implements IIdempotencyStore {
   }
 
   async check(id: string): Promise<boolean> {
-    try {
-      if (this.isDev) return false;
+    if (this.isDev) return false;
 
-      const result = await this.client!.send(
-        new GetItemCommand({
-          TableName: this.tableName,
-          Key: { id: { S: id } },
-        }),
-      );
-      const exists = !!result.Item;
-      CommonLogger.info('IdempotencyStore', 'check', `ID ${id} exists: ${exists}`, id);
-      return exists;
-    } catch (err) {
-      CommonLogger.error('IdempotencyStore', 'check', `Erro ao verificar id ${id}`, err, id);
-      throw err;
-    }
+    const result = await this.client!.send(
+      new GetItemCommand({
+        TableName: this.tableName,
+        Key: { id: { S: id } },
+      }),
+    );
+
+    if (!result.Item) return false;
+
+    const status = result.Item.status?.S;
+    const exists = status === 'processing' || status === 'processed';
+    CommonLogger.info('IdempotencyStore', 'check', `ID ${id} status=${status}`, id);
+    return exists;
   }
 
-  async markProcessed(id: string, type: string, version: number, payload: any): Promise<void> {
-    try {
-      if (this.isDev) return;
+  async markProcessing(id: string, type: string, version: number, payload: any): Promise<void> {
+    if (this.isDev) return;
 
-      await this.client!.send(
-        new PutItemCommand({
-          TableName: this.tableName,
-          Item: {
-            id: { S: id },
-            type: { S: type },
-            version: { N: version.toString() },
-            payload: { S: JSON.stringify(payload) },
-            processedAt: { S: new Date().toISOString() },
-          },
-          ConditionExpression: 'attribute_not_exists(id)',
-        }),
-      );
-      CommonLogger.info('IdempotencyStore', 'markProcessed', `ID ${id} marcado como processado`, id);
-    } catch (err) {
-      CommonLogger.error('IdempotencyStore', 'markProcessed', `Erro ao marcar id ${id} como processado`, err, id);
-      throw err;
-    }
+    await this.client!.send(
+      new PutItemCommand({
+        TableName: this.tableName,
+        Item: {
+          id: { S: id },
+          type: { S: type },
+          version: { N: version.toString() },
+          payload: { S: JSON.stringify(payload) },
+          status: { S: 'processing' },
+          updatedAt: { S: new Date().toISOString() },
+        },
+        ConditionExpression: 'attribute_not_exists(id)',
+      }),
+    );
+    CommonLogger.info('IdempotencyStore', 'markProcessing', `ID ${id} marcado como processing`, id);
+  }
+
+  async markProcessed(id: string): Promise<void> {
+    if (this.isDev) return;
+
+    await this.client!.send(
+      new UpdateItemCommand({
+        TableName: this.tableName,
+        Key: { id: { S: id } },
+        UpdateExpression: 'SET #s = :s, processedAt = :t',
+        ExpressionAttributeNames: { '#s': 'status' },
+        ExpressionAttributeValues: {
+          ':s': { S: 'processed' },
+          ':t': { S: new Date().toISOString() },
+        },
+      }),
+    );
+    CommonLogger.info('IdempotencyStore', 'markProcessed', `ID ${id} marcado como processed`, id);
+  }
+
+  async markFailed(id: string): Promise<void> {
+    if (this.isDev) return;
+
+    await this.client!.send(
+      new UpdateItemCommand({
+        TableName: this.tableName,
+        Key: { id: { S: id } },
+        UpdateExpression: 'SET #s = :s, failedAt = :t',
+        ExpressionAttributeNames: { '#s': 'status' },
+        ExpressionAttributeValues: {
+          ':s': { S: 'failed' },
+          ':t': { S: new Date().toISOString() },
+        },
+      }),
+    );
+    CommonLogger.info('IdempotencyStore', 'markFailed', `ID ${id} marcado como failed`, id);
   }
 }
