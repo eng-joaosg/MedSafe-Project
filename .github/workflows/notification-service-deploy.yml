@@ -60,3 +60,10 @@ jobs:
                 DeploymentBucket=medsafe-deploy-bucket \
                 S3Key=notification-service-${{ github.sha }}.zip \
             --no-fail-on-empty-changeset
+
+      - name: Debug CloudFormation failure
+        if: failure()
+        run: |
+          aws cloudformation describe-stack-events \
+            --stack-name MedSafe-Notification-Stack \
+            --max-items 20
