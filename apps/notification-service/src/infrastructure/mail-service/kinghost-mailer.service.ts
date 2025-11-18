@@ -13,16 +13,16 @@ export class KinghostMailerService implements IMailerService {
 
   async sendEmail(to: string, subject: string, html: string): Promise<void> {
     try {
+      await this.apiMailer.sendEmail(to, subject, html);
+    } catch (smtpError) {
+      throw new EmailDeliveryException(to, smtpError as Error);
+    }
+    // Fallback
+    try {
       await this.smtpMailer.sendEmail(to, subject, html);
     } catch (error) {
       if (error.response?.status === 400 && error.response?.data?.code === 'INVALID_RECIPIENT') {
         throw new EmailDeliveryException(to, error as Error);
-      }
-      // Fallback para Api
-      try {
-        await this.apiMailer.sendEmail(to, subject, html);
-      } catch (smtpError) {
-        throw new EmailDeliveryException(to, smtpError as Error);
       }
     }
   }
