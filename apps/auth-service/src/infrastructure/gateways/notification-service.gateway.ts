@@ -1,8 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
-import { CommonLogger } from 'src/common/logger/common.logger';
-import { ConfigurationException } from 'src/common/exceptions/app.exception';
+import { CommonLogger } from '../../common/logger/common.logger';
+import { ConfigurationException, ExternalServiceException } from '../../common/exceptions/app.exception';
 import { INotificationGateway } from '../contracts/i-notification-service.gateway';
 
 @Injectable()
@@ -41,10 +41,10 @@ export class NotificationGateway implements OnModuleInit, INotificationGateway {
 
       await this.sqsClient.send(command);
 
-      CommonLogger.info('NotificationGateway', 'PUBLISH', `Mensagem publicada no SQS: ${JSON.stringify(message)}`);
-    } catch (error: any) {
-      CommonLogger.error('NotificationGateway', 'PUBLISH_FAIL', `Erro ao publicar mensagem no SQS: ${error.message}`);
-      throw error;
+      CommonLogger.info('NotificationGateway', 'PUBLISH', `Mensagem publicada no SQS: tipo: ${message.type}, e-mail: ${message.email}.`);
+    } catch (err: any) {
+      CommonLogger.error('NotificationGateway', 'PUBLISH_FAIL', `Erro ao publicar mensagem no SQS: ${err.message}`, err);
+      throw new ExternalServiceException('AWS SQS', err);
     }
   }
 }

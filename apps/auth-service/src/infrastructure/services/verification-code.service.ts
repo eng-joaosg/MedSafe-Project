@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IVerificationCodeService } from 'src/domain/services/i-verification-code.service';
+import { IVerificationCodeService } from '../../domain/services/i-verification-code.service';
 
 @Injectable()
 export class VerificationCodeService implements IVerificationCodeService {

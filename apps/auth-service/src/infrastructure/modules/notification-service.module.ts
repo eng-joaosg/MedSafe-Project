@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { RequestContextService } from 'src/common/request-context/request-context.service';
+import { RequestContextService } from '../../common/request-context/request-context.service';
 import { NotificationGateway } from '../gateways/notification-service.gateway';
 import { SqsNotificationService } from '../services/sqs-notification.service';
 

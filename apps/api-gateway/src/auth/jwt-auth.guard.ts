@@ -1,5 +1,4 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { TokenPayload } from './token-payload';
@@ -11,6 +10,7 @@ function isJwtPayload(decoded: unknown): decoded is TokenPayload {
   return (
     typeof obj.id === 'string' &&
     typeof obj.email === 'string' &&
+    typeof obj.firstName === 'string' &&
     typeof obj.clinicalInfo === 'string' &&
     (obj.role === undefined || typeof obj.role === 'string') &&
     (obj.iat === undefined || typeof obj.iat === 'number') &&
@@ -20,29 +20,41 @@ function isJwtPayload(decoded: unknown): decoded is TokenPayload {
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(
-    private readonly jwtService: JwtService,
-    private readonly reflector: Reflector,
-  ) {}
+  constructor(private readonly jwtService: JwtService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request: Request = context.switchToHttp().getRequest<Request>();
+    const request: Request = context.switchToHttp().getRequest();
+    const authHeader = request.headers['authorization'];
+    let token: string | undefined;
 
-    const authHeader: string = request.headers['authorization'] ?? '';
-    const [type, token] = authHeader.split(' ');
+    // Bearer token
+    if (authHeader) {
+      const [type, rawToken] = authHeader.split(' ');
+      if (type === 'Bearer' && rawToken) {
+        token = rawToken;
+      }
+    }
 
-    if (type !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Token JWT ausente ou inválido.');
+    // Cookie token
+    if (!token) {
+      token = request.cookies?.access_token;
+    }
+
+    if (!token) {
+      throw new UnauthorizedException('Token JWT ausente.');
     }
 
     try {
-      const decoded: unknown = this.jwtService.verify(token);
+      const decoded = this.jwtService.verify(token);
+
       if (!isJwtPayload(decoded)) {
-        throw new UnauthorizedException('Token JWT inválido ou malformado.');
+        throw new UnauthorizedException('Token JWT malformado ou payload inválido.');
       }
+
       request.user = decoded;
       return true;
-    } catch {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
       throw new UnauthorizedException('Token JWT inválido ou expirado.');
     }
   }

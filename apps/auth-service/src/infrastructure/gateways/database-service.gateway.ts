@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map, Observable } from 'rxjs';
-import { DatabaseServiceUrls } from 'src/common/utils/database-service.urls';
-import { ConfigurationException } from 'src/common/exceptions/app.exception';
-import { ClientUserDbtDto } from 'src/application/dtos/client-user/client-user-db.dto';
-import { RequestContextService } from 'src/common/request-context/request-context.service';
+import { DatabaseServiceUrls } from '../../common/utils/database-service.urls';
+import { ConfigurationException } from '../../common/exceptions/app.exception';
+import { ClientUserDbtDto } from '../../application/dtos/client-user/client-user-db.dto';
+import { RequestContextService } from '../../common/request-context/request-context.service';
 
 @Injectable()
 export class DatabaseGateway {

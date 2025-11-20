@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Auth Service Lambda
+
+Resources:
+  AuthServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: auth-service
+      Handler: dist/lambda.handler
+      Runtime: nodejs18.x
+      MemorySize: 512
+      Timeout: 30
+      Events:
+        HttpApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+            PayloadFormatVersion: '2.0'
+            RequestParameters:
+              - Source: header.x-api-key
+              - Source: header.x-request-id

@@ -13,9 +13,8 @@ async function bootstrap() {
 
   const requestContext = app.get(RequestContextService);
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT') || 3003;
+  const port = configService.get<number>('PORT') || 3004;
   const apiVersion = configService.get<string>('API_VERSION') || '1.0';
-  const allowedOrigins = configService.get<string>('CORS_ALLOWED_ORIGINS')?.split(',') || [];
 
   // -----------------------------
   // Middleware para requestId
@@ -27,17 +26,6 @@ async function bootstrap() {
       next();
     });
   });
-
-  // -----------------------------
-  // CORS
-  // -----------------------------
-  if (allowedOrigins.length > 0) {
-    app.enableCors({
-      origin: allowedOrigins,
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-      credentials: true,
-    });
-  }
 
   // -----------------------------
   // Pipes globais
@@ -81,9 +69,7 @@ async function bootstrap() {
   CommonLogger.info(
     'Bootstrap',
     'APPLICATION_START',
-    `Application is running on: ${await app.getUrl()} in ${configService.get(
-      'NODE_ENV',
-    )} mode. Swagger: ${await app.getUrl()}/api/docs`,
+    `Application is running on: ${await app.getUrl()} in ${configService.get('NODE_ENV')} mode. Swagger: ${await app.getUrl()}/api/docs`,
   );
 }
 

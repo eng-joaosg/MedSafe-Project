@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { DatabaseGateway } from '../gateways/database-service.gateway';
-import { DatabaseServiceUrls } from 'src/common/utils/database-service.urls';
+import { DatabaseServiceUrls } from '../../common/utils/database-service.urls';
 
 @Global()
 @Module({

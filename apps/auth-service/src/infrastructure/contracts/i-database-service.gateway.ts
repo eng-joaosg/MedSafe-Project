@@ -1,4 +1,4 @@
-import { ClientUserDbtDto } from 'src/application/dtos/client-user/client-user-db.dto';
+import { ClientUserDbtDto } from '../../application/dtos/client-user/client-user-db.dto';
 
 export interface IDatabaseGateway {
   // ---------- CLIENT USER ----------

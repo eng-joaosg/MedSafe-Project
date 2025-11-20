@@ -1,8 +1,8 @@
 import { Injectable, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { IHashService } from 'src/domain/services/i-hash.service';
-import { CommonLogger } from 'src/common/logger/common.logger';
+import { IHashService } from '../../domain/services/i-hash.service';
+import { CommonLogger } from '../../common/logger/common.logger';
 
 @Injectable()
 export class BcryptHashService implements IHashService {
@@ -43,10 +43,7 @@ export class BcryptHashService implements IHashService {
   public async hash(data: string): Promise<string> {
     try {
       this.validarSenha(data);
-
-      CommonLogger.info(this.serviceName, 'hash', `Gerando hash para a senha, comprimento: ${data?.length}`);
       const hash = await bcrypt.hash(data, this.saltRounds);
-      CommonLogger.info(this.serviceName, 'hash', `Hash gerado (len): ${hash.length}`);
       return hash;
     } catch (error) {
       CommonLogger.error(this.serviceName, 'hash', 'Erro ao gerar hash', error);

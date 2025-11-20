@@ -2,16 +2,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength, Matches } from 'class-validator';
 
 export class RegisterClientUserDto {
-  @ApiProperty({ example: 'joao@gmail.com', description: 'E-mail do usuário' })
   @IsEmail({}, { message: 'O e-mail informado é inválido.' })
   email: string;
 
-  @ApiProperty({ example: 'João', description: 'Primeiro nome do usuário' })
   @IsString()
   @IsNotEmpty({ message: 'O nome não pode ser vazio.' })
   firstName: string;
 
-  @ApiProperty({ example: 'Gonçalves', description: 'Sobrenome do usuário' })
   @IsString()
   @IsNotEmpty({ message: 'O sobrenome não pode ser vazio.' })
   lastName: string;

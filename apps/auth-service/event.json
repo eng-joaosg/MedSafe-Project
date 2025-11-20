@@ -1,0 +1,8 @@
+{
+  "requestId": "123",
+  "headers": {
+    "x-api-key": "supersecret222",
+    "x-request-id": "meu-id-123"
+  },
+  "body": "{\"email\": \"test@example.com\", \"action\": \"findEmailClientUser\"}"
+}

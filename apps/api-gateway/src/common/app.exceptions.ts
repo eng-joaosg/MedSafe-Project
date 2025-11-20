@@ -1,17 +1,21 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-/**
- * Exceção base para todas as exceções da aplicação.
- */
 export class AppException extends HttpException {
   constructor(message: string, status?: HttpStatus) {
     super(message, status ?? HttpStatus.INTERNAL_SERVER_ERROR);
   }
 }
 
-/**
- * Exceções de uso genérico entre serviços.
- */
+export class ServerError extends Error {
+  public readonly status?: HttpStatus;
+
+  constructor(message: string, status?: HttpStatus) {
+    super(message);
+    this.status = status ?? HttpStatus.INTERNAL_SERVER_ERROR;
+    Object.setPrototypeOf(this, ServerError.prototype);
+  }
+}
+
 export class UserNotFoundException extends AppException {
   constructor(message = 'Usuário não encontrado') {
     super(message, HttpStatus.NOT_FOUND);
@@ -60,10 +64,7 @@ export class InvalidCredentialsException extends AppException {
   }
 }
 
-/**
- * Exceção para erros de configuração globais.
- */
-export class ConfigurationException extends Error {
+export class ConfigurationException extends ServerError {
   public readonly name = 'ConfigError';
 
   constructor(message: string) {
@@ -72,10 +73,7 @@ export class ConfigurationException extends Error {
   }
 }
 
-/**
- * Exceção para falhas em serviços remotos.
- */
-export class RemoteServiceError extends Error {
+export class RemoteServiceError extends ServerError {
   public readonly name = 'RemoteServiceError';
   public readonly originalError: any;
 
@@ -95,9 +93,6 @@ export class RemoteServiceError extends Error {
   }
 }
 
-/**
- * Exceção genérica para erros com serviços externos (HTTP 502).
- */
 export class ExternalServiceException extends AppException {
   constructor(serviceName: string, details?: string) {
     const message = `Erro ao comunicar com serviço externo: ${serviceName}.` + (details ? ` Detalhes: ${details}` : '');
@@ -105,14 +100,25 @@ export class ExternalServiceException extends AppException {
   }
 }
 
-/**
- * Exceção genérica para erros de banco de dados (HTTP 500).
- */
 export class DatabaseOperationException extends AppException {
   public readonly originalError?: unknown;
 
   constructor(message = 'Erro ao executar operação no banco de dados.', error?: unknown) {
     super(message, HttpStatus.INTERNAL_SERVER_ERROR);
     this.originalError = error;
+  }
+}
+
+export class InvalidApiKeyError extends ServerError {
+  constructor(message?: string) {
+    super(message ?? 'Chave de API inválida ou ausente');
+    this.name = 'InvalidApiKeyError';
+  }
+}
+
+export class UnknownActionError extends ServerError {
+  constructor(action: string) {
+    super(`Ação desconhecida: ${action}`);
+    this.name = 'UnknownActionError';
   }
 }

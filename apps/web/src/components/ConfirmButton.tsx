@@ -6,6 +6,7 @@ interface ConfirmButtonProps {
   loading?: boolean;
   disabled?: boolean;
   className?: string;
+  widthClass?: string; // <- novo
 }
 
 export default function ConfirmButton({
@@ -14,6 +15,7 @@ export default function ConfirmButton({
   loading = false,
   disabled = false,
   className = "",
+  widthClass = "w-40",
 }: ConfirmButtonProps) {
 
   const blocked = disabled || loading;
@@ -24,16 +26,17 @@ export default function ConfirmButton({
       disabled={blocked}
       className={`
         flex items-center justify-center
-        w-40 h-12
+        ${widthClass} h-12             /* <- largura configurável */
         rounded-4xl
         border-4
         font-semibold
         transition-colors duration-250 ease-in-out
         select-none
 
-        ${blocked
-          ? "bg-transparent text-primary-300 border-primary-300 cursor-not-allowed"
-          : "bg-transparent text-primary-100 border-primary-100 hover:text-grayscale-50 hover:border-grayscale-50 active:text-primary-300 active:border-primary-300 cursor-pointer"
+        ${
+          blocked
+            ? "bg-transparent text-primary-300 border-primary-300 cursor-not-allowed"
+            : "bg-transparent text-primary-100 border-primary-100 hover:text-grayscale-50 hover:border-grayscale-50 active:text-primary-300 active:border-primary-300 cursor-pointer"
         }
 
         ${className}

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from "react";
 import ConfirmButton from "@/components/ConfirmButton";
@@ -45,19 +45,27 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
+
     try {
-      await findEmail(email);
-      setCanProceed(true);
-    } catch (err: any) {
+      const emailExists = await findEmail(email);
+      if (!emailExists) {
+        setCanProceed(true);
+        return;
+      }
+
       setMessage("Este e-mail já está em uso.");
+    } catch (err) {
+      setMessage("Erro ao verificar e-mail.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleRegister() {
     if (!passwordMatches) return;
 
     setLoading(true);
+
     try {
       await register({
         email,
@@ -67,19 +75,17 @@ export default function RegisterPage() {
       });
 
       setRegistered(true);
-
     } catch (err) {
       setMessage("Erro ao registrar. Tente novamente.");
     }
+
     setLoading(false);
   }
 
   if (registered) {
     return (
       <div className="flex flex-col items-center pt-20 px-6 text-center">
-        <h2 className="text-xl font-semibold mb-4">
-          Verifique seu e-mail 📩
-        </h2>
+        <h2 className="text-xl font-semibold mb-4">Verifique seu e-mail 📩</h2>
 
         <p className="text-sm max-w-sm">
           Enviamos um e-mail com o código de verificação para:
@@ -96,6 +102,7 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-col items-center pt-6 px-4 w-full">
+      <h1>CADASTRE-SE</h1>
       <div className="h-6 flex justify-center items-center mb-2">
         {message && (
           <span className="text-error text-sm animate-fade">{message}</span>
@@ -104,6 +111,7 @@ export default function RegisterPage() {
 
       <div className="w-full max-w-md">
         <Input fieldName="E-mail" value={email} onChange={setEmail} />
+
         <div
           className={`
             transition-all duration-300 ease-in-out overflow-hidden
@@ -119,26 +127,27 @@ export default function RegisterPage() {
               fieldName="Confirmar Senha"
               value={confirmPassword}
               onChange={setConfirmPassword}
-              className={!passwordMatches && confirmPassword ? "border-red-500" : ""}
+              className={
+                !passwordMatches && confirmPassword ? "border-error" : ""
+              }
             />
 
             {!passwordMatches && confirmPassword && (
-              <p className="text-red-500 text-xs mt-1 animate-fade">
+              <p className="text-error text-xs mt-1 animate-fade">
                 As senhas não coincidem.
               </p>
             )}
           </div>
 
-          <div className="pt-4 text-xs text-justify">
+          <div className="pt-4 text-xs text-justify pl-10">
             <p>A senha deve ter entre 8 e 16 caracteres;</p>
             <p>Deve conter ao menos um caracter especial (!@#$%&*);</p>
-            <p>Deve conter ao menos uma letra minúscula;</p>
-            <p>Deve conter ao menos uma letra maiúscula;</p>
+            <p>Deve conter ao menos uma letra minúscula e uma maiúscula;</p>
             <p>Deve conter ao menos um número.</p>
           </div>
         </div>
 
-        <div className="w-full flex justify-center mt-4">
+        <div className={`w-full flex justify-center mt-4 ${canProceed ? "pt-1" : "pt-78"}`}>
           <ConfirmButton
             onClick={canProceed ? handleRegister : handleConfirmEmail}
             label={canProceed ? "Registrar" : "Confirmar e-mail"}

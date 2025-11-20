@@ -1,16 +1,15 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { INotificationService } from 'src/domain/services/i-notification.service';
-import { ClientUser } from 'src/domain/entities/client-user.entity';
+import { INotificationService } from '../../domain/services/i-notification.service';
+import { ClientUser } from '../../domain/entities/client-user.entity';
+import { RequestContextService } from '../../common/request-context/request-context.service';
 import type { INotificationGateway } from '../contracts/i-notification-service.gateway';
-
 import {
   BaseMessage,
   VerificationPayload,
   PasswordRecoveryPayload,
   AccountCreatedPayload,
   PublicDataAccessPayload,
-} from 'src/application/events/notification.messages';
-import { RequestContextService } from 'src/common/request-context/request-context.service';
+} from '../../application/events/notification.messages';
 
 @Injectable()
 export class SqsNotificationService implements INotificationService {
@@ -21,6 +20,9 @@ export class SqsNotificationService implements INotificationService {
     private readonly requestContext: RequestContextService,
   ) {}
 
+  /**
+   * Recupera o requestId do contexto atual
+   */
   private getEventId(): string {
     const requestId = this.requestContext.get<string>('requestId');
     if (!requestId) {
@@ -29,6 +31,9 @@ export class SqsNotificationService implements INotificationService {
     return requestId;
   }
 
+  /**
+   * Envia mensagem de verificação de e-mail
+   */
   async sendVerification(user: ClientUser, code: string): Promise<void> {
     const message: BaseMessage<VerificationPayload> = {
       id: this.getEventId(),
@@ -40,13 +45,13 @@ export class SqsNotificationService implements INotificationService {
         verificationCode: code,
       },
     };
-    //if (process.env.NODE_ENV === 'development') {
-    //  console.log(message);
-    //  return;
-    //}
+
     await this.gateway.publish(message);
   }
 
+  /**
+   * Envia mensagem de recuperação de senha
+   */
   async sendPasswordRecovery(user: ClientUser, code: string): Promise<void> {
     const message: BaseMessage<PasswordRecoveryPayload> = {
       id: this.getEventId(),
@@ -62,6 +67,9 @@ export class SqsNotificationService implements INotificationService {
     await this.gateway.publish(message);
   }
 
+  /**
+   * Envia notificação de conta criada
+   */
   async sendAccountCreated(user: ClientUser): Promise<void> {
     const message: BaseMessage<AccountCreatedPayload> = {
       id: this.getEventId(),
@@ -76,6 +84,9 @@ export class SqsNotificationService implements INotificationService {
     await this.gateway.publish(message);
   }
 
+  /**
+   * Envia notificação de acesso a dados públicos
+   */
   async sendPublicDataAccess(user: ClientUser, accessedAt: Date): Promise<void> {
     const message: BaseMessage<PublicDataAccessPayload> = {
       id: this.getEventId(),

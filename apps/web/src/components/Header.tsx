@@ -1,3 +1,4 @@
+'use client';
 import LogoButton from './LogoButton';
 import UserIcon from './UserIcon';
 

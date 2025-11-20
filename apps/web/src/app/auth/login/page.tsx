@@ -46,8 +46,8 @@ export default function LoginPage() {
         }
         throw new Error("Falha ao fazer login.");
       }
-      router.push("/dashboard");
 
+      router.push("/dashboard");
     } catch (err: any) {
       setMessage(err.message || "Erro inesperado ao fazer login.");
     }
@@ -56,7 +56,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen pt-20 px-6">
+    <div className="flex flex-col items-center pt-20 px-6">
       <h2 className="text-xl font-semibold mb-4">Entrar</h2>
 
       <div className="w-full max-w-md space-y-4">
@@ -74,24 +74,37 @@ export default function LoginPage() {
           onChange={setPassword}
         />
       </div>
+      <div className="h-4 mt-2 flex items-center justify-center">
+        {message && (
+          <p className="text-sm text-error text-center md:text-base">{message}</p>
+        )}
+      </div>
+      <div className="w-full max-w-md flex items-center justify-between mt-4">
+        <div className="flex flex-col text-left pl-4 text-base mr-5">
+          <p>
+            Não tem uma conta?{" "}
+            <span
+              onClick={() => router.push("/auth/register")}
+              className="text-info cursor-pointer hover:underline"
+            >
+              Inscreva-se.
+            </span>
+          </p>
+          <p
+            onClick={() => router.push("/auth/recovery")}
+            className="text-info cursor-pointer hover:underline"
+          >
+            Recuperar senha.
+          </p>
+        </div>
 
-      {message && (
-        <p className="text-sm text-red-500 mt-3 text-center">{message}</p>
-      )}
-
-      <div className="mt-6 w-full max-w-md">
         <ConfirmButton
+          widthClass="w-30"
           onClick={handleLogin}
           label="Entrar"
           loading={loading}
           disabled={loading || !email.trim() || !password.trim()}
         />
-      </div>
-
-      <div className="mt-6 text-sm">
-        <a href="/auth/register" className="text-blue-600 hover:underline">
-          Criar conta
-        </a>
       </div>
     </div>
   );

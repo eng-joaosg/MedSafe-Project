@@ -1,5 +1,5 @@
 import { BaseEntity } from './base.entity';
-import { UserRole } from 'src/common/enums/user-role.enum';
+import { UserRole } from '../../common/enums/user-role.enum';
 
 export abstract class UserEntity extends BaseEntity {
   protected email: string;

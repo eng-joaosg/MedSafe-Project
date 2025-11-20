@@ -10,3 +10,9 @@ export interface RegisterClientUserPayload {
   lastName: string;
   password: string;
 }
+
+export interface VerifyAccountClientUserPayload {
+  action: 'verifyAccountClientUser';
+  email: string;
+  verificationCode: string;
+}

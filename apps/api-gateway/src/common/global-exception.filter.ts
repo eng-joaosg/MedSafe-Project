@@ -2,119 +2,49 @@ import { Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common'
 import { BaseExceptionFilter } from '@nestjs/core';
 import { CommonLoggerGateway } from './common.logger';
 import { AppException, ConfigurationException, RemoteServiceError } from './app.exceptions';
-/**
- * Sanitiza mensagens de erro, evitando exposição de dados sensíveis
- * ou objetos não serializáveis diretamente nos logs.
- */
-function sanitizeError(error: unknown): string {
-  if (!error) return '';
-
-  if (typeof error === 'string') return error;
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  try {
-    // Remove campos sensíveis comuns
-    const sanitized: Record<string, any> = {
-      ...(error as Record<string, any>),
-    };
-    delete sanitized.password;
-    delete sanitized.token;
-    delete sanitized.accessToken;
-    delete sanitized.refreshToken;
-
-    return JSON.stringify(sanitized);
-  } catch {
-    // fallback para objetos não serializáveis (ciclos de referência, proxies, etc.)
-    return '[unserializable error object]';
-  }
-}
 
 @Catch()
 export class GlobalExceptionFilter extends BaseExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
-    const request = ctx.getRequest();
 
-    const method = request.method;
-    const url = request.url;
-    const requestId = request.headers['x-request-id'] || '';
-
+    let message = 'Ocorreu um erro inesperado. Por favor, tente novamente.';
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Ocorreu um erro interno desconhecido.';
 
-    // --- AppException e subclasses
+    // --- AppException
     if (exception instanceof AppException) {
-      const appErr = exception;
-      status = appErr.getStatus ? appErr.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-      message = appErr.message;
-
-      CommonLoggerGateway.warn(
-        'GlobalExceptionFilter',
-        'APP_EXCEPTION',
-        `[${requestId}] [${method}] ${url} → ${status} - ${sanitizeError(message)}`,
-      );
+      message = exception.message;
+      status = exception.getStatus();
+      CommonLoggerGateway.warn('GlobalExceptionFilter', 'APP_EXCEPTION', exception);
     }
-    // --- HttpException genérica
+    // --- HttpException
     else if (exception instanceof HttpException) {
-      const httpErr = exception;
-      status = httpErr.getStatus();
-      const responseBody = httpErr.getResponse();
-      message = typeof responseBody === 'string' ? responseBody : (responseBody as any).message || httpErr.message;
-
-      CommonLoggerGateway.warn(
-        'GlobalExceptionFilter',
-        'HTTP_EXCEPTION',
-        `[${requestId}] [${method}] ${url} → ${status} - ${sanitizeError(message)}`,
-      );
+      const responseBody = exception.getResponse();
+      message = typeof responseBody === 'string' ? responseBody : (responseBody as any).message || 'Ocorreu um erro inesperado.';
+      status = exception.getStatus();
+      CommonLoggerGateway.warn('GlobalExceptionFilter', 'HTTP_EXCEPTION', exception);
     }
     // --- RemoteServiceError
     else if (exception instanceof RemoteServiceError) {
-      const remoteErr = exception;
+      message = 'O serviço de dados está temporariamente indisponível.';
       status = HttpStatus.SERVICE_UNAVAILABLE;
-      message = 'O serviço de dados está temporariamente indisponível. Tente novamente.';
-
-      CommonLoggerGateway.error(
-        'GlobalExceptionFilter',
-        'REMOTE_SERVICE_FAILURE',
-        `[${requestId}] [${method}] ${url} → ${status} - ${sanitizeError(remoteErr.message)}`,
-        sanitizeError(remoteErr.originalError),
-      );
+      CommonLoggerGateway.error('GlobalExceptionFilter', 'REMOTE_SERVICE_FAILURE', exception, exception.originalError);
     }
     // --- ConfigurationException
     else if (exception instanceof ConfigurationException) {
-      const configErr = exception;
+      message = 'Erro de configuração. Contate o suporte.';
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-      message = configErr.message;
-
-      CommonLoggerGateway.error(
-        'GlobalExceptionFilter',
-        'CONFIG_ERROR',
-        `[${requestId}] [${method}] ${url} → ${status} - ${sanitizeError(message)}`,
-      );
+      CommonLoggerGateway.error('GlobalExceptionFilter', 'CONFIG_ERROR', exception);
     }
-    // --- Erros não tratados
+    // --- Outros erros não tratados
     else if (exception instanceof Error) {
-      const err = exception;
-      message = err.message || 'Erro interno do servidor.';
-
-      CommonLoggerGateway.error(
-        'GlobalExceptionFilter',
-        'UNHANDLED_ERROR',
-        `[${requestId}] [${method}] ${url} → ${status} - ${sanitizeError(message)}`,
-        sanitizeError(err.stack),
-      );
+      message = 'Ocorreu um erro inesperado. Por favor, tente novamente.';
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      CommonLoggerGateway.error('GlobalExceptionFilter', 'UNHANDLED_ERROR', exception, exception.stack);
     }
 
-    response.status(status).json({
-      statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: url,
-      message,
-      requestId: requestId || undefined,
-    });
+    // --- Envia a resposta final para o front
+    response.status(status).json({ message });
   }
 }

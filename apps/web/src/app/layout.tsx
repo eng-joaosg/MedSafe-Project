@@ -1,4 +1,3 @@
-'use client';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -15,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className='mx-auto w-full max-w-xl px-4'>{children}</div>
         </main>
         <div className='w-full flex justify-center px-4'>
-          <p className='text-xs text-center max-w-2xl md:text-sm'>Mantenha seus dados médicos e contatos de emergência atualizados e acessíveis em qualquer situação. Gere um QR code seguro e facilite o atendimento rápido quando necessário.</p>
+          <p className='text-xs text-center max-w-2xl md:text-sm mt-18 md:mt-4'>Mantenha seus dados médicos e contatos de emergência atualizados e acessíveis em qualquer situação. Gere um QR code seguro e facilite o atendimento rápido quando necessário.</p>
         </div>
         <Footer />
       </body>
