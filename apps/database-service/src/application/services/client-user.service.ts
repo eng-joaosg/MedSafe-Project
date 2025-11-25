@@ -1,18 +1,26 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IClientUserRepository } from '../repositories/i-client-user.repository';
 import { ClientUserModel } from '../models/client-user.model';
-import { UserNotFoundException } from 'src/common/exceptions/app.exceptions';
+import { UserNotFoundException } from '../../common/exceptions/app.exceptions';
+import type { IClientUserService } from '../contracts/i-client-user.service';
+import { CLIENT_USER_REPOSITORY } from '../../common/contants/tokens.contants';
 
 @Injectable()
-export class ClientUserService {
+export class ClientUserService implements IClientUserService {
   constructor(
-    @Inject('IClientUserRepository')
+    @Inject(CLIENT_USER_REPOSITORY)
     private readonly clientUserRepository: IClientUserRepository,
   ) {}
 
-  async save(model: ClientUserModel): Promise<ClientUserModel> {
-    const result = await this.clientUserRepository.save(model);
-    if (!result) throw new UserNotFoundException(`ClientUser com ID ${model.id} não foi encontrado`);
+  async save(id: string, model: Partial<ClientUserModel>): Promise<ClientUserModel> {
+    const payload = { ...model, id };
+
+    const result = await this.clientUserRepository.save(payload);
+
+    if (!result) {
+      throw new UserNotFoundException(`ClientUser com ID ${id} não foi encontrado`);
+    }
+
     return result;
   }
 

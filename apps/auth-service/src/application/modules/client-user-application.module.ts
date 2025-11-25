@@ -5,10 +5,14 @@ import { FindEmailClientUserUsecase } from '../usecases/client-user/find-email-c
 import { RegisterClientUserUsecase } from '../usecases/client-user/register-client-user.usecase';
 import { VerifyAccountClientUserUseCase } from '../usecases/client-user/verify-account-client-user.usecase';
 import {
+  CHANGE_PASSWORD_CLIENT_USER_USECASE,
   FIND_EMAIL_CLIENT_USER_USECASE,
+  LOGIN_CLIENT_USER_USECASE,
   REGISTER_CLIENT_USER_USECASE,
   VERIFY_ACCOUNT_CLIENT_USER_USECASE,
 } from '../../common/utils/tokens.contants';
+import { ChangePasswordClientUserUseCase } from '../usecases/client-user/change-password-client-user.usecase';
+import { LoginClientUserUseCase } from '../usecases/client-user/login-client-user.usecase';
 
 @Module({
   imports: [ClientUserInfraModule, MappingModule],
@@ -25,7 +29,21 @@ import {
       provide: VERIFY_ACCOUNT_CLIENT_USER_USECASE,
       useClass: VerifyAccountClientUserUseCase,
     },
+    {
+      provide: CHANGE_PASSWORD_CLIENT_USER_USECASE,
+      useClass: ChangePasswordClientUserUseCase,
+    },
+    {
+      provide: LOGIN_CLIENT_USER_USECASE,
+      useClass: LoginClientUserUseCase,
+    },
   ],
-  exports: [FIND_EMAIL_CLIENT_USER_USECASE, REGISTER_CLIENT_USER_USECASE, VERIFY_ACCOUNT_CLIENT_USER_USECASE],
+  exports: [
+    FIND_EMAIL_CLIENT_USER_USECASE,
+    REGISTER_CLIENT_USER_USECASE,
+    VERIFY_ACCOUNT_CLIENT_USER_USECASE,
+    CHANGE_PASSWORD_CLIENT_USER_USECASE,
+    LOGIN_CLIENT_USER_USECASE,
+  ],
 })
 export class ClientUserApplicationModule {}

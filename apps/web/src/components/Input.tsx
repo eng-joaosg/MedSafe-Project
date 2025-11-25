@@ -1,12 +1,13 @@
-'use client';
-import React from 'react';
-
 interface InputProps {
   className?: string;
   fieldName: string;
   value: string;
   onChange: (value: string) => void;
-  type?: string; // agora aceita type
+  type?: string;
+  placeholder?: string;
+  options?: string[];
+  height?: string;
+  editable?: boolean;
 }
 
 export default function Input({
@@ -14,12 +15,23 @@ export default function Input({
   fieldName,
   value,
   onChange,
-  type
+  type,
+  placeholder,
+  options,
+  height,
+  editable = true,
 }: InputProps) {
 
-  // Se o dev não passar "type", usa inferência automática
   const inputType =
     type ?? (fieldName.toLowerCase().includes("senha") ? "password" : "text");
+
+  const handleChange = (val: string) => {
+    if (!options || options.includes(val)) {
+      onChange(val);
+    }
+  };
+
+  const inputHeight = height ?? 'h-18';
 
   return (
     <div className="relative w-full max-w-md mx-auto mb-4">
@@ -31,17 +43,16 @@ export default function Input({
       <input
         type={inputType}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => handleChange(e.target.value)}
+        placeholder={placeholder}
+        disabled={!editable} // <-- aqui
         className={`
-          bg-grayscale-50
-          text-grayscale-900
-          h-14
+          ${editable ? 'bg-grayscale-50 text-grayscale-900 hover:border-info focus:border-info' : 'bg-grayscale-200 text-grayscale-500 cursor-not-allowed'}
+          ${inputHeight}
           w-full
           px-4 pt-4
-          rounded-3xl
+          rounded-none md:rounded-3xl
           border-2 border-transparent
-          hover:border-info
-          focus:border-info
           focus:outline-none
           text-center
           transition-all

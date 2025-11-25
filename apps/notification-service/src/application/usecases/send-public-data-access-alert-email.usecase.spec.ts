@@ -2,23 +2,29 @@
 import { SendPublicDataAccessAlertEmailUseCase, PublicDataAccessPayload } from './send-public-data-access-alert-email.usecase';
 import { IMailerService } from '../services/i-mailer.service';
 import { EmailDeliveryException, ExternalServiceException } from '../../common/exceptions/app.exception';
-import { EmailTemplates } from '../templates/email.template';
+import { EmailTemplates } from '../utils/email.template';
 
 describe('SendPublicDataAccessAlertEmailUseCase', () => {
   let useCase: SendPublicDataAccessAlertEmailUseCase;
   let mailer: IMailerService;
+  let emailTemplates: EmailTemplates;
 
   beforeEach(() => {
     mailer = { sendEmail: jest.fn() } as unknown as IMailerService;
-    useCase = new SendPublicDataAccessAlertEmailUseCase(mailer);
-    jest.spyOn(EmailTemplates, 'publicDataAccess');
+
+    // Mock de EmailTemplates retornando uma string
+    emailTemplates = {
+      publicDataAccess: jest.fn().mockReturnValue('Mensagem de alerta'),
+    } as unknown as EmailTemplates;
+
+    useCase = new SendPublicDataAccessAlertEmailUseCase(mailer, emailTemplates);
   });
 
   it('should call mailer with correct subject and template', async () => {
     const payload: PublicDataAccessPayload = { email: 'user@example.com', name: 'João', accessedAt: new Date() };
     await useCase.execute(payload);
 
-    expect(EmailTemplates.publicDataAccess).toHaveBeenCalledWith('João', payload.accessedAt);
+    expect(emailTemplates.publicDataAccess).toHaveBeenCalledWith('João', payload.accessedAt);
     expect(mailer.sendEmail).toHaveBeenCalledWith('user@example.com', 'Aviso de acesso aos seus dados públicos', expect.any(String));
   });
 

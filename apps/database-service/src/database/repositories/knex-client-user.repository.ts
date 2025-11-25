@@ -1,14 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Knex } from 'knex';
 import { ClientUserModel } from '../../application/models/client-user.model';
-import { TABLES } from 'src/common/contants/tables.contants';
-import { DatabaseOperationException } from 'src/common/exceptions/app.exceptions';
-import { IClientUserRepository } from 'src/application/repositories/i-client-user.repository';
+import { TABLES } from '../../common/contants/tables.contants';
+import { DatabaseOperationException } from '../../common/exceptions/app.exceptions';
+import { IClientUserRepository } from '../../application/repositories/i-client-user.repository';
+import { KNEX_CONNECTION } from '../../common/contants/tokens.contants';
 
 @Injectable()
 export class KnexClientUserRepository implements IClientUserRepository {
   constructor(
-    @Inject('KNEX_CONNECTION')
+    @Inject(KNEX_CONNECTION)
     private readonly knex: Knex,
   ) {}
 
@@ -17,7 +18,7 @@ export class KnexClientUserRepository implements IClientUserRepository {
       const row = await this.knex(TABLES.CLIENT_USER).where({ id }).first();
       return row || null;
     } catch (error) {
-      throw new DatabaseOperationException(`Erro de conexão ao buscar ClientUser por ID: ${id}`, error);
+      throw new DatabaseOperationException(`Erro ao buscar ClientUser por ID: ${id}`, error);
     }
   }
 
@@ -26,40 +27,42 @@ export class KnexClientUserRepository implements IClientUserRepository {
       const row = await this.knex(TABLES.CLIENT_USER).where({ email }).first();
       return row || null;
     } catch (error) {
-      throw new DatabaseOperationException(`Erro de conexão ao buscar ClientUser por email: ${email}`, error);
+      throw new DatabaseOperationException(`Erro ao buscar ClientUser por email: ${email}`, error);
     }
   }
 
-  async save(model: ClientUserModel): Promise<ClientUserModel> {
+  async save(model: Partial<ClientUserModel> & { id: string }): Promise<ClientUserModel> {
     try {
       const existing = await this.knex(TABLES.CLIENT_USER).where({ id: model.id }).first();
+      const cleanPayload: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(model)) {
+        if (value !== undefined) {
+          cleanPayload[key] = value;
+        }
+      }
 
-      const data = {
-        id: model.id,
-        email: model.email,
-        password_hash: model.password_hash,
-        is_active: model.is_active,
-        first_name: model.first_name,
-        last_name: model.last_name,
-        verification_code: model.verification_code,
-        code_expires_at: model.code_expires_at,
-        clinical_info_id: model.clinical_info_id,
+      if (!existing) {
+        const data = {
+          ...cleanPayload,
+          created_at: this.knex.fn.now(),
+          updated_at: this.knex.fn.now(),
+        };
+
+        const [row] = await this.knex(TABLES.CLIENT_USER).insert(data).returning('*');
+
+        return row;
+      }
+
+      const updateData = {
+        ...cleanPayload,
         updated_at: this.knex.fn.now(),
       };
 
-      let row: any;
-
-      if (existing) {
-        [row] = await this.knex(TABLES.CLIENT_USER).where({ id: model.id }).update(data).returning('*');
-      } else {
-        [row] = await this.knex(TABLES.CLIENT_USER)
-          .insert({ ...data, created_at: this.knex.fn.now() })
-          .returning('*');
-      }
+      const [row] = await this.knex(TABLES.CLIENT_USER).where({ id: model.id }).update(updateData).returning('*');
 
       return row;
     } catch (error) {
-      throw new DatabaseOperationException(`Erro de conexão ao salvar ClientUser: ${model.id}`, error);
+      throw new DatabaseOperationException(`Erro ao salvar ClientUser: ${model.id}`, error);
     }
   }
 
@@ -67,7 +70,7 @@ export class KnexClientUserRepository implements IClientUserRepository {
     try {
       await this.knex(TABLES.CLIENT_USER).where({ id }).delete();
     } catch (error) {
-      throw new DatabaseOperationException(`Erro de conexão ao deletar ClientUser: ${id}`, error);
+      throw new DatabaseOperationException(`Erro ao deletar ClientUser: ${id}`, error);
     }
   }
 }

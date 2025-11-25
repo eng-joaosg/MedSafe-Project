@@ -34,16 +34,16 @@ export class DatabaseGateway {
   }
 
   // ---------- CLIENT USER ----------
-  public async saveClientUser(dto: ClientUserDbtDto): Promise<ClientUserDbtDto> {
-    const url = this.urls.clientUser.save(dto.id);
+  public async saveClientUser(id: string, dto: ClientUserDbtDto): Promise<ClientUserDbtDto> {
+    const url = this.urls.clientUser.save(id);
     const observable$: Observable<ClientUserDbtDto> = this.httpService
       .patch(url, dto, { headers: this.headers })
       .pipe(map((res) => res.data));
     return await lastValueFrom(observable$);
   }
 
-  public async createClientUser(dto: ClientUserDbtDto): Promise<ClientUserDbtDto> {
-    const url = this.urls.clientUser.create();
+  public async createClientUser(id: string, dto: ClientUserDbtDto): Promise<ClientUserDbtDto> {
+    const url = this.urls.clientUser.create(id);
     const observable$: Observable<ClientUserDbtDto> = this.httpService
       .post(url, dto, { headers: this.headers })
       .pipe(map((res) => res.data));

@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { Knex } from 'knex';
-import { CommonLogger } from 'src/common/common-logger';
+import { CommonLogger } from '../common/common-logger';
 
 export default (configService: ConfigService): Knex.Config => {
   const isProduction = configService.get<string>('NODE_ENV') === 'production';

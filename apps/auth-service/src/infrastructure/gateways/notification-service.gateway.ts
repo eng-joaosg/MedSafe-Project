@@ -41,7 +41,11 @@ export class NotificationGateway implements OnModuleInit, INotificationGateway {
 
       await this.sqsClient.send(command);
 
-      CommonLogger.info('NotificationGateway', 'PUBLISH', `Mensagem publicada no SQS: tipo: ${message.type}, e-mail: ${message.email}.`);
+      CommonLogger.info(
+        'NotificationGateway',
+        'PUBLISH',
+        `Mensagem publicada no SQS: tipo: ${message.type}, e-mail: ${message.payload.email}.`,
+      );
     } catch (err: any) {
       CommonLogger.error('NotificationGateway', 'PUBLISH_FAIL', `Erro ao publicar mensagem no SQS: ${err.message}`, err);
       throw new ExternalServiceException('AWS SQS', err);

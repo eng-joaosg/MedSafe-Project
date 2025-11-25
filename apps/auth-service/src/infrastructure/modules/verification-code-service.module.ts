@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 import { VerificationCodeService } from '../services/verification-code.service';
+import { VERIFICATION_CODE_SERVICE } from '../../common/utils/tokens.contants';
 
 @Module({
   providers: [
     {
-      provide: 'IVerificationCodeService',
+      provide: VERIFICATION_CODE_SERVICE,
       useClass: VerificationCodeService,
     },
   ],
-  exports: ['IVerificationCodeService'],
+  exports: [VERIFICATION_CODE_SERVICE],
 })
 export class VerificationCodeServiceModule {}

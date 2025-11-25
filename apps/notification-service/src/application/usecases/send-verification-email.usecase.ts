@@ -2,7 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { IMailerService } from '../services/i-mailer.service';
 import { BaseUseCase } from './base.usecase';
 import { EmailDeliveryException, ExternalServiceException } from '../../common/exceptions/app.exception';
-import { EmailTemplates } from '../../application/templates/email.template';
+import { EMAIL_TEMPLATES, MAILER_SERVICE } from '../../common/constants/token.constants';
+import type { IEmailTemplates } from '../contracts/i-email-templates';
 
 export interface VerificationEmailPayload {
   email: string;
@@ -13,8 +14,10 @@ export interface VerificationEmailPayload {
 @Injectable()
 export class SendVerificationEmailUseCase extends BaseUseCase {
   constructor(
-    @Inject('IMailerService')
+    @Inject(MAILER_SERVICE)
     private readonly mailer: IMailerService,
+    @Inject(EMAIL_TEMPLATES)
+    private readonly emailTemplates: IEmailTemplates,
   ) {
     super(SendVerificationEmailUseCase.name);
   }
@@ -31,7 +34,7 @@ export class SendVerificationEmailUseCase extends BaseUseCase {
     );
 
     const subject = 'Verifique seu e-mail';
-    const html = EmailTemplates.verificationEmail(name, email, verificationCode);
+    const html = this.emailTemplates.verificationEmail(name, email, verificationCode);
 
     try {
       await this.mailer.sendEmail(email, subject, html);

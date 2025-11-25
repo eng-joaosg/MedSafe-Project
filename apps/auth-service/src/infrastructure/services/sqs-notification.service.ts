@@ -3,6 +3,7 @@ import { INotificationService } from '../../domain/services/i-notification.servi
 import { ClientUser } from '../../domain/entities/client-user.entity';
 import { RequestContextService } from '../../common/request-context/request-context.service';
 import type { INotificationGateway } from '../contracts/i-notification-service.gateway';
+import { NOTIFICATION_GATEWAY } from '../../common/utils/tokens.contants';
 import {
   BaseMessage,
   VerificationPayload,
@@ -14,7 +15,7 @@ import {
 @Injectable()
 export class SqsNotificationService implements INotificationService {
   constructor(
-    @Inject('INotificationGateway')
+    @Inject(NOTIFICATION_GATEWAY)
     private readonly gateway: INotificationGateway,
 
     private readonly requestContext: RequestContextService,
@@ -45,7 +46,6 @@ export class SqsNotificationService implements INotificationService {
         verificationCode: code,
       },
     };
-
     await this.gateway.publish(message);
   }
 

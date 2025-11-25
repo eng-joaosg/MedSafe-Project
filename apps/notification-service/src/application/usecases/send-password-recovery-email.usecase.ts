@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IMailerService } from '../services/i-mailer.service';
-import { EmailTemplates } from '../templates/email.template';
 import { BaseUseCase } from './base.usecase';
 import { EmailDeliveryException, ExternalServiceException } from '../../common/exceptions/app.exception';
+import { EMAIL_TEMPLATES, MAILER_SERVICE } from '../../common/constants/token.constants';
+import type { IEmailTemplates } from '../contracts/i-email-templates';
 
 export interface PasswordRecoveryPayload {
   email: string;
@@ -13,8 +14,10 @@ export interface PasswordRecoveryPayload {
 @Injectable()
 export class SendPasswordRecoveryEmailUseCase extends BaseUseCase {
   constructor(
-    @Inject('IMailerService')
+    @Inject(MAILER_SERVICE)
     private readonly mailer: IMailerService,
+    @Inject(EMAIL_TEMPLATES)
+    private readonly emailTemplates: IEmailTemplates,
   ) {
     super(SendPasswordRecoveryEmailUseCase.name);
   }
@@ -31,7 +34,7 @@ export class SendPasswordRecoveryEmailUseCase extends BaseUseCase {
     );
 
     const subject = 'Recupere sua senha';
-    const html = EmailTemplates.passwordRecovery(name, resetToken);
+    const html = this.emailTemplates.passwordRecovery(name, resetToken);
 
     try {
       await this.mailer.sendEmail(email, subject, html);

@@ -23,7 +23,7 @@ export class UserNotFoundException extends AppException {
 }
 
 export class InvalidPasswordException extends AppException {
-  constructor(message = 'E-mail ou senha incorretos') {
+  constructor(message = 'Senha incorreta.') {
     super(message, HttpStatus.UNAUTHORIZED);
   }
 }

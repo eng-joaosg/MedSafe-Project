@@ -1,120 +1,140 @@
 import { NestFactory } from '@nestjs/core';
 import { INestApplicationContext } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { FindEmailClientUserHandler } from './presentation/handlers/client-user/find-email-client-user.handler';
-import { RegisterClientUserHandler } from './presentation/handlers/client-user/register-client-user.handler';
+import { ulid } from 'ulid';
 import { ConfigService } from '@nestjs/config';
 import { CommonLogger } from './common/logger/common.logger';
 import { RequestContextService } from './common/request-context/request-context.service';
 import { AppException, InvalidApiKeyError, ServerError, UnknownActionError } from './common/exceptions/app.exception';
+import { FindEmailClientUserHandler } from './presentation/handlers/client-user/find-email-client-user.handler';
+import { RegisterClientUserHandler } from './presentation/handlers/client-user/register-client-user.handler';
 import { VerifyAccountClientUserHandler } from './presentation/handlers/client-user/verify-account-client-user.handler';
+import { LoginClientUserHandler } from './presentation/handlers/client-user/login-client-user.handler';
 import {
-  FindEmailPayload,
   RegisterClientUserPayload,
   VerifyAccountClientUserPayload,
+  LoginClientUserPayload,
 } from './presentation/handlers/client-user/client-user.types';
-import { ulid } from 'ulid';
 
-export interface LambdaEvent {
-  requestId?: string;
+interface LambdaEvent {
+  httpMethod?: string;
   headers?: Record<string, string>;
-  action: string;
-  body?: any;
-}
-
-export interface LambdaResponse {
-  id: string;
-  statusCode: number;
-  message: string;
-  body?: any;
+  body?: string | null;
+  pathParameters?: Record<string, string>;
+  queryStringParameters?: Record<string, string>;
+  isBase64Encoded?: boolean;
+  resource?: string;
 }
 
 let app: INestApplicationContext | null = null;
 
-export const handler = async (event: LambdaEvent): Promise<LambdaResponse> => {
-  const requestId = event.requestId ?? ulid();
+export const handler = async (event: LambdaEvent) => {
+  const requestId = ulid();
+  const isApiGateway = !!event.httpMethod;
 
   try {
     if (!app) app = await NestFactory.createApplicationContext(AppModule);
-    if (!app) throw new Error('Erro na inicialização do AppModule.');
     const requestContext = app.get(RequestContextService);
 
-    // -------------------------
-    // Normaliza headers
-    // -------------------------
-    const headers = event.headers || {};
-    const normalizedHeaders = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
-    const finalRequestId = normalizedHeaders['x-request-id'] ?? requestId;
+    const rawHeaders = event.headers ?? {};
+    const headers: Record<string, string> = Object.fromEntries(Object.entries(rawHeaders).map(([k, v]) => [k.toLowerCase(), v]));
 
-    // -------------------------
-    // Inicializa AsyncLocalStorage com requestId
-    // -------------------------
+    const finalRequestId = headers['x-request-id'] ?? requestId;
     const initialContext = new Map<string, any>();
     initialContext.set('requestId', finalRequestId);
 
-    return await requestContext.run<Promise<LambdaResponse>>(async () => {
+    return await requestContext.run<Promise<any>>(async () => {
       CommonLogger.setRequestContext(requestContext);
-
       const configService = app!.get(ConfigService);
 
-      // -------------------------
-      // Valida API Key
-      // -------------------------
-      const requiredKey = configService.get<string>('AUTH_SERVICE_API_KEY');
-      const incomingKey = normalizedHeaders['x-api-key'];
-      if (!requiredKey || requiredKey !== incomingKey) {
-        CommonLogger.warn('Auth', 'INVALID_API_KEY', 'API Key inválida');
-        throw new InvalidApiKeyError();
+      // Validação de API Key apenas para invocação direta
+      if (!isApiGateway) {
+        const requiredKey = configService.get<string>('AUTH_SERVICE_API_KEY');
+        const incomingKey = headers['x-api-key'];
+        if (!requiredKey || requiredKey !== incomingKey) {
+          CommonLogger.warn('Auth', 'INVALID_API_KEY', 'API Key inválida');
+          throw new InvalidApiKeyError();
+        }
       }
 
-      // -------------------------
-      // Parse do payload
-      // -------------------------
-      let payload: any = event.body ?? {};
-      if (payload.body && typeof payload.body === 'object') payload = payload.body;
+      // ----------------------------
+      // Determina action e body
+      // ----------------------------
 
       const start = Date.now();
+      let body: any;
+      let statusCode = 200;
+      // ----------------------------
+      // Dispatcher de actions
+      // ----------------------------
 
-      // -------------------------
-      // Executa ação
-      // -------------------------
-      switch (event.action) {
-        case 'findEmailClientUser': {
+      switch (event.resource) {
+        case '/client-user/find-email': {
           const handlerInstance = app!.get(FindEmailClientUserHandler);
-          const body = await withTimeout(handlerInstance.execute(payload as FindEmailPayload), 10000);
-          logDuration(start, event.action);
-          return toLambdaResponse(finalRequestId, 200, 'Sucesso', body);
+          const email = event.queryStringParameters?.email;
+          body = await withTimeout(handlerInstance.execute(email!), 10000);
+          break;
         }
 
-        case 'registerClientUser': {
+        case '/client-user/register': {
           const handlerInstance = app!.get(RegisterClientUserHandler);
-          const body = await withTimeout(handlerInstance.execute(payload as RegisterClientUserPayload), 10000);
-          logDuration(start, event.action);
-          return toLambdaResponse(finalRequestId, 201, 'Sucesso', body);
+          const payload = event.body ? JSON.parse(event.body) : {};
+          body = await withTimeout(handlerInstance.execute(payload as RegisterClientUserPayload), 10000);
+          statusCode = 201;
+          break;
         }
 
-        case 'verifyAccountClientUser': {
+        case '/client-user/verify-account': {
           const handlerInstance = app!.get(VerifyAccountClientUserHandler);
-          const body = await withTimeout(handlerInstance.execute(payload as VerifyAccountClientUserPayload), 10000);
-          logDuration(start, event.action);
-          return toLambdaResponse(finalRequestId, 200, 'Sucesso', body);
+          const payload = event.body ? JSON.parse(event.body) : {};
+          body = await withTimeout(handlerInstance.execute(payload as VerifyAccountClientUserPayload), 10000);
+          break;
+        }
+
+        case '/client-user/login': {
+          const handlerInstance = app!.get(LoginClientUserHandler);
+          const payload = event.body ? JSON.parse(event.body) : {};
+          body = await withTimeout(handlerInstance.execute(payload as LoginClientUserPayload), 10000);
+          break;
         }
 
         default:
-          CommonLogger.warn('Action', 'UNKNOWN', `Ação desconhecida: ${event.action}`);
-          throw new UnknownActionError(event.action);
+          CommonLogger.warn('Action', 'UNKNOWN', `Ação desconhecida: ${event.resource}`);
+          throw new UnknownActionError(event.resource!);
       }
+
+      logDuration(start, event.resource);
+
+      const responsePayload = { id: finalRequestId, message: 'Sucesso', body };
+      return {
+        statusCode,
+        headers: { 'Content-Type': 'application/json', 'x-request-id': finalRequestId },
+        body: JSON.stringify(responsePayload),
+      };
     }, initialContext);
   } catch (err: unknown) {
-    if (err instanceof AppException) return toLambdaResponse(requestId, err.getStatus(), err.message);
-    if (err instanceof ServerError) return toLambdaResponse(requestId, 500, err.message);
-    if (err instanceof Error && err.message.includes('Timeout')) {
-      return toLambdaResponse(requestId, 504, 'Serviço demorou demais para responder. Tente novamente mais tarde.');
-    }
-    if (err instanceof Error) {
+    let statusCode = 500;
+    let message = 'Erro interno desconhecido.';
+
+    if (err instanceof AppException) {
+      statusCode = err.getStatus();
+      message = err.message;
+    } else if (err instanceof ServerError) {
+      statusCode = 500;
+      message = err.message;
+    } else if (err instanceof Error && err.message.includes('Timeout')) {
+      statusCode = 504;
+      message = 'Serviço demorou demais para responder. Tente novamente mais tarde.';
+    } else if (err instanceof Error) {
       CommonLogger.error('Handler', 'UNHANDLED_ERROR', err.message, err.stack);
     }
-    return toLambdaResponse(requestId, 500, 'Erro interno desconhecido.');
+
+    const errorPayload = { id: requestId, message };
+    return {
+      statusCode,
+      headers: { 'Content-Type': 'application/json', 'x-request-id': requestId },
+      body: JSON.stringify(errorPayload),
+    };
   }
 };
 
@@ -129,8 +149,4 @@ function logDuration(start: number, action: string) {
 async function withTimeout<T>(maybePromise: T | Promise<T>, ms: number): Promise<T> {
   const promise = maybePromise instanceof Promise ? maybePromise : Promise.resolve(maybePromise);
   return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout de ${ms}ms`)), ms))]);
-}
-
-function toLambdaResponse(id: string, statusCode: number, message: string, body?: any): LambdaResponse {
-  return { id, statusCode, message, body };
 }

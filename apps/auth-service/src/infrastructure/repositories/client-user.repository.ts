@@ -5,35 +5,22 @@ import type { IDatabaseGateway } from '../contracts/i-database-service.gateway';
 import type { IClientUserMapper } from '../../application/mapping/i-client-user.mapper';
 import { ExternalServiceException } from '../../common/exceptions/app.exception';
 import { CommonLogger } from '../../common/logger/common.logger';
+import { CLIENT_USER_MAPPER, DATABASE_GATEWAY } from '../../common/utils/tokens.contants';
 
 @Injectable()
 export class ClientUserRepository implements IClientUserRepository {
   constructor(
-    @Inject('IDatabaseGateway')
-    private readonly databaseGateway: IDatabaseGateway,
-    @Inject('IClientUserMapper')
-    private readonly clientUserMapper: IClientUserMapper,
+    @Inject(DATABASE_GATEWAY)
+    private readonly gateway: IDatabaseGateway,
+    @Inject(CLIENT_USER_MAPPER)
+    private readonly mapper: IClientUserMapper,
   ) {}
-
-  public async save(entity: ClientUser): Promise<ClientUser> {
-    try {
-      const dto = this.clientUserMapper.toDbRequestDto(entity);
-      const response = await this.databaseGateway.saveClientUser(dto);
-      return this.clientUserMapper.dbResponseToEntity(response);
-    } catch (err: any) {
-      CommonLogger.error('DatabaseService', 'SAVE', 'Erro ao salvar ClientUser', err);
-      if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
-        throw new ExternalServiceException('DatabaseService', err);
-      }
-      throw err;
-    }
-  }
 
   public async create(entity: ClientUser): Promise<ClientUser> {
     try {
-      const dto = this.clientUserMapper.toDbRequestDto(entity);
-      const response = await this.databaseGateway.createClientUser(dto);
-      return this.clientUserMapper.dbResponseToEntity(response);
+      const dto = this.mapper.toDbRequestDto(entity);
+      const response = await this.gateway.createClientUser(entity.getId().toString(), dto);
+      return this.mapper.dbResponseToEntity(response);
     } catch (err: any) {
       CommonLogger.error('DatabaseService', 'CREATE', 'Erro ao criar ClientUser', err);
       if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
@@ -43,10 +30,52 @@ export class ClientUserRepository implements IClientUserRepository {
     }
   }
 
+  public async activate(id: string): Promise<ClientUser> {
+    try {
+      const dto = this.mapper.toDbRequestPartialDto({ is_active: true });
+      const response = await this.gateway.saveClientUser(id, dto);
+      return this.mapper.dbResponseToEntity(response);
+    } catch (err: any) {
+      CommonLogger.error('DatabaseService', 'ACTIVATE', `Erro ao ativar usuário: ${id}`, err);
+      if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
+        throw new ExternalServiceException('DatabaseService', err);
+      }
+      throw err;
+    }
+  }
+
+  public async changePassword(id: string, newPasswordHash: string): Promise<ClientUser> {
+    try {
+      const dto = this.mapper.toDbRequestPartialDto({ password_hash: newPasswordHash });
+      const response = await this.gateway.saveClientUser(id, dto);
+      return this.mapper.dbResponseToEntity(response);
+    } catch (err: any) {
+      CommonLogger.error('DatabaseService', 'CHANGE_PASSWORD', `Erro ao alterar senha: ${id}`, err);
+      if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
+        throw new ExternalServiceException('DatabaseService', err);
+      }
+      throw err;
+    }
+  }
+
+  public async changeName(id: string, firstName: string, lastName: string): Promise<ClientUser> {
+    try {
+      const dto = this.mapper.toDbRequestPartialDto({ first_name: firstName, last_name: lastName });
+      const response = await this.gateway.saveClientUser(id, dto);
+      return this.mapper.dbResponseToEntity(response);
+    } catch (err: any) {
+      CommonLogger.error('DatabaseService', 'CHANGE_NAME', `Erro ao alterar nome: ${id}`, err);
+      if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
+        throw new ExternalServiceException('DatabaseService', err);
+      }
+      throw err;
+    }
+  }
+
   public async getByEmail(email: string): Promise<ClientUser> {
     try {
-      const response = await this.databaseGateway.getClientUserByEmail(email);
-      return this.clientUserMapper.dbResponseToEntity(response);
+      const response = await this.gateway.getClientUserByEmail(email);
+      return this.mapper.dbResponseToEntity(response);
     } catch (err: any) {
       CommonLogger.error('DatabaseService', 'GET_BY_EMAIL', `Erro ao buscar ClientUser por email: ${email}`, err);
       if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
@@ -58,8 +87,8 @@ export class ClientUserRepository implements IClientUserRepository {
 
   public async getById(id: string): Promise<ClientUser> {
     try {
-      const response = await this.databaseGateway.getClientUserById(id);
-      return this.clientUserMapper.dbResponseToEntity(response);
+      const response = await this.gateway.getClientUserById(id);
+      return this.mapper.dbResponseToEntity(response);
     } catch (err: any) {
       CommonLogger.error('DatabaseService', 'GET_BY_ID', `Erro ao buscar ClientUser por id: ${id}`, err);
       if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
@@ -71,7 +100,7 @@ export class ClientUserRepository implements IClientUserRepository {
 
   public async findEmail(email: string): Promise<boolean> {
     try {
-      return await this.databaseGateway.findEmail(email);
+      return await this.gateway.findEmail(email);
     } catch (err: any) {
       CommonLogger.error('DatabaseService', 'FIND_EMAIL', `Erro ao verificar email: ${email}`, err);
       if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {

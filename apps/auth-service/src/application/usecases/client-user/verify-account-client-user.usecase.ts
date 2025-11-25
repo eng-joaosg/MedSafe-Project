@@ -7,14 +7,15 @@ import {
   VerificationCodeExpiredException,
 } from '../../../common/exceptions/app.exception';
 import type { INotificationService } from '../../../domain/services/i-notification.service';
-import { IVerifyAccountClientUserUseCase } from '../../../application/contracts/i-verify-account-client-user-usecase';
+import { IVerifyAccountClientUserUseCase } from '../../contracts/i-verify-account-client-user.usecase';
+import { CLIENT_USER_REPOSITORY, NOTIFICATION_SERVICE } from '../../../common/utils/tokens.contants';
 
 @Injectable()
 export class VerifyAccountClientUserUseCase implements IVerifyAccountClientUserUseCase {
   constructor(
-    @Inject('IClientUserRepository')
+    @Inject(CLIENT_USER_REPOSITORY)
     private readonly clientUserRepository: IClientUserRepository,
-    @Inject('INotificationService')
+    @Inject(NOTIFICATION_SERVICE)
     private readonly notificationService: INotificationService,
   ) {}
 
@@ -33,8 +34,8 @@ export class VerifyAccountClientUserUseCase implements IVerifyAccountClientUserU
 
     user.activate();
 
-    await this.clientUserRepository.save(user);
-    await this.notificationService.sendAccountCreated(user);
+    const updated = await this.clientUserRepository.activate(user.getId().toString());
+    await this.notificationService.sendAccountCreated(updated);
     return true;
   }
 }

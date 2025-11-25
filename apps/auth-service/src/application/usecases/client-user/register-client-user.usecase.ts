@@ -8,19 +8,26 @@ import type { INotificationService } from '../../../domain/services/i-notificati
 import { UserAlreadyExistsException } from '../../../common/exceptions/app.exception';
 import { v4 as uuidv4 } from 'uuid';
 import { CommonLogger } from '../../../common/logger/common.logger';
+import {
+  CLIENT_USER_MAPPER,
+  CLIENT_USER_REPOSITORY,
+  HASH_SERVICE,
+  NOTIFICATION_SERVICE,
+  VERIFICATION_CODE_SERVICE,
+} from '../../../common/utils/tokens.contants';
 
 @Injectable()
 export class RegisterClientUserUsecase {
   constructor(
-    @Inject('IClientUserRepository')
+    @Inject(CLIENT_USER_REPOSITORY)
     private readonly clientUserRepository: IClientUserRepository,
-    @Inject('IClientUserMapper')
+    @Inject(CLIENT_USER_MAPPER)
     private readonly clientUSerMapper: IClientUserMapper,
-    @Inject('IHashService')
+    @Inject(HASH_SERVICE)
     private readonly hashService: IHashService,
-    @Inject('IVerificationCodeService')
+    @Inject(VERIFICATION_CODE_SERVICE)
     private readonly verificationCodeService: IVerificationCodeService,
-    @Inject('INotificationService')
+    @Inject(NOTIFICATION_SERVICE)
     private readonly notificationService: INotificationService,
   ) {}
 
@@ -36,7 +43,6 @@ export class RegisterClientUserUsecase {
     const entity = this.clientUSerMapper.registerDtoToEntity(dto, id, passwordHash, verificationCode, codeExpireAt);
 
     const created = await this.clientUserRepository.create(entity);
-
     CommonLogger.info('Auth', 'REGISTER_CLIENT_USER_SUCCESS', {
       email: created.getEmail(),
     });

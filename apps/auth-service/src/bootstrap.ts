@@ -1,35 +1,44 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/require-await */
-import express, { Request, Response } from 'express';
+import express from 'express';
 import bodyParser from 'body-parser';
 import { handler } from './lambda';
-import { v4 as uuidv4 } from 'uuid';
 
 const PORT = process.env.PORT || 3002;
 
 async function bootstrap() {
   const app = express();
 
+  // Middleware para parsear JSON
   app.use(bodyParser.json());
 
-  app.all(/.*/, async (req: Request, res: Response) => {
+  // Middleware principal para capturar todas as requisições
+  app.use(async (req, res) => {
     try {
-      const requestId = (req.headers['x-request-id'] as string) || uuidv4();
-      const { action, ...payload } = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      // Normaliza headers
+      const headers: Record<string, string> = {};
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (typeof value === 'string') headers[key.toLowerCase()] = value;
+      }
 
-      const event = {
-        requestId,
-        headers: req.headers as Record<string, string>,
-        action: action ?? 'unknown',
-        body: payload ?? {},
-      };
+      // Chama o handler do Lambda
+      const result = await handler(req.body);
 
-      const result = await handler(event);
-      res.json(result);
+      // Normaliza o body para envio
+      let responseBody = result.body;
+      if (typeof result.body === 'object') {
+        responseBody = JSON.stringify(result.body);
+      }
+
+      res
+        .status(result.statusCode)
+        .set(result.headers || {})
+        .send(responseBody);
     } catch (err: any) {
       console.error('Erro no handler local:', err);
       res.status(500).json({
         error: err instanceof Error ? err.message : 'Erro desconhecido',
-        requestId: req.headers['x-request-id'],
+        requestId: req.headers['x-request-id'] || null,
       });
     }
   });

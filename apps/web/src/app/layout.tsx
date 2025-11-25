@@ -11,9 +11,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className='pt-30 text-center w-full grow'>
           <Logo />
           <p className='pt-4'>Suas informações de emergência sempre à mão.</p>
-          <div className='mx-auto w-full max-w-xl px-4'>{children}</div>
+          <div className='mx-auto w-full max-w-2xl'>{children}</div>
         </main>
-        <div className='w-full flex justify-center px-4'>
+        <div className='w-full flex justify-center'>
           <p className='text-xs text-center max-w-2xl md:text-sm mt-18 md:mt-4'>Mantenha seus dados médicos e contatos de emergência atualizados e acessíveis em qualquer situação. Gere um QR code seguro e facilite o atendimento rápido quando necessário.</p>
         </div>
         <Footer />

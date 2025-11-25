@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Database Service API Stack
+
+Parameters:
+  KeyName:
+    Type: String
+    Description: Nome da chave SSH para acessar a instância EC2
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+      - t3.small
+      - t3.medium
+    Description: Tipo da instância EC2
+  ApiPort:
+    Type: Number
+    Default: 3000
+    Description: Porta onde a API vai rodar
+  DbConnectionString:
+    Type: String
+    Description: String de conexão para o banco de dados
+
+Resources:
+
+  DatabaseApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Permitir acesso à API
+      VpcId: vpc-xxxxxxxx
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ApiPort
+          ToPort: !Ref ApiPort
+          CidrIp: 0.0.0.0/0
+
+  DatabaseApiInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref DatabaseApiSecurityGroup
+      ImageId: ami-xxxxxxx
+      Tags:
+        - Key: Name
+          Value: MedSafe-Database-Service
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update -y
+          apt-get install -y docker.io
+          systemctl start docker
+          systemctl enable docker
+          # Baixar e rodar a API como container
+          docker run -d -p ${ApiPort}:${ApiPort} \
+            -e DB_CONNECTION_STRING=${DbConnectionString} \
+            usuario/medsafe-database-service:latest

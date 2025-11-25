@@ -6,25 +6,35 @@ import { NotificationServiceModule } from './notification-service.module';
 import { VerificationCodeServiceModule } from './verification-code-service.module';
 import { ClientUserRepository } from '../repositories/client-user.repository';
 import { MappingModule } from '../../application/modules/mapping.module';
+import { CLIENT_USER_REPOSITORY } from '../../common/utils/tokens.contants';
+import { TokenServiceModule } from './token-service.module';
 
 @Global()
 @Module({
-  imports: [DatabaseServiceModule, HashServiceModule, NotificationServiceModule, VerificationCodeServiceModule, MappingModule],
+  imports: [
+    DatabaseServiceModule,
+    HashServiceModule,
+    NotificationServiceModule,
+    VerificationCodeServiceModule,
+    MappingModule,
+    TokenServiceModule,
+  ],
   providers: [
     RequestContextService,
     {
-      provide: 'IClientUserRepository',
+      provide: CLIENT_USER_REPOSITORY,
       useClass: ClientUserRepository,
     },
   ],
   exports: [
-    'IClientUserRepository',
+    CLIENT_USER_REPOSITORY,
     RequestContextService,
     DatabaseServiceModule,
     HashServiceModule,
     NotificationServiceModule,
     VerificationCodeServiceModule,
     MappingModule,
+    TokenServiceModule,
   ],
 })
 export class ClientUserInfraModule {}

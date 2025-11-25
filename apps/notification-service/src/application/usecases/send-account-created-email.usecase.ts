@@ -2,7 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { IMailerService } from '../services/i-mailer.service';
 import { BaseUseCase } from './base.usecase';
 import { EmailDeliveryException, ExternalServiceException } from '../../common/exceptions/app.exception';
-import { EmailTemplates } from '../templates/email.template';
+import { EMAIL_TEMPLATES, MAILER_SERVICE } from '../../common/constants/token.constants';
+import type { IEmailTemplates } from '../contracts/i-email-templates';
 
 export interface AccountCreatedPayload {
   email: string;
@@ -12,8 +13,10 @@ export interface AccountCreatedPayload {
 @Injectable()
 export class SendAccountCreatedEmailUseCase extends BaseUseCase {
   constructor(
-    @Inject('IMailerService')
+    @Inject(MAILER_SERVICE)
     private readonly mailer: IMailerService,
+    @Inject(EMAIL_TEMPLATES)
+    private readonly emailTemplates: IEmailTemplates,
   ) {
     super(SendAccountCreatedEmailUseCase.name);
   }
@@ -30,7 +33,7 @@ export class SendAccountCreatedEmailUseCase extends BaseUseCase {
     );
 
     const subject = 'Conta criada com sucesso';
-    const html = EmailTemplates.accountCreated(name);
+    const html = this.emailTemplates.accountCreated(name);
 
     try {
       await this.mailer.sendEmail(email, subject, html);

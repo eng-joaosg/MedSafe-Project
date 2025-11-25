@@ -1,74 +1,64 @@
 import {
   Controller,
   Get,
-  Param,
-  Headers,
-  UseGuards,
   Post,
+  Patch,
   Body,
+  Query,
+  Headers,
   HttpCode,
   HttpStatus,
-  HttpException,
-  Query,
-  InternalServerErrorException,
   BadRequestException,
+  InternalServerErrorException,
+  Res,
 } from '@nestjs/common';
-import { ServicesConfig } from '../services/service-config';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CommonLoggerGateway } from '../common/common.logger';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { AuthServiceInvoker, GatewayResponse } from '../services/auth-service.invoker';
 import { RegisterClientUserDto } from '../dtos/register-client-user.dto';
 import { VerifyAccountClientUserDto } from '../dtos/verify-client-user.dto';
-import { AuthServiceInvoker } from '../services/auth-service.invoker';
-import {
-  InvalidCredentialsException,
-  InvalidVerificationCodeException,
-  UserAlreadyExistsException,
-  UserNotActiveException,
-  UserNotFoundException,
-  VerificationCodeExpiredException,
-} from '../common/app.exceptions';
-import { LoginClientUserDto } from 'src/dtos/login-client-user.dto';
+import { LoginClientUserDto } from '../dtos/login-client-user.dto';
+import { SessionClientUserDto } from '../dtos/session-client-user.dto';
+import { ChangePasswordClientUserDto } from '../dtos/change-password-client-user.dto';
+import type { Response } from 'express';
+import { CommonLoggerGateway } from '../common/common.logger';
 
 @ApiTags('Gateway')
 @Controller('gateway')
 export class GatewayController {
-  constructor(
-    private readonly invoker: AuthServiceInvoker,
-    private readonly servicesConfig: ServicesConfig,
-  ) {}
+  constructor(private readonly invoker: AuthServiceInvoker) {}
 
-  // -----------------------
-  // Rotas públicas
-  // -----------------------
+  // Helper para invocar serviço e tratar erros
+  private async invokeAndHandle<T>(
+    path: string,
+    method: 'GET' | 'POST' | 'PATCH',
+    payload: any,
+    requestId: string,
+    authorization?: string,
+  ): Promise<GatewayResponse<T>> {
+    const { statusCode, body } = await this.invoker.invoke<T>(path, method, payload, requestId, authorization);
+
+    if (statusCode >= 400 && statusCode < 500) throw new BadRequestException('Erro de requisição');
+    if (statusCode >= 500) throw new InternalServerErrorException('Erro no servidor');
+
+    return { statusCode, body };
+  }
 
   @Get('client-user/find-email')
   @ApiOperation({ summary: 'Verifica se o e-mail já está cadastrado' })
   @ApiResponse({
     status: 200,
     description: 'emailAlreadyExists = true ou false',
-    schema: {
-      type: 'object',
-      properties: {
-        emailAlreadyExists: { type: 'boolean' },
-      },
-    },
+    schema: { type: 'object', properties: { emailAlreadyExists: { type: 'boolean' } } },
   })
   @ApiResponse({ status: 400, description: 'Email não fornecido ou inválido.' })
-  async findEmail(@Query('email') email: string, @Headers('x-request-id') requestId: string): Promise<{ emailAlreadyExists: boolean }> {
-    if (!email) {
-      throw new HttpException('Email não fornecido ou inválido.', HttpStatus.BAD_REQUEST);
-    }
+  async findEmail(@Query('email') email: string, @Headers('x-request-id') requestId: string) {
+    if (!email) throw new BadRequestException('Email não fornecido ou inválido.');
 
     CommonLoggerGateway.logStart('Gateway', 'FIND_EMAIL', email, requestId);
 
-    const { statusCode, body } = await this.invoker.invoke<boolean>('findEmailClientUser', { email }, requestId);
+    const { body } = await this.invokeAndHandle<{ emailAlreadyExists: boolean }>('/client-user/find-email', 'GET', { email }, requestId);
 
-    if (statusCode !== 200) {
-      throw new InternalServerErrorException('Erro no servidor');
-    }
-    console.log(body);
-    return { emailAlreadyExists: Boolean((body as any).emailAlreadyExists) };
+    return { emailAlreadyExists: Boolean(body.emailAlreadyExists) };
   }
 
   @Post('client-user/register')
@@ -76,101 +66,48 @@ export class GatewayController {
   @ApiOperation({ summary: 'Registra um novo usuário' })
   @ApiBody({ type: RegisterClientUserDto })
   @ApiResponse({ status: 201, description: 'Usuário registrado com sucesso' })
-  @ApiResponse({ status: 409, description: 'E-mail já está em uso' })
-  async register(@Body() dto: RegisterClientUserDto, @Headers('x-request-id') requestId: string): Promise<void> {
+  async register(@Body() dto: RegisterClientUserDto, @Headers('x-request-id') requestId: string) {
     CommonLoggerGateway.logStart('Gateway', 'REGISTER', dto.email, requestId);
 
-    const { statusCode } = await this.invoker.invoke<unknown>('registerClientUser', dto, requestId);
-
-    if (statusCode === 409) {
-      throw new UserAlreadyExistsException('E-mail já está em uso');
-    }
-    if (statusCode !== 201 && statusCode !== 200) {
-      throw new InternalServerErrorException('Erro no servidor');
-    }
-    return;
+    await this.invokeAndHandle('/client-user/register', 'POST', dto, requestId);
   }
 
   @Post('client-user/verify-account')
   @ApiOperation({ summary: 'Verifica o código de ativação da conta' })
   @ApiBody({ type: VerifyAccountClientUserDto })
   @ApiResponse({ status: 200, description: 'Conta verificada com sucesso' })
-  @ApiResponse({ status: 400, description: 'E-mail ou código inválido' })
-  @ApiResponse({ status: 404, description: 'Conta não encontrada' })
-  @ApiResponse({ status: 409, description: 'Código incorreto ou expirado' })
-  async verifyAccount(@Body() dto: VerifyAccountClientUserDto, @Headers('x-request-id') requestId: string): Promise<void> {
+  async verifyAccount(@Body() dto: VerifyAccountClientUserDto, @Headers('x-request-id') requestId: string) {
     CommonLoggerGateway.logStart('Gateway', 'VERIFY_ACCOUNT', dto.email, requestId);
 
-    const { statusCode } = await this.invoker.invoke<unknown>('verifyAccountClientUser', dto, requestId);
-    if (statusCode === 400) {
-      throw new BadRequestException('Código inválido');
-    }
-    if (statusCode === 401) {
-      throw new InvalidVerificationCodeException();
-    }
-    if (statusCode === 403) {
-      throw new VerificationCodeExpiredException();
-    }
-    if (statusCode === 404) {
-      throw new UserNotFoundException();
-    }
-    if (statusCode !== 200) {
-      throw new InternalServerErrorException('Erro no servidor, tente novamente mais tarde.');
-    }
-    return;
+    await this.invokeAndHandle('/client-user/verify-account', 'POST', dto, requestId);
   }
 
   @Post('client-user/login')
-  @ApiOperation({ summary: 'Realiza login do usuário' })
-  @ApiBody({ type: LoginClientUserDto })
-  @ApiResponse({ status: 200, description: 'Login realizado com sucesso' })
-  @ApiResponse({ status: 400, description: 'Credenciais inválidas' })
-  @ApiResponse({ status: 401, description: 'E-mail ou senha incorretos' })
-  @ApiResponse({ status: 403, description: 'Conta não verificada' })
-  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  @ApiResponse({ status: 500, description: 'Erro interno no servidor' })
-  async login(@Body() dto: LoginClientUserDto, @Headers('x-request-id') requestId: string): Promise<void> {
+  @ApiOperation({ summary: 'Login do usuário' })
+  async login(@Body() dto: LoginClientUserDto, @Headers('x-request-id') requestId: string, @Res({ passthrough: true }) res: Response) {
     CommonLoggerGateway.logStart('Gateway', 'LOGIN', dto.email, requestId);
 
-    const { statusCode } = await this.invoker.invoke<unknown>('loginClientUser', dto, requestId);
-    if (statusCode === 400) {
-      throw new BadRequestException('Credenciais inválidas.');
-    }
-    if (statusCode === 401) {
-      throw new InvalidCredentialsException();
-    }
-    if (statusCode === 403) {
-      throw new UserNotActiveException();
-    }
-    if (statusCode === 404) {
-      throw new UserNotFoundException();
-    }
-    if (statusCode !== 200) {
-      throw new InternalServerErrorException('Erro no servidor, tente novamente mais tarde.');
-    }
+    const { body } = await this.invokeAndHandle<SessionClientUserDto>('/client-user/login', 'POST', dto, requestId);
 
-    return;
+    res.cookie('jwt', body.accessToken.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: body.accessToken.expiresIn ? body.accessToken.expiresIn * 1000 : 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return { firstName: body.firstName, id: body.id };
   }
 
-  // -----------------------
-  // Rotas protegidas
-  // -----------------------
+  @Patch('client-user/change-password')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Atualiza a senha do usuário' })
+  @ApiResponse({ status: 204, description: 'Senha alterada com sucesso' })
+  async changePassword(@Body() dto: ChangePasswordClientUserDto, @Headers('x-request-id') requestId: string) {
+    if (!dto.newPassword) throw new BadRequestException('Nova senha não fornecida');
 
-  @UseGuards(JwtAuthGuard)
-  @Get('client-user/:id')
-  @ApiOperation({ summary: 'Retorna um usuário pelo ID' })
-  @ApiResponse({ status: 200, description: 'Usuário encontrado' })
-  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async getUserById(@Param('id') id: string, @Headers('x-request-id') requestId: string): Promise<void> {
-    CommonLoggerGateway.logStart('Gateway', 'GET_USER', id, requestId);
+    CommonLoggerGateway.logStart('Gateway', 'CHANGE_PASSWORD', 'N/A', requestId);
 
-    const { statusCode, body } = await this.invoker.invoke<void>('getClientUserById', { id }, requestId);
-
-    if (statusCode === 404) {
-      throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
-    }
-
-    return body;
+    await this.invokeAndHandle('/client-user/change-password', 'PATCH', { newPassword: dto.newPassword }, requestId);
   }
 }

@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { IClientUserRepository } from '../../../domain/repositories/i-client-user.repository';
+import { CLIENT_USER_REPOSITORY } from '../../../common/utils/tokens.contants';
 
 @Injectable()
 export class FindEmailClientUserUsecase {
   constructor(
-    @Inject('IClientUserRepository')
+    @Inject(CLIENT_USER_REPOSITORY)
     private readonly clientUserRepository: IClientUserRepository,
   ) {}
 

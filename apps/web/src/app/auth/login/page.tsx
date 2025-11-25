@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/Input";
 import ConfirmButton from "@/components/ConfirmButton";
+import { login } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,29 +26,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/gateway/auth/login`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error("E-mail ou senha incorretos.");
-        }
-        if (res.status === 403) {
-          throw new Error("Conta não verificada.");
-        }
-        throw new Error("Falha ao fazer login.");
-      }
-
-      router.push("/dashboard");
+      const res = await login({ email, password });
+      router.push(`/client-user/${res.id}`);
     } catch (err: any) {
       setMessage(err.message || "Erro inesperado ao fazer login.");
     }
@@ -74,11 +54,15 @@ export default function LoginPage() {
           onChange={setPassword}
         />
       </div>
+
       <div className="h-4 mt-2 flex items-center justify-center">
         {message && (
-          <p className="text-sm text-error text-center md:text-base">{message}</p>
+          <p className="text-sm text-error text-center md:text-base">
+            {message}
+          </p>
         )}
       </div>
+
       <div className="w-full max-w-md flex items-center justify-between mt-4">
         <div className="flex flex-col text-left pl-4 text-base mr-5">
           <p>
@@ -90,6 +74,7 @@ export default function LoginPage() {
               Inscreva-se.
             </span>
           </p>
+
           <p
             onClick={() => router.push("/auth/recovery")}
             className="text-info cursor-pointer hover:underline"

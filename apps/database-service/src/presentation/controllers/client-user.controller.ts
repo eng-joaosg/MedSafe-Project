@@ -1,124 +1,83 @@
 import {
   Controller,
   Get,
-  Param,
   Post,
-  Patch,
   Body,
   HttpCode,
   HttpStatus,
   ValidationPipe,
   UsePipes,
-  BadRequestException,
   Delete,
   UseGuards,
   Query,
+  Inject,
+  Patch,
+  ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiResponse, ApiTags, ApiBody, ApiOperation } from '@nestjs/swagger';
-import { ParseUUIDPipe } from '@nestjs/common';
+import { ApiResponse, ApiTags, ApiBody, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { ApiKeyGuardForAuthService } from '../guards/api-key-for-auth-service.guard';
-import { ClientUserService } from 'src/application/services/client-user.service';
-import { ClientUserModel } from 'src/application/models/client-user.model';
-import { UserNotFoundException } from 'src/common/exceptions/app.exceptions';
+import { ClientUserModel } from '../../application/models/client-user.model';
+import type { IClientUserService } from '../../application/contracts/i-client-user.service';
+import { CLIENT_USER_SERVICE } from '../../common/contants/tokens.contants';
 
 @ApiTags('client-user')
 @Controller('client-user')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 @UseGuards(ApiKeyGuardForAuthService)
 export class ClientUserAuthController {
-  constructor(private readonly clientUserService: ClientUserService) {}
+  constructor(
+    @Inject(CLIENT_USER_SERVICE)
+    private readonly clientUserService: IClientUserService,
+  ) {}
 
   @Get('find-email')
   @ApiOperation({ summary: 'Verifica se um email está cadastrado (retorna true/false).' })
-  @ApiResponse({ status: 200, description: 'Retorna true se o email já está cadastrado, false se pode ser usado.' })
-  @ApiResponse({ status: 400, description: 'E-mail inválido.' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
+  @ApiQuery({ name: 'email', required: true })
+  @ApiResponse({ status: 200, description: 'true se o email existe, false caso contrário.' })
   async findByEmail(@Query('email') email: string): Promise<boolean> {
-    if (!email || !email.includes('@')) {
-      throw new BadRequestException('E-mail inválido');
-    }
     return await this.clientUserService.findEmail(email);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Cria um novo usuário cliente.' })
-  @ApiBody({ type: ClientUserModel, description: 'Payload para criação de um novo paciente.' })
-  @ApiResponse({ status: 201, description: 'Registro criado com sucesso.', type: ClientUserModel })
-  @ApiResponse({ status: 400, description: 'Payload inválido.' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
-  async createClientUser(@Body() payload: ClientUserModel): Promise<ClientUserModel> {
-    return this.clientUserService.save(payload);
+  @ApiOperation({ summary: 'Cria um usuário cliente.' })
+  @ApiQuery({ name: 'id', required: true, description: 'ID do usuário para criação.' })
+  @ApiBody({ type: ClientUserModel, description: 'Payload completo.' })
+  @ApiResponse({ status: 201, description: 'Criado com sucesso.', type: ClientUserModel })
+  async createClientUser(@Query('id') id: string, @Body() payload: ClientUserModel): Promise<ClientUserModel> {
+    return this.clientUserService.save(id, payload);
   }
 
-  @Patch(':id')
-  @ApiOperation({ summary: 'Atualiza um usuário cliente existente pelo ID.' })
-  @ApiBody({
-    type: ClientUserModel,
-    description: 'Payload para atualização de um paciente existente.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Registro atualizado com sucesso.',
-    type: ClientUserModel,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'ID da URL difere do corpo da requisição ou payload inválido.',
-  })
-  @ApiResponse({ status: 404, description: 'Paciente não encontrado.' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
-  async updateClientUser(@Param('id', ParseUUIDPipe) id: string, @Body() payload: ClientUserModel): Promise<ClientUserModel> {
-    if (id !== payload.id) {
-      throw new BadRequestException('O ID na URL deve ser igual ao ID do corpo da requisição.');
-    }
-    return this.clientUserService.save(payload);
-  }
-
-  @Get(':id')
+  @Get('by-id')
   @ApiOperation({ summary: 'Busca um usuário cliente pelo ID.' })
-  @ApiResponse({
-    status: 200,
-    description: 'Dados do paciente encontrados.',
-    type: ClientUserModel,
-  })
-  @ApiResponse({ status: 404, description: 'Paciente não encontrado.' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
-  async findClientUserById(@Param('id', ParseUUIDPipe) id: string): Promise<ClientUserModel> {
-    const user = await this.clientUserService.getById(id);
-    if (!user) {
-      throw new UserNotFoundException(`ClientUser com ID ${id} não encontrado.`);
-    }
-    return user;
+  @ApiQuery({ name: 'id', required: true })
+  @ApiResponse({ status: 200, type: ClientUserModel })
+  async findClientUserById(@Query('id', ParseUUIDPipe) id: string): Promise<ClientUserModel> {
+    return await this.clientUserService.getById(id);
   }
 
-  @Get('email/:email')
+  @Get('by-email')
   @ApiOperation({ summary: 'Busca um usuário cliente pelo email.' })
-  @ApiResponse({
-    status: 200,
-    description: 'Dados do paciente encontrados.',
-    type: ClientUserModel,
-  })
-  @ApiResponse({ status: 404, description: 'Paciente não encontrado.' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
-  async findClientUserByEmail(@Param('email') email: string): Promise<ClientUserModel> {
-    const user = await this.clientUserService.getByEmail(email);
-    if (!user) {
-      throw new UserNotFoundException(`ClientUser com email ${email} não encontrado.`);
-    }
-    return user;
+  @ApiQuery({ name: 'email', required: true })
+  @ApiResponse({ status: 200, type: ClientUserModel })
+  async findClientUserByEmail(@Query('email') email: string): Promise<ClientUserModel> {
+    return await this.clientUserService.getByEmail(email);
   }
 
-  @Delete(':id')
+  @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Deleta um usuário cliente pelo ID.' })
-  @ApiResponse({ status: 200, description: 'Paciente deletado com sucesso.' })
-  @ApiResponse({ status: 404, description: 'Paciente não encontrado.' })
-  @ApiResponse({ status: 500, description: 'Erro interno do servidor.' })
-  async deleteClientUserAuth(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    const user = await this.clientUserService.getById(id);
-    if (!user) {
-      throw new UserNotFoundException(`ClientUser com ID ${id} não encontrado.`);
-    }
+  @ApiQuery({ name: 'id', required: true })
+  @ApiResponse({ status: 204, description: 'Paciente deletado com sucesso.' })
+  async deleteClientUserAuth(@Query('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.clientUserService.deleteById(id);
+  }
+
+  @Patch()
+  @ApiOperation({ summary: 'Atualiza parcialmente um usuário cliente.' })
+  @ApiQuery({ name: 'id', required: true })
+  @ApiResponse({ status: 200, description: 'Usuário atualizado.', type: ClientUserModel })
+  async patchClientUser(@Query('id', ParseUUIDPipe) id: string, @Body() partial: Partial<ClientUserModel>): Promise<ClientUserModel> {
+    return await this.clientUserService.save(id, partial);
   }
 }

@@ -1,39 +1,49 @@
+import { AuthTokenOutput } from 'src/domain/services/i-token.service';
 import { ClientUser } from '../../domain/entities/client-user.entity';
 import { ClientUserDbtDto } from '../dtos/client-user/client-user-db.dto';
 import { RegisterClientUserDto } from '../dtos/client-user/register-client-user.dto';
+import { SessionClientUserDto } from '../dtos/client-user/session-client-user.dto';
 import { IClientUserMapper } from './i-client-user.mapper';
 
 export class ClientUserMapper implements IClientUserMapper {
   public toDbRequestDto(entity: ClientUser): ClientUserDbtDto {
-    return new ClientUserDbtDto(
-      entity.getId().toString(),
-      entity.getEmail(),
-      entity.getPasswordHash(),
-      entity.getClinicalInfoId(),
-      entity.getFirstName(),
-      entity.getLastName(),
-      entity.getIsActive(),
-      entity.getVerificationCode(),
-      entity.getCodeExpiresAt(),
-      entity.getCreatedAt(),
-      entity.getUpdatedAt(),
-    );
+    return {
+      id: entity.getId().toString(),
+      email: entity.getEmail(),
+      password_hash: entity.getPasswordHash(),
+      clinical_info_id: entity.getClinicalInfoId(),
+      first_name: entity.getFirstName(),
+      last_name: entity.getLastName(),
+      is_active: entity.getIsActive(),
+      verification_code: entity.getVerificationCode(),
+      code_expires_at: entity.getCodeExpiresAt(),
+      created_at: entity.getCreatedAt(),
+      updated_at: entity.getUpdatedAt(),
+    };
   }
+
+  public toDbRequestPartialDto(partial: Partial<ClientUserDbtDto>): ClientUserDbtDto {
+    const dto: ClientUserDbtDto = { ...partial };
+    Object.keys(dto).forEach((key) => dto[key] === undefined && delete dto[key]);
+    return dto;
+  }
+
   public dbResponseToEntity(dto: ClientUserDbtDto) {
     return new ClientUser(
-      dto.id,
-      dto.email,
-      dto.password_hash,
-      dto.clinical_info_id,
-      dto.first_name,
-      dto.last_name,
+      dto.id!,
+      dto.email!,
+      dto.password_hash!,
+      dto.clinical_info_id ?? null,
+      dto.first_name!,
+      dto.last_name!,
       dto.is_active,
-      dto.verification_code,
-      dto.code_expires_at,
-      dto.created_at,
-      dto.updated_at,
+      dto.verification_code ?? null,
+      dto.code_expires_at ?? null,
+      dto.created_at!,
+      dto.updated_at!,
     );
   }
+
   public registerDtoToEntity(dto: RegisterClientUserDto, id: string, passwordHash: string, verificationCode: string, codeExpiresAt: Date) {
     return new ClientUser(
       id,
@@ -47,6 +57,17 @@ export class ClientUserMapper implements IClientUserMapper {
       codeExpiresAt,
       null,
       null,
+    );
+  }
+
+  public toSessionDto(entity: ClientUser, token: AuthTokenOutput): SessionClientUserDto {
+    return new SessionClientUserDto(
+      entity.getId().toString(),
+      entity.getEmail(),
+      entity.getRole(),
+      entity.getFirstName(),
+      token,
+      entity.getClinicalInfoId(),
     );
   }
 }

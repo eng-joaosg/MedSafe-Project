@@ -1,0 +1,56 @@
+name: Deploy Database Service API
+
+on:
+  push:
+    branches:
+      - Database-Service-PROD
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build API
+        run: npm run build
+
+      - name: Build Docker image
+        run: docker build -t usuario/medsafe-database-service:latest .
+
+      - name: Push Docker image
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker push usuario/medsafe-database-service:latest
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: sa-east-1
+
+      - name: Deploy CloudFormation Stack
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/database-service/template.yml \
+            --stack-name MedSafe-Database-API-Stack \
+            --capabilities CAPABILITY_IAM \
+            --parameter-overrides \
+              KeyName=${{ secrets.EC2_KEY_NAME }} \
+              InstanceType=t3.micro \
+              ApiPort=3000 \
+              DbConnectionString=${{ secrets.DB_CONNECTION_STRING }} \
+            --no-fail-on-empty-changeset

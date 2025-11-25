@@ -1,40 +1,49 @@
-import { AppLinks } from '../../common/constants/urls.contants';
+import { Inject, Injectable } from '@nestjs/common';
+import { IEmailTemplates } from '../contracts/i-email-templates';
+import type { IAppLinks } from '../contracts/i-app-links';
+import { APP_LINKS } from '../../common/constants/token.constants';
 
-export class EmailTemplates {
-  static verificationEmail(name: string, email: string, code: string): string {
-    const verifyUrl = `${AppLinks.VERIFY_EMAIL}/${encodeURIComponent(email)}`;
+@Injectable()
+export class EmailTemplates implements IEmailTemplates {
+  constructor(
+    @Inject(APP_LINKS)
+    private readonly appLinks: IAppLinks,
+  ) {}
+
+  verificationEmail(name: string, email: string, code: string): string {
+    const verifyUrl = `${this.appLinks.front.verifyPage()}/${encodeURIComponent(email)}`;
 
     return `
-    <div style="font-family: Arial, sans-serif; padding: 20px;">
-      <h2>Olá, ${name}!</h2>
-      <p>Seu código de verificação é:</p>
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Olá, ${name}!</h2>
+        <p>Seu código de verificação é:</p>
 
-      <h3 style="color: #2e6c80;">${code}</h3>
+        <h3 style="color: #2e6c80;">${code}</h3>
 
-      <p>Clique no botão abaixo para validar seu e-mail:</p>
+        <p>Clique no botão abaixo para validar seu e-mail:</p>
 
-      <a href="${verifyUrl}" 
-         style="
-           display: inline-block;
-           padding: 12px 20px;
-           background-color: #2e6c80;
-           color: white;
-           text-decoration: none;
-           border-radius: 6px;
-           margin: 15px 0;
-         ">
-        Validar e-mail
-      </a>
+        <a href="${verifyUrl}" 
+           style="
+             display: inline-block;
+             padding: 12px 20px;
+             background-color: #2e6c80;
+             color: white;
+             text-decoration: none;
+             border-radius: 6px;
+             margin: 15px 0;
+           ">
+          Validar e-mail
+        </a>
 
-      <p>Se você não solicitou este código, ignore esta mensagem.</p>
-      <br/>
-      <small>Equipe MedSafe</small>
-      ${this.footer()}
-    </div>
-  `;
+        <p>Se você não solicitou este código, ignore esta mensagem.</p>
+        <br/>
+        <small>Equipe MedSafe</small>
+        ${this.footer()}
+      </div>
+    `;
   }
 
-  static passwordRecovery(name: string, token: string): string {
+  passwordRecovery(name: string, token: string): string {
     return `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
         <h2>Olá, ${name}!</h2>
@@ -49,7 +58,7 @@ export class EmailTemplates {
     `;
   }
 
-  static accountCreated(name: string): string {
+  accountCreated(name: string): string {
     return `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
         <h2>Bem-vindo, ${name}!</h2>
@@ -62,7 +71,7 @@ export class EmailTemplates {
     `;
   }
 
-  static publicDataAccess(name: string, accessedAt: Date): string {
+  publicDataAccess(name: string, accessedAt: Date): string {
     const formattedDate = accessedAt.toLocaleString('pt-BR', {
       dateStyle: 'short',
       timeStyle: 'short',
@@ -81,7 +90,7 @@ export class EmailTemplates {
     `;
   }
 
-  private static footer(): string {
+  private footer(): string {
     return `
       <hr style="margin-top: 30px;"/>
       <p style="font-size: 12px; color: #666;">

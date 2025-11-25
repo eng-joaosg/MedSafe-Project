@@ -1,9 +1,9 @@
 export interface TokenPayload {
-  id: string;
-  name: string;
-  email: string;
-  clinicalInfo?: string;
-  role?: string;
-  iat?: number;
-  exp?: number;
+  sub: string | number;
+  firsttName: string | null;
+  email: string | null;
+  clinicalInfo: string | null;
+  role: string;
+  iat: number;
+  exp: number | null;
 }

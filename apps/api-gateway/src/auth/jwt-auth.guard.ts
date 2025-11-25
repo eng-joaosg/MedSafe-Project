@@ -12,9 +12,9 @@ function isJwtPayload(decoded: unknown): decoded is TokenPayload {
     typeof obj.email === 'string' &&
     typeof obj.firstName === 'string' &&
     typeof obj.clinicalInfo === 'string' &&
-    (obj.role === undefined || typeof obj.role === 'string') &&
-    (obj.iat === undefined || typeof obj.iat === 'number') &&
-    (obj.exp === undefined || typeof obj.exp === 'number')
+    (obj.role === null || typeof obj.role === 'string') &&
+    (obj.iat === null || typeof obj.iat === 'number') &&
+    (obj.exp === null || typeof obj.exp === 'number')
   );
 }
 
