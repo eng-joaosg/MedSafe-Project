@@ -11,7 +11,7 @@ const SERVICE_NAME = 'NOTIFICATION SERVICE';
 @Injectable()
 export class KinghostMailerService implements IMailerService {
   private readonly mainSender: 'API' | 'SMTP';
-  private readonly useFallback: boolean;
+  private readonly useFallback: 'true' | 'false';
 
   constructor(
     private readonly apiMailer: KinghostApiMailerService,
@@ -19,7 +19,7 @@ export class KinghostMailerService implements IMailerService {
     private readonly configService: ConfigService,
   ) {
     this.mainSender = this.configService.get<string>('MAIN_MAIL_SENDER', 'API') as 'API' | 'SMTP';
-    this.useFallback = this.configService.get<boolean>('USE_FALLBACK', true);
+    this.useFallback = this.configService.get<string>('USE_FALLBACK', 'true') as 'true' | 'false';
   }
 
   async sendEmail(to: string, subject: string, html: string): Promise<void> {
@@ -49,7 +49,7 @@ export class KinghostMailerService implements IMailerService {
         `Falha ao enviar e-mail via ${this.mainSender}: ${error instanceof Error ? error.message : String(error)}`,
       );
 
-      if (this.useFallback) {
+      if (this.useFallback === 'true') {
         const fallbackSender = this.mainSender === 'API' ? 'SMTP' : 'API';
         CommonLogger.info(SERVICE_NAME, action, `Tentando fallback via ${fallbackSender}...`);
         try {
