@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigurationException } from '../../common/exceptions/app.exception';
@@ -72,5 +72,20 @@ export class JwtTokenService implements ITokenService {
       accessToken,
       expiresIn: this.publicExpiresInSeconds,
     };
+  }
+
+  public async verifyToken(token: string): Promise<TokenPayload> {
+    const secrets = Object.values(this.secrets);
+
+    for (const secret of secrets) {
+      try {
+        const payload = await this.jwtService.verifyAsync<TokenPayload>(token, { secret });
+        return payload;
+      } catch {
+        // Continua tentando com outros secrets
+      }
+    }
+
+    throw new UnauthorizedException('Token inválido ou expirado');
   }
 }

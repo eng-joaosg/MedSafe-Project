@@ -45,7 +45,7 @@ export default function Input({
         value={value}
         onChange={(e) => handleChange(e.target.value)}
         placeholder={placeholder}
-        disabled={!editable} // <-- aqui
+        disabled={!editable}
         className={`
           ${editable ? 'bg-grayscale-50 text-grayscale-900 hover:border-info focus:border-info' : 'bg-grayscale-200 text-grayscale-500 cursor-not-allowed'}
           ${inputHeight}

@@ -98,3 +98,9 @@ export class DatabaseOperationException extends AppException {
     this.originalError = error;
   }
 }
+
+export class ClinicalInfoNotFoundException extends AppException {
+  constructor(message = 'Informações clínicas não encontradas') {
+    super(message, HttpStatus.NOT_FOUND);
+  }
+}

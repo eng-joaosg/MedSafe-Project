@@ -4,16 +4,16 @@ import InputGroup from './InputGroup';
 
 interface InputDoubleProps {
   fieldName1: string;
-  value1: string;
+  value1: string | number;
   onChange1: (v: string) => void;
   placeholder1?: string;
 
   fieldName2: string;
-  value2: string;
+  value2: string | number;
   onChange2: (v: string) => void;
   placeholder2?: string;
 
-  editable?: boolean; // <-- adicionado
+  editable?: boolean;
 }
 
 export function InputDouble({
@@ -25,35 +25,48 @@ export function InputDouble({
   value2,
   onChange2,
   placeholder2 = '',
-  editable = true, // <-- padrão true
+  editable = true,
 }: InputDoubleProps) {
-  const inputClass = `text-center outline-none text-md w-full appearance-none
-    ${editable ? 'bg-transparent text-grayscale-900' : 'bg-grayscale-200 text-grayscale-500 cursor-not-allowed'}`;
+  const inputClass = `
+    text-center 
+    outline-none 
+    text-md 
+    w-full 
+    bg-transparent
+    appearance-none
+    ${editable ? 'text-grayscale-900' : 'text-grayscale-500 cursor-not-allowed'}
+  `;
 
   return (
-    <InputGroup>
+    <InputGroup editable={editable}>
       {/* Primeiro campo */}
-      <div className="flex flex-col flex-1 items-start px-2 border-r border-grayscale-200 justify-center relative min-w-0">
-        <span className="text-md text-grayscale-700 whitespace-nowrap mb-1">{fieldName1}:</span>
+      <div className="flex flex-col flex-1 items-start px-2 border-r border-grayscale-200 justify-center min-w-0">
+        <span className="text-md text-grayscale-700 whitespace-nowrap mb-1">
+          {fieldName1}:
+        </span>
+
         <input
           type="text"
           value={value1}
           onChange={(e) => editable && onChange1(e.target.value)}
           placeholder={placeholder1}
-          disabled={!editable} // <-- desabilita
+          disabled={!editable}
           className={inputClass}
         />
       </div>
 
       {/* Segundo campo */}
-      <div className="flex flex-col flex-1 items-start px-2 justify-center relative min-w-0">
-        <span className="text-md text-grayscale-700 whitespace-nowrap mb-1">{fieldName2}:</span>
+      <div className="flex flex-col flex-1 items-start px-2 justify-center min-w-0">
+        <span className="text-md text-grayscale-700 whitespace-nowrap mb-1">
+          {fieldName2}:
+        </span>
+
         <input
           type="text"
           value={value2}
           onChange={(e) => editable && onChange2(e.target.value)}
           placeholder={placeholder2}
-          disabled={!editable} // <-- desabilita
+          disabled={!editable}
           className={inputClass}
         />
       </div>

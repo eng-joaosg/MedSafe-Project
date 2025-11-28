@@ -1,37 +1,50 @@
 'use client';
 import React from 'react';
 import { InputSearch } from '@/components/InputSearch';
+import { InputDropdown } from '@/components/InputDropdown';
+
+interface Allergy {
+  name: string;
+  severity: string;
+}
 
 interface Props {
-  userItems: string[];
+  userItems: Allergy[];
   systemOptions: string[];
-  setUserItems: (allergies: string[]) => void;
-  editable?: boolean; // <-- adicionado
+  setUserItems: (allergies: Allergy[]) => void;
+  editable?: boolean;
 }
 
 export default function AllergiesSection({ userItems, systemOptions, setUserItems, editable = true }: Props) {
+  const severityOptions = ['Leve', 'Moderada', 'Grave', 'Severa'];
 
   const addAllergy = () => {
     if (
       userItems.length < 10 &&
-      userItems.every(a => a && systemOptions.includes(a)) &&
-      new Set(userItems.filter(Boolean)).size === userItems.filter(Boolean).length
+      userItems.every(a => a.name && systemOptions.includes(a.name)) &&
+      new Set(userItems.filter(a => a.name).map(a => a.name)).size === userItems.filter(a => a.name).length
     ) {
-      setUserItems([...userItems, '']);
+      setUserItems([...userItems, { name: '', severity: '' }]);
     }
   };
 
   const removeAllergy = (index: number) => {
     if (userItems.length === 1) {
-      setUserItems(['']);
+      setUserItems([{ name: '', severity: '' }]);
     } else {
       setUserItems(userItems.filter((_, i) => i !== index));
     }
   };
 
-  const updateAllergy = (index: number, value: string) => {
+  const updateAllergyName = (index: number, value: string) => {
     const updated = [...userItems];
-    updated[index] = value;
+    updated[index].name = value;
+    setUserItems(updated);
+  };
+
+  const updateAllergySeverity = (index: number, value: string) => {
+    const updated = [...userItems];
+    updated[index].severity = value;
     setUserItems(updated);
   };
 
@@ -43,15 +56,22 @@ export default function AllergiesSection({ userItems, systemOptions, setUserItem
           <InputSearch
             label="Alergia"
             placeholder="Buscar alergia..."
-            value={a}
-            onChange={(v) => updateAllergy(i, v)}
+            value={a.name}
+            onChange={(v) => updateAllergyName(i, v)}
             options={systemOptions}
-            editable={editable} // <-- agora recebe
+            editable={editable}
+          />
+          <InputDropdown
+            label="Severidade"
+            value={a.severity}
+            onChange={(v) => updateAllergySeverity(i, v)}
+            options={severityOptions}
+            editable={editable}
           />
           <div className="flex justify-between mt-2 px-4">
             <button
               onClick={() => removeAllergy(i)}
-              disabled={!editable} // <-- desabilita quando não editável
+              disabled={!editable}
               className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors
                 ${editable ? 'text-info hover:text-info-dark border-info' : 'text-grayscale-400 border-grayscale-300 cursor-not-allowed'}`}
             >
@@ -60,7 +80,7 @@ export default function AllergiesSection({ userItems, systemOptions, setUserItem
             {i === userItems.length - 1 && userItems.length < 10 && (
               <button
                 onClick={addAllergy}
-                disabled={!editable} // <-- desabilita quando não editável
+                disabled={!editable}
                 className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors
                   ${editable ? 'text-info hover:text-info-dark border-info' : 'text-grayscale-400 border-grayscale-300 cursor-not-allowed'}`}
               >

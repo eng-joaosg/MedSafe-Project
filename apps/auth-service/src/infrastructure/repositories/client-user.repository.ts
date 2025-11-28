@@ -109,4 +109,18 @@ export class ClientUserRepository implements IClientUserRepository {
       throw err;
     }
   }
+  public async associateClinicalInfo(clientUserId: string, clinicalInfoId: string): Promise<ClientUser> {
+    try {
+      const payload = this.mapper.toDbRequestPartialDto({ clinical_info_id: clinicalInfoId });
+      const response = await this.gateway.saveClientUser(clientUserId, payload);
+
+      return this.mapper.dbResponseToEntity(response);
+    } catch (err: any) {
+      CommonLogger.error('DatabaseService', 'ASSOCIATE_CLINICAL_INFO', `Erro ao associar ClinicalInfo ao ClientUser: ${clientUserId}`, err);
+      if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
+        throw new ExternalServiceException('DatabaseService', err);
+      }
+      throw err;
+    }
+  }
 }

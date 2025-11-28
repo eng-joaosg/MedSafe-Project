@@ -26,7 +26,14 @@ const SearchIcon = () => (
   </svg>
 );
 
-export function InputSearch({ label, value, onChange, placeholder, options = [], editable = false }: Props) {
+export function InputSearch({
+  label,
+  value,
+  onChange,
+  placeholder,
+  options = [],
+  editable = true,
+}: Props) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [clickedOption, setClickedOption] = useState(false);
 
@@ -65,21 +72,20 @@ export function InputSearch({ label, value, onChange, placeholder, options = [],
           setShowDropdown(true);
         }}
         onBlur={handleBlur}
-        placeholder={placeholder ?? "Pesquisar..."}
-        disabled={editable}
+        placeholder={placeholder ?? 'Pesquisar...'}
+        disabled={!editable}
         className={`
-          bg-grayscale-50
-          text-grayscale-900
+          ${editable
+            ? 'bg-grayscale-50 text-grayscale-900 hover:border-info focus:border-info'
+            : 'bg-grayscale-200 text-grayscale-500 cursor-not-allowed'}
           h-18
           w-full
           px-4 pt-4 pr-10
           rounded-none md:rounded-3xl
           border-2 border-transparent
-          hover:border-info
-          focus:border-info
           outline-none
           text-center
-          ${editable ? 'bg-grayscale-100 cursor-not-allowed' : ''}
+          transition-all
         `}
       />
 
@@ -87,7 +93,7 @@ export function InputSearch({ label, value, onChange, placeholder, options = [],
         <SearchIcon />
       </span>
 
-      {!editable && showDropdown && filtered.length > 0 && (
+      {editable && showDropdown && filtered.length > 0 && (
         <div className="absolute left-0 right-0 bg-white shadow-lg border border-gray-200 rounded-md z-20">
           {filtered.map((item, idx) => (
             <div

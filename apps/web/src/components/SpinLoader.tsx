@@ -1,9 +1,9 @@
-type SpiinLoaderProps = {
+type SpinLoaderProps = {
     className?: string;
 }
 
 
-export function SpiinLoader({className = ''}: SpiinLoaderProps){
+export function SpinLoader({className = ''}: SpinLoaderProps){
     const baseClasses = "flex items-center justify-center"
     const combinedClasses = `${baseClasses}  ${className}`;
     return <div className={combinedClasses}>

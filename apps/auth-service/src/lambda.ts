@@ -10,13 +10,18 @@ import { FindEmailClientUserHandler } from './presentation/handlers/client-user/
 import { RegisterClientUserHandler } from './presentation/handlers/client-user/register-client-user.handler';
 import { VerifyAccountClientUserHandler } from './presentation/handlers/client-user/verify-account-client-user.handler';
 import { LoginClientUserHandler } from './presentation/handlers/client-user/login-client-user.handler';
+import { AssociateClinicalInfoHandler } from './presentation/handlers/client-user/associate-clinical-info.handler';
+import { ChangeNameClientUserHandler } from './presentation/handlers/client-user/change-name-client-user.handler';
+import { ChangePasswordClientUserHandler } from './presentation/handlers/client-user/change-password-client-user.handler';
+import { ITokenService } from './domain/services/i-token.service';
+import { TOKEN_SERVICE } from './common/utils/tokens.contants';
 import {
   RegisterClientUserPayload,
   VerifyAccountClientUserPayload,
   LoginClientUserPayload,
 } from './presentation/handlers/client-user/client-user.types';
 
-interface LambdaEvent {
+export interface LambdaEvent {
   httpMethod?: string;
   headers?: Record<string, string>;
   body?: string | null;
@@ -27,74 +32,171 @@ interface LambdaEvent {
 }
 
 let app: INestApplicationContext | null = null;
+let tokenService: ITokenService;
+let configService: ConfigService;
+
+async function getApp(): Promise<INestApplicationContext> {
+  if (!app) {
+    app = await NestFactory.createApplicationContext(AppModule);
+    tokenService = app.get<ITokenService>(TOKEN_SERVICE);
+    configService = app.get(ConfigService);
+  }
+  return app;
+}
 
 export const handler = async (event: LambdaEvent) => {
   const requestId = ulid();
   const isApiGateway = !!event.httpMethod;
 
-  try {
-    if (!app) app = await NestFactory.createApplicationContext(AppModule);
-    const requestContext = app.get(RequestContextService);
+  const withTimeout = async <T>(maybePromise: T | Promise<T>, ms: number): Promise<T> => {
+    const promise = maybePromise instanceof Promise ? maybePromise : Promise.resolve(maybePromise);
+    return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout de ${ms}ms`)), ms))]);
+  };
 
+  const logDuration = (start: number, action?: string) => {
+    const duration = Date.now() - start;
+    CommonLogger.info('Timing', 'REQUEST_DURATION', `${action ?? 'unknown'} - ${duration}ms`);
+  };
+
+  const validateAuth = async (headers: Record<string, string>) => {
+    console.log('---------Validação------------');
+    const cookieHeader = headers['cookie'] || headers['Cookie'] || '';
+    console.log(cookieHeader);
+    if (!cookieHeader || typeof cookieHeader !== 'string') throw new AppException('Usuário não autenticado', 401);
+
+    const cookies: Record<string, string> = {};
+    cookieHeader.split(/; */).forEach((pair) => {
+      const index = pair.indexOf('=');
+      if (index > -1) {
+        const key = pair.slice(0, index).trim();
+        const value = pair.slice(index + 1).trim();
+        cookies[key] = value;
+      }
+    });
+
+    const token = cookies['auth_token'];
+    if (!token) throw new AppException('Usuário não autenticado', 401);
+
+    const payload = await tokenService.verifyToken(token).catch(() => null);
+    if (!payload) throw new AppException('Token inválido ou expirado', 401);
+
+    return payload as { sub?: string | number };
+  };
+
+  try {
+    const appContext = await getApp();
+    const requestContext = appContext.get(RequestContextService);
     const rawHeaders = event.headers ?? {};
     const headers: Record<string, string> = Object.fromEntries(Object.entries(rawHeaders).map(([k, v]) => [k.toLowerCase(), v]));
-
     const finalRequestId = headers['x-request-id'] ?? requestId;
     const initialContext = new Map<string, any>();
     initialContext.set('requestId', finalRequestId);
 
     return await requestContext.run<Promise<any>>(async () => {
       CommonLogger.setRequestContext(requestContext);
-      const configService = app!.get(ConfigService);
 
-      // Validação de API Key apenas para invocação direta
       if (!isApiGateway) {
         const requiredKey = configService.get<string>('AUTH_SERVICE_API_KEY');
         const incomingKey = headers['x-api-key'];
-        if (!requiredKey || requiredKey !== incomingKey) {
-          CommonLogger.warn('Auth', 'INVALID_API_KEY', 'API Key inválida');
-          throw new InvalidApiKeyError();
-        }
+        if (!requiredKey || requiredKey !== incomingKey) throw new InvalidApiKeyError();
       }
 
-      // ----------------------------
-      // Determina action e body
-      // ----------------------------
-
       const start = Date.now();
-      let body: any;
+      let body: unknown;
       let statusCode = 200;
-      // ----------------------------
-      // Dispatcher de actions
-      // ----------------------------
 
       switch (event.resource) {
         case '/client-user/find-email': {
-          const handlerInstance = app!.get(FindEmailClientUserHandler);
+          const handlerInstance = appContext.get(FindEmailClientUserHandler);
           const email = event.queryStringParameters?.email;
-          body = await withTimeout(handlerInstance.execute(email!), 10000);
+          if (!email) throw new AppException('Email não fornecido', 400);
+          body = await withTimeout(handlerInstance.execute(email), 10000);
           break;
         }
 
         case '/client-user/register': {
-          const handlerInstance = app!.get(RegisterClientUserHandler);
-          const payload = event.body ? JSON.parse(event.body) : {};
-          body = await withTimeout(handlerInstance.execute(payload as RegisterClientUserPayload), 10000);
+          const handlerInstance = appContext.get(RegisterClientUserHandler);
+          if (!event.body) throw new AppException('Payload não fornecido', 400);
+          const payload: RegisterClientUserPayload = JSON.parse(event.body);
+          body = await withTimeout(handlerInstance.execute(payload), 10000);
           statusCode = 201;
           break;
         }
 
         case '/client-user/verify-account': {
-          const handlerInstance = app!.get(VerifyAccountClientUserHandler);
-          const payload = event.body ? JSON.parse(event.body) : {};
-          body = await withTimeout(handlerInstance.execute(payload as VerifyAccountClientUserPayload), 10000);
+          const handlerInstance = appContext.get(VerifyAccountClientUserHandler);
+          if (!event.body) throw new AppException('Payload não fornecido', 400);
+          const payload: VerifyAccountClientUserPayload = JSON.parse(event.body);
+          body = await withTimeout(handlerInstance.execute(payload), 10000);
           break;
         }
 
         case '/client-user/login': {
-          const handlerInstance = app!.get(LoginClientUserHandler);
-          const payload = event.body ? JSON.parse(event.body) : {};
-          body = await withTimeout(handlerInstance.execute(payload as LoginClientUserPayload), 10000);
+          const handlerInstance = appContext.get(LoginClientUserHandler);
+          if (!event.body) throw new AppException('Payload não fornecido', 400);
+          const payload: LoginClientUserPayload = JSON.parse(event.body);
+          console.log(payload);
+          body = await withTimeout(handlerInstance.execute(payload), 10000);
+          break;
+        }
+
+        case '/client-user/associate-clinical-info': {
+          console.log('===============================================');
+          const handlerInstance = appContext.get(AssociateClinicalInfoHandler);
+
+          const authPayload = await validateAuth(headers);
+          console.log(authPayload);
+          const userId = authPayload.sub;
+          if (!userId || typeof userId !== 'string') {
+            throw new AppException('Usuário inválido', 401);
+          }
+
+          const clinicalInfoId = event.queryStringParameters?.clinicalInfoId;
+          console.log(clinicalInfoId);
+          if (!clinicalInfoId || typeof clinicalInfoId !== 'string') {
+            throw new AppException('ID das informações clínicas inválido', 400);
+          }
+
+          body = await withTimeout(handlerInstance.execute(userId, clinicalInfoId), 10000);
+          break;
+        }
+
+        case '/client-user/change-name': {
+          const handlerInstance = appContext.get(ChangeNameClientUserHandler);
+          const authPayload = await validateAuth(headers);
+          const userId = authPayload.sub;
+          if (!userId || typeof userId !== 'string') throw new AppException('Usuário inválido', 401);
+
+          const parsedBody: { newFirstName?: unknown; newLastName?: unknown } = event.body ? JSON.parse(event.body) : {};
+
+          const newFirstName = parsedBody.newFirstName;
+          const newLastName = parsedBody.newLastName;
+
+          if (typeof newFirstName !== 'string' || typeof newLastName !== 'string') {
+            throw new AppException('Novo nome ou sobrenome inválido', 400);
+          }
+
+          body = await withTimeout(handlerInstance.execute(userId, newFirstName, newLastName), 10000);
+          break;
+        }
+
+        case '/client-user/change-password': {
+          const handlerInstance = appContext.get(ChangePasswordClientUserHandler);
+          const authPayload = await validateAuth(headers);
+          const userId = authPayload.sub;
+          if (!userId || typeof userId !== 'string') throw new AppException('Usuário inválido', 401);
+
+          // Parse do body com validação de tipos
+          const parsedBody: { password?: unknown; newPassword?: unknown } = event.body ? JSON.parse(event.body) : {};
+
+          const password = parsedBody.password;
+          const newPassword = parsedBody.newPassword;
+
+          if (typeof password !== 'string' || typeof newPassword !== 'string') {
+            throw new AppException('Senha antiga ou nova inválida', 400);
+          }
+
+          body = await withTimeout(handlerInstance.execute(userId, password, newPassword), 10000);
           break;
         }
 
@@ -105,11 +207,10 @@ export const handler = async (event: LambdaEvent) => {
 
       logDuration(start, event.resource);
 
-      const responsePayload = { id: finalRequestId, message: 'Sucesso', body };
       return {
         statusCode,
         headers: { 'Content-Type': 'application/json', 'x-request-id': finalRequestId },
-        body: JSON.stringify(responsePayload),
+        body: JSON.stringify({ id: finalRequestId, message: 'Sucesso', body }),
       };
     }, initialContext);
   } catch (err: unknown) {
@@ -120,7 +221,6 @@ export const handler = async (event: LambdaEvent) => {
       statusCode = err.getStatus();
       message = err.message;
     } else if (err instanceof ServerError) {
-      statusCode = 500;
       message = err.message;
     } else if (err instanceof Error && err.message.includes('Timeout')) {
       statusCode = 504;
@@ -129,24 +229,10 @@ export const handler = async (event: LambdaEvent) => {
       CommonLogger.error('Handler', 'UNHANDLED_ERROR', err.message, err.stack);
     }
 
-    const errorPayload = { id: requestId, message };
     return {
       statusCode,
       headers: { 'Content-Type': 'application/json', 'x-request-id': requestId },
-      body: JSON.stringify(errorPayload),
+      body: JSON.stringify({ id: requestId, message }),
     };
   }
 };
-
-// --------------------------------------------
-// Helpers
-// --------------------------------------------
-function logDuration(start: number, action: string) {
-  const duration = Date.now() - start;
-  CommonLogger.info('Timing', 'REQUEST_DURATION', `${action} - ${duration}ms`);
-}
-
-async function withTimeout<T>(maybePromise: T | Promise<T>, ms: number): Promise<T> {
-  const promise = maybePromise instanceof Promise ? maybePromise : Promise.resolve(maybePromise);
-  return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout de ${ms}ms`)), ms))]);
-}

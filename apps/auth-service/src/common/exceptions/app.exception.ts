@@ -126,3 +126,9 @@ export class UnknownActionError extends ServerError {
     this.name = 'UnknownActionError';
   }
 }
+
+export class ClinicalInfoAlreadyAssociatedException extends AppException {
+  constructor(message = 'Este usuário já possui informações clínicas associadas.') {
+    super(message, HttpStatus.CONFLICT);
+  }
+}

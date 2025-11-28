@@ -69,7 +69,7 @@ export class ClientUserAuthController {
   @ApiOperation({ summary: 'Deleta um usuário cliente pelo ID.' })
   @ApiQuery({ name: 'id', required: true })
   @ApiResponse({ status: 204, description: 'Paciente deletado com sucesso.' })
-  async deleteClientUserAuth(@Query('id', ParseUUIDPipe) id: string): Promise<void> {
+  async deleteClientUser(@Query('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.clientUserService.deleteById(id);
   }
 
@@ -77,7 +77,11 @@ export class ClientUserAuthController {
   @ApiOperation({ summary: 'Atualiza parcialmente um usuário cliente.' })
   @ApiQuery({ name: 'id', required: true })
   @ApiResponse({ status: 200, description: 'Usuário atualizado.', type: ClientUserModel })
-  async patchClientUser(@Query('id', ParseUUIDPipe) id: string, @Body() partial: Partial<ClientUserModel>): Promise<ClientUserModel> {
+  async saveClientUser(@Query('id', ParseUUIDPipe) id: string, @Body() partial: Partial<ClientUserModel>): Promise<ClientUserModel> {
+    console.log('=================CONTROLLER==============');
+    console.log('id:', id);
+    console.log(partial);
+    console.log('===============================');
     return await this.clientUserService.save(id, partial);
   }
 }

@@ -8,4 +8,5 @@ export interface IClientUserRepository {
   activate(id: string): Promise<ClientUser>;
   changePassword(id: string, passwordHash: string): Promise<ClientUser>;
   changeName(id: string, firstName: string, lastName: string): Promise<ClientUser>;
+  associateClinicalInfo(clientUserid: string, clinicalInfoId: string): Promise<ClientUser>;
 }

@@ -6,16 +6,18 @@ export interface AuthTokenOutput {
 export class SessionClientUserDto {
   id: string;
   firstName: string;
+  lastName: string;
   email: string;
-  clinicalInfo: string | null;
+  clinicalInfoId: string | null;
   role: string;
   accessToken: AuthTokenOutput;
 
-  constructor(id: string, email: string, role: string, firstName: string, accessToken: AuthTokenOutput) {
+  constructor(id: string, email: string, role: string, firstName: string, lastName: string, accessToken: AuthTokenOutput) {
     this.id = id;
     this.email = email;
     this.role = role;
     this.firstName = firstName;
+    this.lastName = lastName;
     this.accessToken = accessToken;
   }
 }

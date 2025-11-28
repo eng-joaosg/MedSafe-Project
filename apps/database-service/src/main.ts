@@ -7,6 +7,7 @@ import { CommonLogger } from './common/common-logger';
 import { GlobalExceptionFilter } from './presentation/filters/global-exception.filter';
 import { TimingInterceptor } from './presentation/interceptors/timming.interceptor';
 import { RequestContextService } from './common/request-context/context-context.service';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,6 +28,10 @@ async function bootstrap() {
     });
   });
 
+  // -----------------------------
+  // Middleware para cookies
+  // -----------------------------
+  app.use(cookieParser());
   // -----------------------------
   // Pipes globais
   // -----------------------------

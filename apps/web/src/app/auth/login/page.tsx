@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Input from "@/components/Input";
 import ConfirmButton from "@/components/ConfirmButton";
 import { login } from "@/lib/api";
+import { useUser } from "@/contexts/userContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setUser } = useUser();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,12 +29,21 @@ export default function LoginPage() {
 
     try {
       const res = await login({ email, password });
+
+      // ✅ populando o contexto com os dados retornados do login
+      setUser({
+        id: res.id,
+        clinicalInfoId: res.clinicalInfoId ?? null,
+        firstName: res.firstName ?? "",
+        lastName: res.lastName ?? "",
+      });
+
       router.push(`/client-user/${res.id}`);
     } catch (err: any) {
       setMessage(err.message || "Erro inesperado ao fazer login.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   return (

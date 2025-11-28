@@ -5,8 +5,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { CommonLoggerGateway } from './common/common.logger';
 import { GlobalExceptionFilter } from './common/global-exception.filter';
-import { TimingInterceptor } from './common/timming.interceptor';
-import { RequestIdMiddleware } from './common/request-id.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,9 +25,6 @@ async function bootstrap() {
     });
   }
 
-  // Middleware global
-  app.use(new RequestIdMiddleware().use);
-
   // -----------------------------
   // Pipes globais
   // -----------------------------
@@ -40,11 +35,6 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-
-  // -----------------------------
-  // Interceptors globais
-  // -----------------------------
-  app.useGlobalInterceptors(new TimingInterceptor());
 
   // -----------------------------
   // Filtro de exceções global

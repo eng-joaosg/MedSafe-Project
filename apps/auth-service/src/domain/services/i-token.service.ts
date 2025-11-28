@@ -3,6 +3,7 @@ import { ClientUser } from '../entities/client-user.entity';
 export interface ITokenService {
   generateClientUserAuthToken(user: ClientUser): Promise<AuthTokenOutput>;
   generatePublicAccessToken(recordId: string): Promise<AuthTokenOutput>;
+  verifyToken(token: string): Promise<TokenPayload>;
 }
 
 export interface TokenPayload {

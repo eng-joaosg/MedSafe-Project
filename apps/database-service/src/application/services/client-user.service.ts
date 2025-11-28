@@ -13,9 +13,9 @@ export class ClientUserService implements IClientUserService {
   ) {}
 
   async save(id: string, model: Partial<ClientUserModel>): Promise<ClientUserModel> {
-    const payload = { ...model, id };
+    const payload = { ...model };
 
-    const result = await this.clientUserRepository.save(payload);
+    const result = await this.clientUserRepository.save(payload, id);
 
     if (!result) {
       throw new UserNotFoundException(`ClientUser com ID ${id} não foi encontrado`);

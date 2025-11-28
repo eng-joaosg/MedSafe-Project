@@ -9,28 +9,12 @@ interface Props {
   setSex: (v: string) => void;
   birth: string;
   setBirth: (v: string) => void;
-  editable?: boolean; // nova prop
+  editable?: boolean;
 }
 
 const ChevronDownIcon = () => (
   <svg className="w-4 h-4 text-grayscale-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-  </svg>
-);
-
-const CalendarIcon = () => (
-  <svg
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <rect x="3" y="4" width="18" height="17" rx="2" />
-    <line x1="3" y1="10" x2="21" y2="10" />
-    <line x1="8" y1="2" x2="8" y2="6" />
-    <line x1="16" x2="16" y1="2" y2="6" />
   </svg>
 );
 
@@ -44,18 +28,21 @@ export function InputBloodSexBirthDate({
   editable = true,
 }: Props) {
   return (
-    <InputGroup>
+    <InputGroup editable={editable}>
+      
       {/* Tipo sanguíneo */}
-      <div className="flex flex-col flex-[0.9] items-center px-1 border-r border-grayscale-200 h-full justify-center relative min-w-0">
+      <div className="flex flex-col flex-[0.9] items-center pl-1 pr-3 border-r border-grayscale-200 h-full justify-center relative min-w-0">
         <span className="text-md text-grayscale-700 whitespace-nowrap">Tipo sanguíneo:</span>
         <div className="relative w-full h-full flex items-center">
           <select
             value={blood}
             onChange={(e) => setBlood(e.target.value)}
-            disabled={!editable} // <-- aqui
-            className="bg-transparent text-center outline-none w-full h-full appearance-none text-grayscale-900"
+            disabled={!editable}
+            className={`bg-transparent text-center outline-none w-full h-full appearance-none 
+              ${editable ? 'text-grayscale-900 cursor-text' : 'text-grayscale-500 cursor-not-allowed'}
+            `}
           >
-            <option value="">N/I</option>
+            <option value="">-</option>
             <option value="A+">A+</option>
             <option value="A-">A-</option>
             <option value="B+">B+</option>
@@ -72,16 +59,18 @@ export function InputBloodSexBirthDate({
       </div>
 
       {/* Sexo */}
-      <div className="flex flex-col flex-[0.8] items-center px-2 border-r border-grayscale-200 h-full justify-center relative min-w-0">
+      <div className="flex flex-col flex-[0.8] items-center -ml-1 pr-2 border-r border-grayscale-200 h-full justify-center relative min-w-0">
         <span className="text-md text-grayscale-700 whitespace-nowrap">Sexo:</span>
         <div className="relative w-full h-full flex items-center">
           <select
             value={sex}
             onChange={(e) => setSex(e.target.value)}
             disabled={!editable}
-            className="bg-transparent text-center outline-none w-full h-full appearance-none text-grayscale-900"
+            className={`bg-transparent text-center outline-none w-full h-full appearance-none
+              ${editable ? 'text-grayscale-900 cursor-text' : 'text-grayscale-500 cursor-not-allowed'}
+            `}
           >
-            <option value="">N/I</option>
+            <option value="">-</option>
             <option value="Masc.">Masc.</option>
             <option value="Fem.">Fem.</option>
             <option value="Outro">Outro</option>
@@ -95,6 +84,7 @@ export function InputBloodSexBirthDate({
       {/* Data de nascimento */}
       <div className="flex flex-col flex-[1.2] items-center px-1 h-full justify-center min-w-0">
         <span className="text-md text-grayscale-700 whitespace-nowrap">Data de nascimento:</span>
+
         <div className="relative w-full h-full flex items-center justify-center">
           <div className="flex w-full justify-center">
             <input
@@ -102,16 +92,22 @@ export function InputBloodSexBirthDate({
               value={birth}
               onChange={(e) => setBirth(e.target.value)}
               disabled={!editable}
-              className="bg-transparent outline-none appearance-none text-grayscale-900 text-center w-full"
+              className={`
+                bg-transparent outline-none text-center w-full
+                pr-2
+                md:pr-4
+                [&::-webkit-calendar-picker-indicator]:invert-20
+                ${editable ? 'text-grayscale-900 cursor-text' : 'text-grayscale-500 cursor-not-allowed'}
+              `}
               min="1940-01-01"
               max={new Date().toISOString().split('T')[0]}
             />
           </div>
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-            <CalendarIcon />
-          </span>
         </div>
       </div>
+
     </InputGroup>
   );
 }
+
+export default InputBloodSexBirthDate;

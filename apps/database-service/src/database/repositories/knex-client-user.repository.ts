@@ -31,9 +31,9 @@ export class KnexClientUserRepository implements IClientUserRepository {
     }
   }
 
-  async save(model: Partial<ClientUserModel> & { id: string }): Promise<ClientUserModel> {
+  async save(model: Partial<ClientUserModel>, id: string | null): Promise<ClientUserModel> {
     try {
-      const existing = await this.knex(TABLES.CLIENT_USER).where({ id: model.id }).first();
+      const existing = await this.knex(TABLES.CLIENT_USER).where({ id: id }).first();
       const cleanPayload: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(model)) {
         if (value !== undefined) {
@@ -58,11 +58,11 @@ export class KnexClientUserRepository implements IClientUserRepository {
         updated_at: this.knex.fn.now(),
       };
 
-      const [row] = await this.knex(TABLES.CLIENT_USER).where({ id: model.id }).update(updateData).returning('*');
+      const [row] = await this.knex(TABLES.CLIENT_USER).where({ id: id }).update(updateData).returning('*');
 
       return row;
     } catch (error) {
-      throw new DatabaseOperationException(`Erro ao salvar ClientUser: ${model.id}`, error);
+      throw new DatabaseOperationException(`Erro ao salvar ClientUser: ${id}`, error);
     }
   }
 

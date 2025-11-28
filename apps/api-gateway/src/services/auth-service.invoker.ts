@@ -17,30 +17,52 @@ export class AuthServiceInvoker {
     private readonly servicesConfig: ServicesConfig,
   ) {}
 
+  /**
+   * Invoca o serviço Auth local enviando o objeto `event` exatamente como a AWS Lambda receberia do API Gateway.
+   */
   async invoke<T = unknown>(
     path: string,
-    method: 'GET' | 'POST' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT',
     payload: any,
     requestId: string,
     authorization?: string,
+    cookieHeader?: string,
+    queryParams?: Record<string, string | number | boolean>,
   ): Promise<GatewayResponse<T>> {
-    const headers: Record<string, string> = { 'x-request-id': requestId };
-    if (authorization) headers['authorization'] = authorization;
+    const normalizedPath = path.replace(/\/$/, '');
 
+    // ======== Headers ========
+    const headers: Record<string, string> = { 'x-request-id': requestId };
+    if (authorization) {
+      headers['Authorization'] = authorization.startsWith('Bearer ') ? authorization : `Bearer ${authorization}`;
+    }
+    if (cookieHeader) {
+      headers['cookie'] = cookieHeader;
+    }
+
+    // ======== Monta o evento como AWS Lambda ========
     const event: any = {
-      resource: path,
-      path,
+      resource: normalizedPath,
+      path: normalizedPath,
       httpMethod: method,
       headers,
-      multiValueHeaders: null,
-      queryStringParameters: method === 'GET' ? payload : null,
       pathParameters: {},
       stageVariables: null,
-      requestContext: { requestId },
+      requestContext: {
+        requestId,
+        http: {
+          method,
+          path: normalizedPath,
+          sourceIp: '127.0.0.1',
+          userAgent: headers['user-agent'] ?? 'local-client',
+        },
+      },
       body: method !== 'GET' ? JSON.stringify(payload ?? {}) : null,
+      queryStringParameters: queryParams ? Object.fromEntries(Object.entries(queryParams).map(([k, v]) => [k, String(v)])) : undefined,
       isBase64Encoded: false,
     };
 
+    // ======== Faz a chamada POST para o Lambda local ========
     const observable$ = this.httpService
       .post(`${this.servicesConfig.authServiceUrl}`, event, { headers })
       .pipe(map((res) => res.data as GatewayResponse<T>));
@@ -55,7 +77,7 @@ export class AuthServiceInvoker {
       try {
         res.body = JSON.parse(res.body) as T;
       } catch {
-        //
+        // mantém string caso não seja JSON
       }
     }
     return res;

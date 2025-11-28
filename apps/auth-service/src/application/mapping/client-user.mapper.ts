@@ -66,6 +66,7 @@ export class ClientUserMapper implements IClientUserMapper {
       entity.getEmail(),
       entity.getRole(),
       entity.getFirstName(),
+      entity.getLastName(),
       token,
       entity.getClinicalInfoId(),
     );

@@ -6,16 +6,18 @@ interface DiseasesSectionProps {
   userItems: string[];
   setUserItems: (items: string[]) => void;
   systemOptions: string[];
-  editable: boolean;
+  editable?: boolean; // agora opcional, padrão true
 }
 
 export default function DiseasesSection({
   userItems,
   setUserItems,
   systemOptions,
-  editable,
+  editable = true,
 }: DiseasesSectionProps) {
+
   const addDisease = () => {
+    if (!editable) return; // não permite adicionar se não for editável
     if (
       userItems.length < 10 &&
       userItems.every(d => d && systemOptions.includes(d)) &&
@@ -26,6 +28,7 @@ export default function DiseasesSection({
   };
 
   const removeDisease = (index: number) => {
+    if (!editable) return; // não permite remover se não for editável
     if (userItems.length === 1) {
       setUserItems(['']);
     } else {
@@ -34,6 +37,7 @@ export default function DiseasesSection({
   };
 
   const updateDisease = (index: number, value: string) => {
+    if (!editable) return; // não permite atualizar se não for editável
     const updated = [...userItems];
     updated[index] = value;
     setUserItems(updated);
@@ -50,13 +54,13 @@ export default function DiseasesSection({
             value={d}
             onChange={(v) => updateDisease(i, v)}
             options={systemOptions}
-            disabled={!editable}
+            editable={editable} // <-- corrigido
           />
           <div className="flex justify-between mt-2 px-4">
             <button
               onClick={() => removeDisease(i)}
-              className="flex items-center justify-center text-info hover:text-info-dark transition-colors w-8 h-8 rounded-full border border-info"
               disabled={!editable}
+              className="flex items-center justify-center text-info hover:text-info-dark transition-colors w-8 h-8 rounded-full border border-info disabled:opacity-50 disabled:cursor-not-allowed"
             >
               -
             </button>
@@ -68,7 +72,7 @@ export default function DiseasesSection({
                   userItems.some(d => !d || !systemOptions.includes(d)) ||
                   new Set(userItems.filter(Boolean)).size !== userItems.filter(Boolean).length
                 }
-                className="flex items-center justify-center text-info hover:text-info-dark transition-colors w-8 h-8 rounded-full border border-info disabled:opacity-40"
+                className="flex items-center justify-center text-info hover:text-info-dark transition-colors w-8 h-8 rounded-full border border-info disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 +
               </button>
