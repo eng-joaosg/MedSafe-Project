@@ -9,14 +9,14 @@ describe('KinghostMailerService', () => {
   let apiMailer: KinghostApiMailerService;
   let smtpMailer: KinghostSmtpMailerService;
 
-  const createService = (mainSender: 'API' | 'SMTP', useFallback = true) => {
+  const createService = (mainSender: 'API' | 'SMTP', useFallback = 'true') => {
     apiMailer = { sendEmail: jest.fn() } as unknown as KinghostApiMailerService;
     smtpMailer = { sendEmail: jest.fn() } as unknown as KinghostSmtpMailerService;
 
     const configService = {
       get: jest.fn((key: string) => {
         if (key === 'MAIN_MAIL_SENDER') return mainSender;
-        if (key === 'USE_FALLBACK') return useFallback;
+        if (key === 'USE_FALLBACK') return useFallback; // agora sempre string
         return undefined;
       }),
     } as unknown as ConfigService;
@@ -35,7 +35,7 @@ describe('KinghostMailerService', () => {
   });
 
   it('falls back to API if SMTP fails (MAIN_MAIL_SENDER=SMTP, USE_FALLBACK=true)', async () => {
-    service = createService('SMTP', true);
+    service = createService('SMTP', 'true'); // string 'true'
     (smtpMailer.sendEmail as jest.Mock).mockRejectedValue(new Error('SMTP fail'));
     (apiMailer.sendEmail as jest.Mock).mockResolvedValue(undefined);
 
@@ -43,5 +43,17 @@ describe('KinghostMailerService', () => {
 
     expect(smtpMailer.sendEmail).toHaveBeenCalled();
     expect(apiMailer.sendEmail).toHaveBeenCalledWith('to@example.com', 'Subject', '<p>Body</p>');
+  });
+
+  it('does not fallback if USE_FALLBACK=false', async () => {
+    service = createService('SMTP', 'false'); // string 'false'
+    (smtpMailer.sendEmail as jest.Mock).mockRejectedValue(new Error('SMTP fail'));
+
+    await expect(service.sendEmail('to@example.com', 'Subject', '<p>Body</p>')).rejects.toThrow(
+      'Falha ao entregar e-mail para: to@example.com',
+    ); // <- nova mensagem
+
+    expect(smtpMailer.sendEmail).toHaveBeenCalled();
+    expect(apiMailer.sendEmail).not.toHaveBeenCalled();
   });
 });
