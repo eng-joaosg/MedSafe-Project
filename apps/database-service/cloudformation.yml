@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MedSafe Database Service Deployment
+
+Parameters:
+  DockerImageTag:
+    Type: String
+  ApiPort:
+    Type: Number
+    Default: 3002
+  DbConnectionString:
+    Type: String
+    NoEcho: true
+
+Resources:
+  DatabaseServiceEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-0c02fb55956c7d316
+      SecurityGroupIds:
+        - !Ref DatabaseServiceSG
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          amazon-linux-extras install docker -y
+          systemctl enable docker
+          systemctl start docker
+
+          docker pull devjoaosg/medsafe-database-service:${DockerImageTag}
+
+          docker stop medsafe-database-service || true
+          docker rm medsafe-database-service || true
+
+          docker run -d --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
+            -e DB_CONNECTION_STRING="${DbConnectionString}" \
+            devjoaosg/medsafe-database-service:${DockerImageTag}
+
+  DatabaseServiceSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for MedSafe Database API
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3002
+          ToPort: 3002
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  PublicIP:
+    Description: Public IP of the API instance
+    Value: !GetAtt DatabaseServiceEC2.PublicIp

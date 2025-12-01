@@ -10,85 +10,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout do repositório
-      - name: Checkout
+      # 1. Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       # 2. Setup Node.js
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      # 3. Cache de dependências npm
-      - name: Cache Node modules
-        uses: actions/cache@v3
-        with:
-          path: apps/database-service/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('apps/database-service/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      # 4. Instalar dependências
+      # 3. Instala dependências
       - name: Install dependencies
-        working-directory: apps/database-service
         run: npm ci
 
-      # 5. Lint
-      - name: Run lint
-        working-directory: apps/database-service
-        run: npm run lint
-
-      # 6. Testes
-      - name: Run tests
-        working-directory: apps/database-service
-        run: npm test
-
-      # 7. Build da API
-      - name: Build API
-        working-directory: apps/database-service
+      # 4. Build do projeto
+      - name: Build project
         run: npm run build
 
-      # 8. Build Docker image (sem login)
-      - name: Build Docker image
-        working-directory: apps/database-service
-        run: |
-          docker build -t devjoaosg/medsafe-database-service:latest \
-                       -t devjoaosg/medsafe-database-service:${{ github.sha }} .
-
-      # 9. Push Docker image (repo público → sem login)
-      - name: Push Docker image
-        run: |
-          docker push devjoaosg/medsafe-database-service:latest
-          docker push devjoaosg/medsafe-database-service:${{ github.sha }}
-
-      # 10. Configurar AWS credentials
+      # 5. Login no AWS (APÓS build e ANTES de qualquer comando AWS)
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: sa-east-1
+          aws-region: us-east-1
 
-      # 11. Deploy via CloudFormation
-      - name: Deploy CloudFormation Stack
+      # 6. Build da imagem Docker
+      - name: Build Docker image
+        run: |
+          docker build -t devjoaosg/medsafe-database-service:latest .
+          docker tag devjoaosg/medsafe-database-service:latest devjoaosg/medsafe-database-service:${{ github.sha }}
+
+      # 7. Push para Docker Hub (imagem pública, sem login)
+      - name: Push Docker image
+        run: |
+          docker push devjoaosg/medsafe-database-service:latest
+          docker push devjoaosg/medsafe-database-service:${{ github.sha }}
+
+      # 8. Deploy via CloudFormation
+      - name: Deploy CloudFormation
         run: |
           aws cloudformation deploy \
-            --template-file infra/database-service/template.yml \
-            --stack-name MedSafe-Database-API-Stack \
+            --stack-name MedSafe-Database-Service \
+            --template-file infrastructure/cloudformation.yml \
             --capabilities CAPABILITY_IAM \
-            --parameter-overrides \
-              InstanceType=t3.micro \
-              ApiPort=3000 \
-              DbConnectionString=${{ secrets.DB_CONNECTION_STRING }} \
-              DockerImageTag=${{ github.sha }} \
-              AllowedIP=0.0.0.0/0 \
-            --no-fail-on-empty-changeset
+            --parameter-overrides DockerImageTag=${{ github.sha }}
 
-      # 12. Debug caso CloudFormation falhe
-      - name: Debug CloudFormation failure
-        if: failure()
+      # 9. Logs de eventos
+      - name: Show CloudFormation events
         run: |
           aws cloudformation describe-stack-events \
-            --stack-name MedSafe-Database-API-Stack \
+            --stack-name MedSafe-Database-Service \
             --max-items 20
