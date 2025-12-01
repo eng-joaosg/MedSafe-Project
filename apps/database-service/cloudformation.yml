@@ -12,39 +12,45 @@ Parameters:
     NoEcho: true
 
 Resources:
-  DatabaseServiceEC2:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t3.micro
-      ImageId: ami-0c02fb55956c7d316
-      SecurityGroupIds:
-        - !Ref DatabaseServiceSG
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          yum update -y
-          amazon-linux-extras install docker -y
-          systemctl enable docker
-          systemctl start docker
-
-          docker pull devjoaosg/medsafe-database-service:${DockerImageTag}
-
-          docker stop medsafe-database-service || true
-          docker rm medsafe-database-service || true
-
-          docker run -d --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
-            -e DB_CONNECTION_STRING="${DbConnectionString}" \
-            devjoaosg/medsafe-database-service:${DockerImageTag}
-
   DatabaseServiceSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for MedSafe Database API
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 3002
-          ToPort: 3002
+          FromPort: !Ref ApiPort
+          ToPort: !Ref ApiPort
           CidrIp: 0.0.0.0/0
+
+  DatabaseServiceEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-0a5b3df1cd80ab831
+      SecurityGroupIds:
+        - !Ref DatabaseServiceSG
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          dnf update -y
+          dnf install -y docker
+          systemctl enable docker
+          systemctl start docker
+
+          # Pull da imagem
+          docker pull devjoaosg/medsafe-database-service:${DockerImageTag}
+
+          # Remover container anterior
+          docker stop medsafe-database-service || true
+          docker rm medsafe-database-service || true
+
+          # Rodar container
+          docker run -d \
+            --restart=always \
+            --name medsafe-database-service \
+            -p ${ApiPort}:${ApiPort} \
+            -e DB_CONNECTION_STRING="${DbConnectionString}" \
+            devjoaosg/medsafe-database-service:${DockerImageTag}
 
 Outputs:
   PublicIP:
