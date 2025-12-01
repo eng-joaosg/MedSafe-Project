@@ -15,7 +15,6 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
-      KeyName: !Ref KeyName
       SecurityGroupIds:
         - !Ref DatabaseApiSecurityGroup
       ImageId: ami-0bde73fd629657a5

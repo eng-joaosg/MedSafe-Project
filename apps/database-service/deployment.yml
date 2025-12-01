@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: database-service-api
-          image: usuario/medsafe-database-service:${GITHUB_SHA}
+          image: devjoaosg/medsafe-database-service:latest
           ports:
             - containerPort: 3000
           env:
@@ -32,3 +32,5 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
+      imagePullSecrets:
+        - name: dockerhub-secret
