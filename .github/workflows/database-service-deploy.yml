@@ -63,9 +63,11 @@ jobs:
         run: |
           aws cloudformation deploy \
             --stack-name MedSafe-Database-Service \
-            --template-file infrastructure/cloudformation.yml \
+            --template-file apps/database-service/infrastructure/cloudformation.yml \
             --capabilities CAPABILITY_IAM \
-            --parameter-overrides DockerImageTag=${{ github.sha }}
+            --parameter-overrides \
+              DockerImageTag=${{ github.sha }} \
+              DbConnectionString=${{ secrets.DB_CONNECTION_STRING }}
 
       # 10. Logs CloudFormation
       - name: Show CloudFormation events
