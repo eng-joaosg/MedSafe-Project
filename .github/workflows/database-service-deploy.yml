@@ -22,13 +22,15 @@ jobs:
 
       # 3. Instala dependências
       - name: Install dependencies
+        working-directory: apps/database-service
         run: npm install
 
       # 4. Build do projeto
       - name: Build project
+        working-directory: apps/database-service
         run: npm run build
 
-      # 5. Login no AWS (APÓS build e ANTES de qualquer comando AWS)
+      # 5. Login no AWS
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -38,11 +40,12 @@ jobs:
 
       # 6. Build da imagem Docker
       - name: Build Docker image
+        working-directory: apps/database-service
         run: |
           docker build -t devjoaosg/medsafe-database-service:latest .
           docker tag devjoaosg/medsafe-database-service:latest devjoaosg/medsafe-database-service:${{ github.sha }}
 
-      # 7. Push para Docker Hub (imagem pública, sem login)
+      # 7. Push Docker Hub
       - name: Push Docker image
         run: |
           docker push devjoaosg/medsafe-database-service:latest
@@ -57,7 +60,7 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --parameter-overrides DockerImageTag=${{ github.sha }}
 
-      # 9. Logs de eventos
+      # 9. Logs CloudFormation
       - name: Show CloudFormation events
         run: |
           aws cloudformation describe-stack-events \
