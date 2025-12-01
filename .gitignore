@@ -72,7 +72,6 @@ public/static/
 # ===========================================
 
 # Docker
-Dockerfile
 docker-compose*.yml
 .dockerignore
 
