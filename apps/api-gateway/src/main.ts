@@ -1,7 +1,6 @@
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { CommonLoggerGateway } from './common/common.logger';
 import { GlobalExceptionFilter } from './common/global-exception.filter';
@@ -28,13 +27,6 @@ async function bootstrap() {
   // -----------------------------
   // Pipes globais
   // -----------------------------
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
 
   // -----------------------------
   // Filtro de exceções global

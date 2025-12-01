@@ -25,7 +25,6 @@ describe('SendPasswordRecoveryEmailUseCase', () => {
     const payload: PasswordRecoveryPayload = { email: 'user@example.com', name: 'João', resetToken: '1234' };
     await useCase.execute(payload);
 
-    // Corrigido para refletir os três argumentos
     expect(emailTemplates.passwordRecovery).toHaveBeenCalledWith('João', 'user@example.com', '1234');
 
     expect(mailer.sendEmail).toHaveBeenCalledWith('user@example.com', 'Recupere sua senha', expect.any(String));

@@ -46,7 +46,7 @@ export default function PublicCodeSection({
     <>
       <div className="w-full flex justify-between items-center my-4 px-4 sm:px-8">
         <div className="wrap-break-word">
-          {code ? `Senha pública: ${code}` : 'Senha pública ainda não gerada'}
+          {code ? `Senha pública: ${code}` : ''}
         </div>
 
         {editable && (

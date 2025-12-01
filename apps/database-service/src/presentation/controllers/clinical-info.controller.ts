@@ -44,7 +44,6 @@ export class ClinicalInfoController {
     }
 
     const res = await this.clinicalInfoService.getById(clinicalInfoId);
-    console.log(res);
     return res;
   }
 

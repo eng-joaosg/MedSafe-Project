@@ -3,7 +3,7 @@ import { DatabaseModule } from '../database/database.module';
 import { ClientUserService } from './services/client-user.service';
 import { KnexClientUserRepository } from '../database/repositories/knex-client-user.repository';
 import { ClinicalInfoService } from './services/clinical-info.service';
-import { KnexClinicalInfoRepository } from 'src/database/repositories/knex-clinical-info.repositoty';
+import { KnexClinicalInfoRepository } from 'src/database/repositories/knex-clinical-info.repository';
 import {
   CLIENT_USER_REPOSITORY,
   CLIENT_USER_SERVICE,

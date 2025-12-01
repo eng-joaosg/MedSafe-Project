@@ -399,14 +399,13 @@ export class GatewayController {
     @Res({ passthrough: true }) res: Response,
   ) {
     CommonLoggerGateway.logStart('Gateway', 'PUBLIC_DATA_ACCESS_ALERT', id, requestId);
-
     const { headers, body } = await this.invokeAndHandle('/public/clinical-info-access-alert', 'POST', { id }, requestId);
 
     this.applyHeadersToResponse(res, headers);
     return body;
   }
 
-  @Post('public/clinical-info')
+  @Get('public/clinical-info')
   @ApiOperation({ summary: 'Busca informações clínicas públicas pelo código' })
   async getPublicData(
     @Query('id') id: string,
@@ -415,16 +414,19 @@ export class GatewayController {
     @Res({ passthrough: true }) res: Response,
   ) {
     CommonLoggerGateway.logStart('Gateway', 'GET_PUBLIC_DATA', id, requestId);
-
-    const { data, headers } = await this.handleDatabaseServiceCall(
-      'get',
-      `/public/clinical-info/${encodeURIComponent(id)}`,
-      requestId,
-      undefined,
-      { code },
-    );
-
-    this.applyHeadersToResponse(res, headers);
-    return data;
+    try {
+      const { data, headers } = await this.handleDatabaseServiceCall(
+        'get',
+        `/public/clinical-info?id=${encodeURIComponent(id)}&code=${encodeURIComponent(code)}`,
+        requestId, // <- agora vem do header
+        undefined,
+        { code },
+      );
+      this.applyHeadersToResponse(res, headers);
+      return data;
+    } catch (err: any) {
+      console.error('Erro capturado no controller:', err?.message || err);
+      throw err; // importante relançar para o Nest tratar e enviar 500
+    }
   }
 }

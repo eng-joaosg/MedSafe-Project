@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: database-service-api
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: database-service-api
   ports:
     - protocol: TCP
-      port: 80
+      port: 3000
       targetPort: 3000

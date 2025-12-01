@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: database-service-api
-          image: usuario/medsafe-database-service:latest
+          image: usuario/medsafe-database-service:${GITHUB_SHA}
           ports:
             - containerPort: 3000
           env:

@@ -44,6 +44,7 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
     if (status >= 400 && status < 500) {
       console.log(`[WARN] [${status}] Um erro de cliente ocorreu.`);
     } else {
+      console.log(exception);
       console.error(`[ERROR] [${status}] Um erro interno ocorreu.`);
     }
     response.status(status).json({ message });

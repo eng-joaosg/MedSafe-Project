@@ -40,36 +40,37 @@ export class KnexClientUserRepository implements IClientUserRepository {
     }
   }
 
-  async save(model: Partial<ClientUserModel>, id: string | null): Promise<ClientUserModel> {
+  async save(model: Partial<ClientUserModel>, id: string): Promise<ClientUserModel> {
     try {
-      const existing = await this.knex(TABLES.CLIENT_USER).where({ id: id }).first();
       const cleanPayload: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(model)) {
-        if (value !== undefined) {
-          cleanPayload[key] = value;
-        }
+        if (value !== undefined) cleanPayload[key] = value;
       }
+      const existing = await this.knex(TABLES.CLIENT_USER).where({ id }).first();
 
       if (!existing) {
         const data = {
+          id,
           ...cleanPayload,
           created_at: this.knex.fn.now(),
           updated_at: this.knex.fn.now(),
         };
 
-        const [row] = await this.knex(TABLES.CLIENT_USER).insert(data).returning('*');
+        const insertedRows = await this.knex(TABLES.CLIENT_USER).insert(data).returning('*');
+        const row: ClientUserModel = Array.isArray(insertedRows) ? insertedRows[0] : insertedRows;
+        if (!row) throw new DatabaseOperationException(`Erro ao inserir ClientUser`, null);
+        return row;
+      } else {
+        const updateData = {
+          ...cleanPayload,
+          updated_at: this.knex.fn.now(),
+        };
 
+        const updatedRows = await this.knex(TABLES.CLIENT_USER).where({ id }).update(updateData).returning('*');
+        const row: ClientUserModel = Array.isArray(updatedRows) ? updatedRows[0] : updatedRows;
+        if (!row) throw new DatabaseOperationException(`Erro ao atualizar ClientUser: ${id}`, null);
         return row;
       }
-
-      const updateData = {
-        ...cleanPayload,
-        updated_at: this.knex.fn.now(),
-      };
-
-      const [row] = await this.knex(TABLES.CLIENT_USER).where({ id: id }).update(updateData).returning('*');
-
-      return row;
     } catch (error) {
       throw new DatabaseOperationException(`Erro ao salvar ClientUser: ${id}`, error);
     }
