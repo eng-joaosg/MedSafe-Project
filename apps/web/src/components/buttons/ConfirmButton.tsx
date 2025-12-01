@@ -6,7 +6,7 @@ interface ConfirmButtonProps {
   loading?: boolean;
   disabled?: boolean;
   className?: string;
-  widthClass?: string; // <- novo
+  widthClass?: string;
 }
 
 export default function ConfirmButton({

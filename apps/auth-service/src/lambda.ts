@@ -12,14 +12,22 @@ import { VerifyAccountClientUserHandler } from './presentation/handlers/client-u
 import { LoginClientUserHandler } from './presentation/handlers/client-user/login-client-user.handler';
 import { AssociateClinicalInfoHandler } from './presentation/handlers/client-user/associate-clinical-info.handler';
 import { ChangeNameClientUserHandler } from './presentation/handlers/client-user/change-name-client-user.handler';
+import { RefreshTokenHandler } from './presentation/handlers/user/refresh-token.handler';
 import { ChangePasswordClientUserHandler } from './presentation/handlers/client-user/change-password-client-user.handler';
 import { ITokenService } from './domain/services/i-token.service';
 import { TOKEN_SERVICE } from './common/utils/tokens.contants';
+import { SessionDto } from './application/dtos/client-user/session.dto';
+import { VerifyPasswordHandler } from './presentation/handlers/user/verify-password.handler';
+import { NewVerificationCodeHandler } from './presentation/handlers/user/new-verification-code.handler';
+import { DeleteClientUserHandler } from './presentation/handlers/client-user/delete-client-user.handler';
 import {
   RegisterClientUserPayload,
   VerifyAccountClientUserPayload,
   LoginClientUserPayload,
 } from './presentation/handlers/client-user/client-user.types';
+import { ResetPasswordDto } from './application/dtos/user/reset-password.dto';
+import { ResetPasswordHandler } from './presentation/handlers/user/resete-password.handler';
+import { PublicAccessAlertHandler } from './presentation/handlers/public/public-access-alert.handler';
 
 export interface LambdaEvent {
   httpMethod?: string;
@@ -44,6 +52,37 @@ async function getApp(): Promise<INestApplicationContext> {
   return app;
 }
 
+// ================= Funções auxiliares =================
+function lambdaResponse(body: unknown, statusCode = 200) {
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': configService.get('CORS_ORIGIN') ?? 'http://localhost:3000',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    },
+    body: body != null ? JSON.stringify(body) : '',
+  };
+}
+
+function lambdaResponseWithCookie(body: unknown, token: string, maxAgeSeconds: number = 60 * 60 * 2, statusCode: number = 200) {
+  const cookie = `auth_token=${token}; HttpOnly; SameSite=None; Secure; Path=/; Max-Age=${maxAgeSeconds}`;
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': configService.get('CORS_ORIGIN') ?? 'http://localhost:3000',
+      'Access-Control-Allow-Credentials': 'true',
+    },
+    multiValueHeaders: {
+      'Set-Cookie': [cookie],
+    },
+    body: body != null ? JSON.stringify(body) : '',
+  };
+}
+
 export const handler = async (event: LambdaEvent) => {
   const requestId = ulid();
   const isApiGateway = !!event.httpMethod;
@@ -59,9 +98,7 @@ export const handler = async (event: LambdaEvent) => {
   };
 
   const validateAuth = async (headers: Record<string, string>) => {
-    console.log('---------Validação------------');
     const cookieHeader = headers['cookie'] || headers['Cookie'] || '';
-    console.log(cookieHeader);
     if (!cookieHeader || typeof cookieHeader !== 'string') throw new AppException('Usuário não autenticado', 401);
 
     const cookies: Record<string, string> = {};
@@ -80,7 +117,7 @@ export const handler = async (event: LambdaEvent) => {
     const payload = await tokenService.verifyToken(token).catch(() => null);
     if (!payload) throw new AppException('Token inválido ou expirado', 401);
 
-    return payload as { sub?: string | number };
+    return payload as { sub: string | number; role: string };
   };
 
   try {
@@ -106,132 +143,208 @@ export const handler = async (event: LambdaEvent) => {
       let statusCode = 200;
 
       switch (event.resource) {
-        case '/client-user/find-email': {
-          const handlerInstance = appContext.get(FindEmailClientUserHandler);
-          const email = event.queryStringParameters?.email;
-          if (!email) throw new AppException('Email não fornecido', 400);
-          body = await withTimeout(handlerInstance.execute(email), 10000);
-          break;
-        }
-
-        case '/client-user/register': {
-          const handlerInstance = appContext.get(RegisterClientUserHandler);
-          if (!event.body) throw new AppException('Payload não fornecido', 400);
-          const payload: RegisterClientUserPayload = JSON.parse(event.body);
-          body = await withTimeout(handlerInstance.execute(payload), 10000);
-          statusCode = 201;
-          break;
-        }
-
-        case '/client-user/verify-account': {
-          const handlerInstance = appContext.get(VerifyAccountClientUserHandler);
-          if (!event.body) throw new AppException('Payload não fornecido', 400);
-          const payload: VerifyAccountClientUserPayload = JSON.parse(event.body);
-          body = await withTimeout(handlerInstance.execute(payload), 10000);
-          break;
-        }
-
+        // ================= LOGIN =================
         case '/client-user/login': {
           const handlerInstance = appContext.get(LoginClientUserHandler);
           if (!event.body) throw new AppException('Payload não fornecido', 400);
           const payload: LoginClientUserPayload = JSON.parse(event.body);
-          console.log(payload);
-          body = await withTimeout(handlerInstance.execute(payload), 10000);
-          break;
+
+          const session: SessionDto | null = await withTimeout(handlerInstance.execute(payload), 10000);
+
+          if (!session) {
+            throw new AppException('AuthService não retornou body no login', 500);
+          }
+
+          if (!session.accessToken?.accessToken) {
+            throw new AppException('Login falhou: token não recebido', 500);
+          }
+
+          const { accessToken, ...sessionWithoutToken } = session;
+
+          logDuration(start, event.resource);
+
+          return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken);
         }
 
-        case '/client-user/associate-clinical-info': {
-          console.log('===============================================');
-          const handlerInstance = appContext.get(AssociateClinicalInfoHandler);
+        // ================= LOGOUT =================
+        case '/logout': {
+          CommonLogger.info('AUTH-SERVICE', 'LOGOUT', '');
+          return lambdaResponseWithCookie({ message: 'Logout realizado' }, '', 0);
+        }
 
+        // ================= REFRESH TOKEN =================
+        case '/refresh-token': {
           const authPayload = await validateAuth(headers);
-          console.log(authPayload);
           const userId = authPayload.sub;
-          if (!userId || typeof userId !== 'string') {
-            throw new AppException('Usuário inválido', 401);
-          }
+          const role = authPayload.role;
+          const handlerInstance = appContext.get(RefreshTokenHandler);
 
-          const clinicalInfoId = event.queryStringParameters?.clinicalInfoId;
-          console.log(clinicalInfoId);
-          if (!clinicalInfoId || typeof clinicalInfoId !== 'string') {
-            throw new AppException('ID das informações clínicas inválido', 400);
-          }
+          const session: SessionDto = await withTimeout(handlerInstance.execute(userId, role), 10000);
+          const { accessToken, ...sessionWithoutToken } = session;
 
-          body = await withTimeout(handlerInstance.execute(userId, clinicalInfoId), 10000);
-          break;
+          logDuration(start, event.resource);
+          return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
         }
 
+        // ================= DELETE ACCOUNT =================
+        case '/client-user/delete-account': {
+          const handlerInstance = appContext.get(DeleteClientUserHandler);
+          const authPayload = await validateAuth(headers);
+          const userId = authPayload.sub;
+          const parsedBody: { password: string } = event.body ? JSON.parse(event.body) : {};
+          const password = parsedBody.password;
+          await withTimeout(handlerInstance.execute(userId.toString(), password), 10000);
+          logDuration(start, event.resource);
+          return lambdaResponseWithCookie({ message: 'Logout realizado' }, '', 0);
+        }
+
+        // ================= REFRESH TOKEN =================
+        case '/new-verification-code': {
+          const handlerInstance = appContext.get(NewVerificationCodeHandler);
+          const parsedBody: { email: string } = event.body ? JSON.parse(event.body) : {};
+          const email = parsedBody.email;
+          const type = (event.queryStringParameters?.type ?? 'verify-account') as 'verify-account' | 'forgot-password';
+          await withTimeout(handlerInstance.execute(email, type), 10000);
+          logDuration(start, event.resource);
+          return lambdaResponse('');
+        }
+
+        // ================= REFRESH TOKEN =================
+        case '/reset-password': {
+          const handlerInstance = appContext.get(ResetPasswordHandler);
+          const parsedBody: ResetPasswordDto = event.body ? JSON.parse(event.body) : {};
+          await withTimeout(handlerInstance.execute(parsedBody), 10000);
+          logDuration(start, event.resource);
+          return lambdaResponse('');
+        }
+
+        // ================= VERIFY PASSWORD =================
+        case '/verify-password': {
+          const handlerInstance = appContext.get(VerifyPasswordHandler);
+          const authPayload = await validateAuth(headers);
+          const userId = authPayload.sub;
+          const parsedBody: { password: string } = event.body ? JSON.parse(event.body) : {};
+          const password = parsedBody.password;
+          const result: boolean = await withTimeout(handlerInstance.execute(userId.toString(), password), 10000);
+
+          logDuration(start, event.resource);
+          return lambdaResponse({ verified: result });
+        }
+        // ================= CHANGE NAME =================
         case '/client-user/change-name': {
           const handlerInstance = appContext.get(ChangeNameClientUserHandler);
           const authPayload = await validateAuth(headers);
           const userId = authPayload.sub;
-          if (!userId || typeof userId !== 'string') throw new AppException('Usuário inválido', 401);
-
-          const parsedBody: { newFirstName?: unknown; newLastName?: unknown } = event.body ? JSON.parse(event.body) : {};
-
+          const parsedBody: { newFirstName: string; newLastName: string } = event.body ? JSON.parse(event.body) : {};
           const newFirstName = parsedBody.newFirstName;
           const newLastName = parsedBody.newLastName;
 
-          if (typeof newFirstName !== 'string' || typeof newLastName !== 'string') {
-            throw new AppException('Novo nome ou sobrenome inválido', 400);
-          }
+          const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), newFirstName, newLastName), 10000);
+          const { accessToken, ...sessionWithoutToken } = session;
 
-          body = await withTimeout(handlerInstance.execute(userId, newFirstName, newLastName), 10000);
-          break;
+          logDuration(start, event.resource);
+          return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
         }
 
-        case '/client-user/change-password': {
+        // ================= CHANGE PASSWORD =================
+        case '/change-password': {
           const handlerInstance = appContext.get(ChangePasswordClientUserHandler);
           const authPayload = await validateAuth(headers);
           const userId = authPayload.sub;
-          if (!userId || typeof userId !== 'string') throw new AppException('Usuário inválido', 401);
-
-          // Parse do body com validação de tipos
-          const parsedBody: { password?: unknown; newPassword?: unknown } = event.body ? JSON.parse(event.body) : {};
-
+          const parsedBody: { password: string; newPassword: string } = event.body ? JSON.parse(event.body) : {};
           const password = parsedBody.password;
           const newPassword = parsedBody.newPassword;
 
-          if (typeof password !== 'string' || typeof newPassword !== 'string') {
-            throw new AppException('Senha antiga ou nova inválida', 400);
+          const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), password, newPassword), 10000);
+
+          const { accessToken } = session;
+
+          logDuration(start, event.resource);
+          return lambdaResponseWithCookie(null, accessToken?.accessToken ?? '', 7200, 200);
+        }
+
+        // ================= FIND EMAIL =================
+        case '/client-user/find-email': {
+          const handlerInstance = appContext.get(FindEmailClientUserHandler);
+          const email = event.queryStringParameters?.email as string;
+          body = await withTimeout(handlerInstance.execute(email), 10000);
+          logDuration(start, event.resource);
+          return lambdaResponse(body);
+        }
+
+        // ================= REGISTER =================
+        case '/client-user/register': {
+          const handlerInstance = appContext.get(RegisterClientUserHandler);
+          const payload: RegisterClientUserPayload = event.body ? JSON.parse(event.body) : ({} as RegisterClientUserPayload);
+          body = await withTimeout(handlerInstance.execute(payload), 10000);
+          statusCode = 201;
+          logDuration(start, event.resource);
+          return lambdaResponse(body, statusCode);
+        }
+
+        // ================= VERIFY ACCOUNT =================
+        case '/client-user/verify-account': {
+          const handlerInstance = appContext.get(VerifyAccountClientUserHandler);
+          const payload: VerifyAccountClientUserPayload = event.body ? JSON.parse(event.body) : ({} as VerifyAccountClientUserPayload);
+          body = await withTimeout(handlerInstance.execute(payload), 10000);
+          logDuration(start, event.resource);
+          return lambdaResponse(body);
+        }
+
+        // ================= ASSOCIATE CLINICAL INFO =================
+        case '/client-user/associate-clinical-info': {
+          const handlerInstance = appContext.get(AssociateClinicalInfoHandler);
+          const authPayload = await validateAuth(headers);
+          const userId = authPayload.sub;
+          const clinicalInfoId = event.queryStringParameters?.clinicalInfoId as string;
+
+          body = await withTimeout(handlerInstance.execute(userId.toString(), clinicalInfoId), 10000);
+          logDuration(start, event.resource);
+          return lambdaResponse(body);
+        }
+
+        // ================= PUBLIC ACCESS ALERT =================
+        case '/public/clinical-info-access-alert': {
+          const handlerInstance = appContext.get(PublicAccessAlertHandler);
+          const payload: { id: string } = event.body ? JSON.parse(event.body) : { id: '' };
+
+          if (!payload.id) {
+            throw new AppException('ID não fornecido', 400);
           }
 
-          body = await withTimeout(handlerInstance.execute(userId, password, newPassword), 10000);
-          break;
+          body = await withTimeout(handlerInstance.execute(payload.id), 10000);
+
+          logDuration(start, event.resource);
+          return lambdaResponse(body);
         }
 
         default:
-          CommonLogger.warn('Action', 'UNKNOWN', `Ação desconhecida: ${event.resource}`);
           throw new UnknownActionError(event.resource!);
       }
-
-      logDuration(start, event.resource);
-
-      return {
-        statusCode,
-        headers: { 'Content-Type': 'application/json', 'x-request-id': finalRequestId },
-        body: JSON.stringify({ id: finalRequestId, message: 'Sucesso', body }),
-      };
     }, initialContext);
   } catch (err: unknown) {
     let statusCode = 500;
     let message = 'Erro interno desconhecido.';
-
     if (err instanceof AppException) {
       statusCode = err.getStatus();
       message = err.message;
-    } else if (err instanceof ServerError) {
-      message = err.message;
+      CommonLogger.warn('Handler', `APP_EXCEPTION_${statusCode}`, message);
     } else if (err instanceof Error && err.message.includes('Timeout')) {
       statusCode = 504;
       message = 'Serviço demorou demais para responder. Tente novamente mais tarde.';
+      CommonLogger.error('Handler', 'TIMEOUT', 'Operação excedeu o tempo limite.', err.stack);
+    } else if (err instanceof ServerError) {
+      message = err.message;
+      CommonLogger.error('Handler', 'SERVER_ERROR', err.message, err.stack);
     } else if (err instanceof Error) {
       CommonLogger.error('Handler', 'UNHANDLED_ERROR', err.message, err.stack);
     }
-
     return {
       statusCode,
-      headers: { 'Content-Type': 'application/json', 'x-request-id': requestId },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-request-id': requestId,
+      },
       body: JSON.stringify({ id: requestId, message }),
     };
   }

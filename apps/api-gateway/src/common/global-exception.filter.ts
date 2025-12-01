@@ -1,7 +1,17 @@
-import { Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
+import { Catch, ArgumentsHost, HttpStatus } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
-import { CommonLoggerGateway } from './common.logger';
-import { AppException, ConfigurationException, RemoteServiceError } from './app.exceptions';
+import { AppException } from './app.exceptions';
+import { AxiosError } from 'axios';
+
+const GENERIC_MESSAGES: Record<number, string> = {
+  400: 'Bad request.',
+  401: 'Unauthorized.',
+  402: 'Payment required.',
+  403: 'Forbidden.',
+  404: 'Not found.',
+  409: 'Conflict.',
+};
 
 @Catch()
 export class GlobalExceptionFilter extends BaseExceptionFilter {
@@ -9,42 +19,33 @@ export class GlobalExceptionFilter extends BaseExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
 
-    let message = 'Ocorreu um erro inesperado. Por favor, tente novamente.';
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = 'Erro no servidor.';
 
-    // --- AppException
     if (exception instanceof AppException) {
-      message = exception.message;
-      status = exception.getStatus();
-      CommonLoggerGateway.warn('GlobalExceptionFilter', 'APP_EXCEPTION', exception);
-    }
-    // --- HttpException
-    else if (exception instanceof HttpException) {
-      const responseBody = exception.getResponse();
-      message = typeof responseBody === 'string' ? responseBody : (responseBody as any).message || 'Ocorreu um erro inesperado.';
-      status = exception.getStatus();
-      CommonLoggerGateway.warn('GlobalExceptionFilter', 'HTTP_EXCEPTION', exception);
-    }
-    // --- RemoteServiceError
-    else if (exception instanceof RemoteServiceError) {
-      message = 'O serviço de dados está temporariamente indisponível.';
-      status = HttpStatus.SERVICE_UNAVAILABLE;
-      CommonLoggerGateway.error('GlobalExceptionFilter', 'REMOTE_SERVICE_FAILURE', exception, exception.originalError);
-    }
-    // --- ConfigurationException
-    else if (exception instanceof ConfigurationException) {
-      message = 'Erro de configuração. Contate o suporte.';
+      status = (exception as any).status || HttpStatus.INTERNAL_SERVER_ERROR;
+      message = (exception as any).message || message;
+    } else if (exception instanceof AxiosError) {
+      status = exception.response?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+    } else if (exception instanceof Error) {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-      CommonLoggerGateway.error('GlobalExceptionFilter', 'CONFIG_ERROR', exception);
-    }
-    // --- Outros erros não tratados
-    else if (exception instanceof Error) {
-      message = 'Ocorreu um erro inesperado. Por favor, tente novamente.';
-      status = HttpStatus.INTERNAL_SERVER_ERROR;
-      CommonLoggerGateway.error('GlobalExceptionFilter', 'UNHANDLED_ERROR', exception, exception.stack);
     }
 
-    // --- Envia a resposta final para o front
+    // Se for código conhecido, usa mensagem genérica específica
+    if (GENERIC_MESSAGES[status]) {
+      message = GENERIC_MESSAGES[status];
+    } else if (status >= 400 && status < 500) {
+      message = 'Erro na requisição.';
+    } else if (status >= 500) {
+      message = 'Erro no servidor.';
+    }
+
+    // Log simplificado
+    if (status >= 400 && status < 500) {
+      console.log(`[WARN] [${status}] Um erro de cliente ocorreu.`);
+    } else {
+      console.error(`[ERROR] [${status}] Um erro interno ocorreu.`);
+    }
     response.status(status).json({ message });
   }
 }

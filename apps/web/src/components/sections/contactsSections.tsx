@@ -1,8 +1,8 @@
 'use client';
 import React from 'react';
-import Input from '@/components/Input';
-import { InputPhone } from '../InputPhone';
-import { InputDropdown } from '../InputDropdown';
+import Input from '@/components/inputs/Input';
+import { InputPhone } from '../inputs/InputPhone';
+import { InputDropdown } from '../inputs/InputDropdown';
 
 export interface EmergencyContact {
   id: number;
@@ -22,19 +22,10 @@ interface Props {
 export default function ContactsSection({ userItems, setUserItems, editable }: Props) {
   const addContact = () => {
     if (userItems.length < 3) {
-      const last = userItems[userItems.length - 1];
-      const allFilled =
-        last.firstName &&
-        last.lastName &&
-        last.ddd && last.ddd > 0 &&
-        last.phone && last.phone > 0 &&
-        last.relationship;
-      if (allFilled) {
-        setUserItems([
-          ...userItems,
-          { id: userItems.length + 1, firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }
-        ]);
-      }
+      setUserItems([
+        ...userItems,
+        { id: userItems.length + 1, firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }
+      ]);
     }
   };
 
@@ -56,7 +47,6 @@ export default function ContactsSection({ userItems, setUserItems, editable }: P
     const newContacts = [...userItems];
     if (field === 'ddd' || field === 'phone') {
       const num = Number(value);
-      // Só aceita valores maiores que 0, caso contrário mantém null
       newContacts[index][field] = num > 0 ? num : null;
     } else {
       newContacts[index][field] = String(value || '');
@@ -64,11 +54,20 @@ export default function ContactsSection({ userItems, setUserItems, editable }: P
     setUserItems(newContacts);
   };
 
+  // Verifica se um contato está completamente preenchido
+  const isContactComplete = (c: EmergencyContact) =>
+    !!c.firstName &&
+    !!c.lastName &&
+    !!c.ddd && c.ddd > 0 &&
+    !!c.phone && c.phone > 0 &&
+    !!c.relationship;
+
   return (
-    <div className="w-full mx-auto border-grayscale-200 border-x mb-4">
-      <h3 className="text-grayscale-100 font-semibold mb-3">Contatos de emergência:</h3>
+    <div className="w-full mx-auto border-grayscale-200 border-y md:border pb-2">
+      <h3 className="text-grayscale-100 text-lg text-left p-4 font-semibold mb-3">Contatos de emergência:</h3>
+
       {userItems.map((c, i) => (
-        <div key={c.id} className="mb-4 pt-8">
+        <div key={c.id} className="mb-4">
           <Input
             fieldName="Nome"
             value={c.firstName}
@@ -100,33 +99,38 @@ export default function ContactsSection({ userItems, setUserItems, editable }: P
             value={c.relationship}
             onChange={(v) => updateContact(i, 'relationship', v)}
             options={[
-              "Pai","Mãe","Irmão","Irmã","Avô","Avó","Tio","Tia",
-              "Primo","Prima","Cônjuge","Amigo(a)","Outro"
+              "Pai", "Mãe", "Irmão", "Irmã", "Avô", "Avó", 
+              "Tio", "Tia", "Primo", "Prima", 
+              "Cônjuge", "Amigo(a)", "Outro"
             ]}
             editable={editable}
           />
 
-          <div className="flex justify-between mt-2 px-4">
-            <button
-              onClick={() => removeContact(i)}
-              disabled={!editable}
-              className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors
-                ${editable ? 'text-info hover:text-info-dark border-info' : 'text-grayscale-400 border-grayscale-300 cursor-not-allowed'}`}
-            >
-              -
-            </button>
-
-            {i < 2 && i === userItems.length - 1 && (
+          {editable && (
+            <div className="flex justify-between mt-2 px-4">
               <button
-                onClick={addContact}
-                disabled={!editable}
-                className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors
-                  ${editable ? 'text-info hover:text-info-dark border-info' : 'text-grayscale-400 border-grayscale-300 cursor-not-allowed'}`}
+                onClick={() => removeContact(i)}
+                className="flex items-center justify-center w-8 h-8 rounded-full border transition-colors
+                  text-info hover:text-info-dark border-info"
               >
-                +
+                -
               </button>
-            )}
-          </div>
+
+              {/* Botão + só aparece até 2 contatos e no último */}
+              {i < 2 && i === userItems.length - 1 && (
+                <button
+                  onClick={isContactComplete(c) ? addContact : undefined}
+                  disabled={!isContactComplete(c)}
+                  className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors
+                    ${isContactComplete(c)
+                      ? 'text-info hover:text-info-dark border-info'
+                      : 'text-grayscale-300 border-grayscale-300'}`}
+                >
+                  +
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

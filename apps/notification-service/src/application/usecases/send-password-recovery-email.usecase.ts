@@ -34,7 +34,7 @@ export class SendPasswordRecoveryEmailUseCase extends BaseUseCase {
     );
 
     const subject = 'Recupere sua senha';
-    const html = this.emailTemplates.passwordRecovery(name, resetToken);
+    const html = this.emailTemplates.passwordRecovery(name, email, resetToken);
 
     try {
       await this.mailer.sendEmail(email, subject, html);

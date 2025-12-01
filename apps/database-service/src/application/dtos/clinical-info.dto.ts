@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsString, IsOptional, IsDate, IsArray, ValidateNested, IsInt, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsDate, IsArray, ValidateNested, IsInt, IsNumber, Length } from 'class-validator';
 
 export class ContactDto {
   @ApiProperty({ example: 1 })
@@ -17,12 +17,6 @@ export class ContactDto {
   @IsOptional()
   @IsString()
   lastName?: string;
-
-  @ApiProperty()
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  dateOfBirth?: Date;
 
   @ApiProperty({ example: '11' })
   @IsOptional()
@@ -133,6 +127,12 @@ export class ClinicalInfoDto {
   @ValidateNested({ each: true })
   @Type(() => ContactDto)
   contacts?: ContactDto[];
+
+  @ApiProperty({ example: 'A1B2C3', description: 'Código público de 6 caracteres' })
+  @IsOptional()
+  @IsString()
+  @Length(6, 6, { message: 'O código público deve ter exatamente 6 caracteres' })
+  publicCode?: string;
 
   @ApiProperty()
   @IsOptional()

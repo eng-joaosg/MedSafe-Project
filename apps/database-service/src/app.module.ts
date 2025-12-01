@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-
 import { ApplicationModule } from './application/application.module';
 import { RequestContextService } from './common/request-context/context-context.service';
 import { ClientUserAuthController } from './presentation/controllers/client-user.controller';
 import { ClinicalInfoController } from './presentation/controllers/clinical-info.controller';
+import { PublicClinicalInfoController } from './presentation/controllers/public.controller';
 
 @Module({
   imports: [
@@ -23,7 +23,7 @@ import { ClinicalInfoController } from './presentation/controllers/clinical-info
     ApplicationModule,
   ],
 
-  controllers: [ClientUserAuthController, ClinicalInfoController],
+  controllers: [ClientUserAuthController, ClinicalInfoController, PublicClinicalInfoController],
   providers: [RequestContextService],
   exports: [RequestContextService],
 })

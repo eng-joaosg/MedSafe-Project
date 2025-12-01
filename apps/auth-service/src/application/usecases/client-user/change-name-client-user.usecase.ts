@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { IClientUserRepository } from '../../../domain/repositories/i-client-user.repository';
-import { SessionClientUserDto } from '../../../application/dtos/client-user/session-client-user.dto';
+import { SessionDto } from '../../dtos/client-user/session.dto';
 import type { ITokenService } from '../../../domain/services/i-token.service';
 import type { IHashService } from '../../../domain/services/i-hash.service';
 import { CLIENT_USER_MAPPER, CLIENT_USER_REPOSITORY, HASH_SERVICE, TOKEN_SERVICE } from '../../../common/utils/tokens.contants';
@@ -20,7 +20,7 @@ export class ChangeNameClientUserUseCase implements IChangeNameClientUserUseCase
     private readonly mapper: IClientUserMapper,
   ) {}
 
-  async execute(id: string, newFirstName: string, newLastName: string): Promise<SessionClientUserDto> {
+  async execute(id: string, newFirstName: string, newLastName: string): Promise<SessionDto> {
     if (!newFirstName || !newLastName) throw new BadRequestException();
 
     const user = await this.repository.getById(id);

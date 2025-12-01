@@ -3,11 +3,12 @@ import type { IClientUserRepository } from '../../../domain/repositories/i-clien
 import { InvalidCredentialsException, UserNotActiveException } from '../../../common/exceptions/app.exception';
 import { ILoginClientUserUseCase } from '../../../application/contracts/i-login-client-user.usecase';
 import { LoginClientUserDto } from '../../../application/dtos/client-user/login-client-user.dto';
-import { SessionClientUserDto } from '../../../application/dtos/client-user/session-client-user.dto';
+import { SessionDto } from '../../dtos/client-user/session.dto';
 import type { ITokenService } from '../../../domain/services/i-token.service';
 import type { IHashService } from '../../../domain/services/i-hash.service';
 import { CLIENT_USER_MAPPER, CLIENT_USER_REPOSITORY, HASH_SERVICE, TOKEN_SERVICE } from '../../../common/utils/tokens.contants';
 import type { IClientUserMapper } from '../../../application/mapping/i-client-user.mapper';
+import { ClientUser } from '../../../domain/entities/client-user.entity';
 
 @Injectable()
 export class LoginClientUserUseCase implements ILoginClientUserUseCase {
@@ -22,18 +23,38 @@ export class LoginClientUserUseCase implements ILoginClientUserUseCase {
     private readonly mapper: IClientUserMapper,
   ) {}
 
-  async execute(dto: LoginClientUserDto): Promise<SessionClientUserDto> {
-    const user = await this.repository.getByEmail(dto.email);
-    if (!user) throw new InvalidCredentialsException();
+  async execute(dto: LoginClientUserDto): Promise<SessionDto> {
+    let user: ClientUser;
 
-    if (!user.getIsActive()) throw new UserNotActiveException();
+    try {
+      user = await this.repository.getByEmail(dto.email);
+    } catch (err: any) {
+      const status = err?.response?.status;
 
+      if (status && status >= 500) {
+        throw err;
+      }
+
+      if (status === 404) {
+        throw new InvalidCredentialsException();
+      }
+
+      throw err;
+    }
+
+    if (!user) {
+      throw new InvalidCredentialsException();
+    }
+    if (!user.getIsActive()) {
+      throw new UserNotActiveException();
+    }
     const passwordHash = user.getPasswordHash();
     const authenticated = await this.hashService.compare(dto.password, passwordHash);
-    if (!authenticated) throw new InvalidCredentialsException();
+    if (!authenticated) {
+      throw new InvalidCredentialsException();
+    }
 
     const token = await this.tokenService.generateClientUserAuthToken(user);
-
     return this.mapper.toSessionDto(user, token);
   }
 }

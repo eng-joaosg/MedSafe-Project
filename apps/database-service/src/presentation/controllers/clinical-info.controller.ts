@@ -4,21 +4,23 @@ import {
   Post,
   Delete,
   Body,
-  Query,
   HttpCode,
   HttpStatus,
   ValidationPipe,
   UsePipes,
-  ParseUUIDPipe,
   Inject,
   UseGuards,
   Put,
+  BadRequestException,
+  Res,
+  Req,
 } from '@nestjs/common';
-import { ApiResponse, ApiTags, ApiOperation, ApiQuery, ApiBody } from '@nestjs/swagger';
+import { ApiResponse, ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 import type { IClinicalInfoService } from '../../application/contracts/i-clinical-info.service';
 import { CLINICAL_INFO_SERVICE } from '../../common/contants/tokens.contants';
 import { ClinicalInfoDto } from 'src/application/dtos/clinical-info.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('clinical-info')
 @Controller('clinical-info')
@@ -28,51 +30,30 @@ export class ClinicalInfoController {
   constructor(
     @Inject(CLINICAL_INFO_SERVICE)
     private readonly clinicalInfoService: IClinicalInfoService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Busca um registro de clinical info pelo ID.' })
-  @ApiQuery({ name: 'id', required: true, description: 'ID do usuário' })
+  @ApiOperation({ summary: 'Busca o clinical info usando o clinicalInfoId do JWT.' })
   @ApiResponse({ status: 200, type: ClinicalInfoDto })
-  async getById(@Query('id', ParseUUIDPipe) id: string): Promise<ClinicalInfoDto> {
-    return await this.clinicalInfoService.getById(id);
-  }
+  async getByToken(@Req() req: any): Promise<ClinicalInfoDto> {
+    const clinicalInfoId: string = req.user?.clinicalInfo;
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Cria um novo registro de clinical info.' })
-  @ApiBody({ type: ClinicalInfoDto, description: 'Payload completo.' })
-  @ApiResponse({ status: 201, description: 'Criado com sucesso', type: ClinicalInfoDto })
-  async create(@Body() payload: ClinicalInfoDto): Promise<ClinicalInfoDto> {
-    console.log('===========inicio');
-    const res = await this.clinicalInfoService.create(payload);
+    if (!clinicalInfoId) {
+      throw new BadRequestException('Token não contém clinicalInfoId');
+    }
+
+    const res = await this.clinicalInfoService.getById(clinicalInfoId);
     console.log(res);
-    console.log('=============FIM');
     return res;
   }
 
-  @Put()
-  @ApiOperation({ summary: 'Atualiza parcialmente um registro de clinical info.' })
-  @ApiQuery({ name: 'id', required: true, description: 'ID do usuário' })
-  @ApiResponse({ status: 200, description: 'Atualizado com sucesso', type: ClinicalInfoDto })
-  async put(@Query('id', ParseUUIDPipe) id: string, @Body() partial: Partial<ClinicalInfoDto>): Promise<ClinicalInfoDto> {
-    return await this.clinicalInfoService.save(partial, id);
-  }
-
-  @Delete()
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Deleta um registro de clinical info pelo ID.' })
-  @ApiQuery({ name: 'id', required: true, description: 'ID do usuário' })
-  @ApiResponse({ status: 204, description: 'Deletado com sucesso.' })
-  async delete(@Query('id', ParseUUIDPipe) id: string): Promise<void> {
-    return await this.clinicalInfoService.deleteById(id);
-  }
-
   @Get('all')
-  @ApiOperation({ summary: 'Retorna todas as listas de clinical info (cirurgias, doenças, medicamentos, alergias).' })
+  @ApiOperation({
+    summary: 'Retorna todas as listas (cirurgias, doenças, medicamentos, alergias).',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Listas retornadas com sucesso',
     schema: {
       type: 'object',
       properties: {
@@ -90,5 +71,72 @@ export class ClinicalInfoController {
     allergies: string[];
   }> {
     return await this.clinicalInfoService.getAllClinicalInfo();
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Cria um novo registro de clinical info.' })
+  @ApiBody({ type: ClinicalInfoDto })
+  @ApiResponse({ status: 201, type: ClinicalInfoDto })
+  async create(@Body() payload: ClinicalInfoDto): Promise<ClinicalInfoDto> {
+    return await this.clinicalInfoService.create(payload);
+  }
+
+  @Put()
+  @ApiOperation({ summary: 'Atualiza clinical info usando o clinicalInfoId do JWT.' })
+  @ApiResponse({ status: 200, type: ClinicalInfoDto })
+  async updateByToken(@Req() req: any, @Body() partial: Partial<ClinicalInfoDto>): Promise<ClinicalInfoDto> {
+    const clinicalInfoId: string = req.user?.clinicalInfo;
+
+    if (!clinicalInfoId) {
+      throw new BadRequestException('Token não contém clinicalInfoId');
+    }
+
+    return await this.clinicalInfoService.save(partial, clinicalInfoId);
+  }
+
+  @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Deleta clinical info usando o clinicalInfoId do JWT.' })
+  @ApiResponse({ status: 204 })
+  async deleteByToken(@Req() req: any): Promise<void> {
+    const clinicalInfoId: string = req.user?.clinicalInfo;
+
+    if (!clinicalInfoId) {
+      throw new BadRequestException('Token não contém clinicalInfoId');
+    }
+
+    await this.clinicalInfoService.deleteById(clinicalInfoId);
+  }
+
+  @Get('qr-code')
+  @ApiOperation({ summary: 'Gera e retorna o PDF com QR Code usando o clinicalInfoId do JWT.' })
+  @ApiResponse({ status: 200, description: 'PDF gerado com sucesso', content: { 'application/pdf': {} } })
+  async generateQrCodePdf(@Req() req: any, @Res() res: any) {
+    const clinicalInfoId: string = req.user?.clinicalInfo;
+
+    if (!clinicalInfoId) {
+      throw new BadRequestException('Token não contém clinicalInfoId');
+    }
+
+    const clinicalInfo = await this.clinicalInfoService.getById(clinicalInfoId);
+
+    if (!clinicalInfo || !clinicalInfo.publicCode) {
+      throw new BadRequestException('Este registro não possui publicCode gerado');
+    }
+
+    const publicCode: string = clinicalInfo.publicCode;
+
+    const qrUrl: string = `${this.configService.get('FRONT_URL')}/public-access/id=${publicCode}`;
+
+    const pdfBuffer: Buffer = await this.clinicalInfoService.generatePublicQrPdf(qrUrl, publicCode);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="qr_${publicCode}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    return res.send(pdfBuffer);
   }
 }

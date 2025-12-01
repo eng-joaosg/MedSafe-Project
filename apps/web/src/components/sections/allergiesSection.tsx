@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
-import { InputSearch } from '@/components/InputSearch';
-import { InputDropdown } from '@/components/InputDropdown';
+import { InputSearch } from '@/components/inputs/InputSearch';
+import { InputDropdown } from '@/components/inputs/InputDropdown';
 
 interface Allergy {
   name: string;
@@ -19,16 +19,18 @@ export default function AllergiesSection({ userItems, systemOptions, setUserItem
   const severityOptions = ['Leve', 'Moderada', 'Grave', 'Severa'];
 
   const addAllergy = () => {
-    if (
-      userItems.length < 10 &&
-      userItems.every(a => a.name && systemOptions.includes(a.name)) &&
-      new Set(userItems.filter(a => a.name).map(a => a.name)).size === userItems.filter(a => a.name).length
-    ) {
-      setUserItems([...userItems, { name: '', severity: '' }]);
+    if (!editable) return;
+    if (userItems.length < 10) {
+      const last = userItems[userItems.length - 1];
+      // só adiciona se a última alergia estiver completa
+      if (last.name.trim() !== '' && last.severity.trim() !== '') {
+        setUserItems([...userItems, { name: '', severity: '' }]);
+      }
     }
   };
 
   const removeAllergy = (index: number) => {
+    if (!editable) return;
     if (userItems.length === 1) {
       setUserItems([{ name: '', severity: '' }]);
     } else {
@@ -37,30 +39,41 @@ export default function AllergiesSection({ userItems, systemOptions, setUserItem
   };
 
   const updateAllergyName = (index: number, value: string) => {
+    if (!editable) return;
     const updated = [...userItems];
     updated[index].name = value;
     setUserItems(updated);
   };
 
   const updateAllergySeverity = (index: number, value: string) => {
+    if (!editable) return;
     const updated = [...userItems];
     updated[index].severity = value;
     setUserItems(updated);
   };
 
+  // verifica se a última alergia está completa
+  const isLastComplete = (() => {
+    const last = userItems[userItems.length - 1];
+    return last.name.trim() !== '' && last.severity.trim() !== '';
+  })();
+
   return (
-    <div className="w-full mx-auto border-grayscale-200 border mb-8">
-      <h3 className="text-grayscale-100 font-semibold text-left mb-3">Alergias:</h3>
+    <div className="w-full mx-auto border-grayscale-200 border-x-0 md:border-x pb-4">
+      <h3 className="text-grayscale-100 font-semibold text-left text-lg p-4">Alergias:</h3>
+
       {userItems.map((a, i) => (
-        <div key={i} className="mb-4 pt-8">
+        <div key={i} className="mb-8">
           <InputSearch
             label="Alergia"
             placeholder="Buscar alergia..."
             value={a.name}
             onChange={(v) => updateAllergyName(i, v)}
+            onSelect={(v: string) => updateAllergyName(i, v)}
             options={systemOptions}
             editable={editable}
           />
+
           <InputDropdown
             label="Severidade"
             value={a.severity}
@@ -68,26 +81,30 @@ export default function AllergiesSection({ userItems, systemOptions, setUserItem
             options={severityOptions}
             editable={editable}
           />
-          <div className="flex justify-between mt-2 px-4">
-            <button
-              onClick={() => removeAllergy(i)}
-              disabled={!editable}
-              className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors
-                ${editable ? 'text-info hover:text-info-dark border-info' : 'text-grayscale-400 border-grayscale-300 cursor-not-allowed'}`}
-            >
-              -
-            </button>
-            {i === userItems.length - 1 && userItems.length < 10 && (
+
+          {editable && (
+            <div className="flex justify-between mt-2 px-2">
               <button
-                onClick={addAllergy}
-                disabled={!editable}
-                className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors
-                  ${editable ? 'text-info hover:text-info-dark border-info' : 'text-grayscale-400 border-grayscale-300 cursor-not-allowed'}`}
+                onClick={() => removeAllergy(i)}
+                className="flex items-center justify-center w-8 h-8 rounded-full border text-info hover:text-info-dark border-info transition-colors"
               >
-                +
+                -
               </button>
-            )}
-          </div>
+
+              {i === userItems.length - 1 && userItems.length < 10 && (
+                <button
+                  onClick={isLastComplete ? addAllergy : undefined}
+                  disabled={!isLastComplete}
+                  className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors
+                    ${isLastComplete
+                      ? 'text-info hover:text-info-dark border-info'
+                      : 'text-grayscale-300 border-grayscale-300'}`}
+                >
+                  +
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

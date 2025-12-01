@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ConfirmButton from "@/components/ConfirmButton";
-import Input from "@/components/Input";
+import ConfirmButton from "@/components/buttons/ConfirmButton";
+import Input from "@/components/inputs/Input";
 import { findEmail, register } from "@/lib/api";
 
 export default function RegisterPage() {
@@ -112,11 +112,10 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <Input fieldName="E-mail" value={email} onChange={setEmail} />
 
+        {/* Campos adicionais aparecem apenas após confirmação */}
         <div
-          className={`
-            transition-all duration-300 ease-in-out overflow-hidden
-            ${canProceed ? "mt-4 max-h-[1000px] opacity-100" : "max-h-0 opacity-0"}
-          `}
+          className={`transition-all duration-300 ease-in-out overflow-hidden
+          ${canProceed ? "mt-4 max-h-[1000px] opacity-100" : "max-h-0 opacity-0"}`}
         >
           <Input fieldName="Nome" value={firstName} onChange={setFirstName} />
           <Input fieldName="Sobrenome" value={lastName} onChange={setLastName} />
@@ -127,11 +126,8 @@ export default function RegisterPage() {
               fieldName="Confirmar Senha"
               value={confirmPassword}
               onChange={setConfirmPassword}
-              className={
-                !passwordMatches && confirmPassword ? "border-error" : ""
-              }
+              className={!passwordMatches && confirmPassword ? "border-error" : ""}
             />
-
             {!passwordMatches && confirmPassword && (
               <p className="text-error text-xs mt-1 animate-fade">
                 As senhas não coincidem.
@@ -147,7 +143,8 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <div className={`w-full flex justify-center mt-4 ${canProceed ? "pt-1" : "pt-78"}`}>
+        {/* Botão sempre visível */}
+        <div className="w-full flex justify-center mt-4">
           <ConfirmButton
             onClick={canProceed ? handleRegister : handleConfirmEmail}
             label={canProceed ? "Registrar" : "Confirmar e-mail"}

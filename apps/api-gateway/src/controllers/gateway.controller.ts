@@ -1,60 +1,42 @@
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthServiceInvoker, GatewayResponse } from '../services/auth-service.invoker';
 import { RegisterClientUserDto } from '../dtos/register-client-user.dto';
 import { VerifyAccountClientUserDto } from '../dtos/verify-client-user.dto';
 import { LoginClientUserDto } from '../dtos/login-client-user.dto';
-import { SessionClientUserDto } from '../dtos/session-client-user.dto';
 import { ChangePasswordClientUserDto } from '../dtos/change-password-client-user.dto';
-import type { Response } from 'express';
-import { CommonLoggerGateway } from '../common/common.logger';
 import { ChangeNameClientUserDto } from 'src/dtos/change-name-client-user.dto';
 import axios from 'axios';
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Body,
-  Query,
-  Headers,
-  HttpCode,
-  HttpStatus,
-  BadRequestException,
-  InternalServerErrorException,
-  Res,
-  Delete,
-  Put,
-} from '@nestjs/common';
+import type { Response } from 'express';
+import { Controller, Get, Post, Patch, Body, Query, Headers, HttpCode, HttpStatus, Res, Delete, Put } from '@nestjs/common';
+import { CommonLoggerGateway } from '../common/common.logger';
 
 @ApiTags('Gateway')
 @Controller('gateway')
 export class GatewayController {
   constructor(private readonly invoker: AuthServiceInvoker) {}
-  private databaseServiceUrl = 'http://localhost:3004';
 
-  // ======== Helpers ========
-  private extractAuthToken(cookieHeader?: string): string | null {
-    if (!cookieHeader) return null;
-    const match = cookieHeader.match(/auth_token=([^;]+)/);
-    return match ? match[1] : null;
-  }
+  private databaseServiceUrl = 'http://localhost:3004';
 
   private async invokeAndHandle<T>(
     path: string,
-    method: 'GET' | 'POST' | 'PATCH' | 'PUT',
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     payload: any,
     requestId: string,
     authToken?: string,
     cookieHeader?: string,
     queryParams?: Record<string, string | number | boolean>,
   ): Promise<GatewayResponse<T>> {
-    console.log(method);
-    const { statusCode, body } = await this.invoker.invoke<T>(path, method, payload, requestId, authToken, cookieHeader, queryParams);
-
-    if (statusCode >= 400 && statusCode < 500) throw new BadRequestException('Erro de requisição');
-    if (statusCode >= 500) throw new InternalServerErrorException('Erro no servidor');
-
-    return { statusCode, body };
+    const { statusCode, body, headers } = await this.invoker.invoke<T>(
+      path,
+      method,
+      payload,
+      requestId,
+      authToken,
+      cookieHeader,
+      queryParams,
+    );
+    return { statusCode, body, headers };
   }
 
   private async handleDatabaseServiceCall(
@@ -66,241 +48,383 @@ export class GatewayController {
   ) {
     try {
       const url = `${this.databaseServiceUrl}${path}`;
-      const headers: Record<string, string> = {
-        'x-request-id': requestId,
-      };
-
-      if (cookieHeader) {
-        headers['cookie'] = cookieHeader;
+      const headers: Record<string, string> = { 'x-request-id': requestId };
+      if (cookieHeader) headers['cookie'] = cookieHeader;
+      const config: any = { headers };
+      const isQrCodePath = path.includes('qr-code');
+      if (isQrCodePath) {
+        config.responseType = 'arraybuffer';
       }
-
       let response;
       if (method === 'get' || method === 'delete') {
-        response = await axios[method](url, { headers });
+        response = await axios[method](url, config);
       } else {
-        response = await axios[method](url, payload, { headers });
+        response = await axios[method](url, payload, config);
       }
-
-      // Retorna o JSON puro do EC2, sem statusCode/body envelopado
-      return response.data;
+      let finalData = response.data;
+      if (isQrCodePath && finalData instanceof ArrayBuffer) {
+        finalData = Buffer.from(finalData);
+      }
+      return { data: finalData, headers: response.headers };
     } catch (error: any) {
       if (error.response) {
-        return error.response.data; // JSON direto
+        return { data: error.response.data, headers: error.response.headers };
       }
-      return { message: error.message };
+      return { data: { message: error.message }, headers: {} };
+    }
+  }
+
+  // ================= Helper =================
+  private applyHeadersToResponse(res: Response, headers?: Record<string, string | string[]>) {
+    if (!headers) return;
+
+    for (const [key, value] of Object.entries(headers)) {
+      if (!value) continue;
+
+      if (Array.isArray(value)) {
+        value.forEach((v) => {
+          if (key.toLowerCase() === 'set-cookie') res.append('Set-Cookie', v);
+          else res.append(key, v);
+        });
+      } else {
+        if (key.toLowerCase() === 'set-cookie') res.append('Set-Cookie', value);
+        else res.setHeader(key, value);
+      }
     }
   }
 
   // ================= Auth-Service Routes =================
   @Get('client-user/find-email')
   @ApiOperation({ summary: 'Verifica se o e-mail já está cadastrado' })
-  @ApiResponse({
-    status: 200,
-    description: 'emailAlreadyExists = true ou false',
-    schema: { type: 'object', properties: { emailAlreadyExists: { type: 'boolean' } } },
-  })
-  async findEmail(@Query('email') email: string, @Headers('x-request-id') requestId: string) {
-    if (!email) throw new BadRequestException('Email não fornecido ou inválido.');
-
+  async findEmail(@Query('email') email: string, @Headers('x-request-id') requestId: string, @Res({ passthrough: true }) res: Response) {
     CommonLoggerGateway.logStart('Gateway', 'FIND_EMAIL', email, requestId);
-
-    const { body } = await this.invokeAndHandle<{ emailAlreadyExists: boolean }>(
-      '/client-user/find-email',
-      'GET',
-      undefined, // payload undefined para GET
-      requestId,
-      undefined, // sem auth
-      undefined, // sem cookie
-      { email },
-    );
-
-    return { emailAlreadyExists: Boolean(body.emailAlreadyExists) };
+    const { headers, body } = await this.invokeAndHandle('/client-user/find-email', 'GET', undefined, requestId, undefined, undefined, {
+      email,
+    });
+    this.applyHeadersToResponse(res, headers);
+    return body;
   }
 
   @Post('client-user/register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registra um novo usuário' })
-  @ApiBody({ type: RegisterClientUserDto })
-  async register(@Body() dto: RegisterClientUserDto, @Headers('x-request-id') requestId: string) {
+  async register(
+    @Body() dto: RegisterClientUserDto,
+    @Headers('x-request-id') requestId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     CommonLoggerGateway.logStart('Gateway', 'REGISTER', dto.email, requestId);
-    await this.invokeAndHandle('/client-user/register', 'POST', dto, requestId);
+    const { headers, body } = await this.invokeAndHandle('/client-user/register', 'POST', dto, requestId);
+    this.applyHeadersToResponse(res, headers);
+    return body;
   }
 
   @Post('client-user/verify-account')
   @ApiOperation({ summary: 'Verifica o código de ativação da conta' })
-  @ApiBody({ type: VerifyAccountClientUserDto })
-  async verifyAccount(@Body() dto: VerifyAccountClientUserDto, @Headers('x-request-id') requestId: string) {
+  async verifyAccount(
+    @Body() dto: VerifyAccountClientUserDto,
+    @Headers('x-request-id') requestId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     CommonLoggerGateway.logStart('Gateway', 'VERIFY_ACCOUNT', dto.email, requestId);
-    await this.invokeAndHandle('/client-user/verify-account', 'POST', dto, requestId);
+    const { headers, body } = await this.invokeAndHandle('/client-user/verify-account', 'POST', dto, requestId);
+    this.applyHeadersToResponse(res, headers);
+    return body;
   }
 
   @Post('client-user/login')
   @ApiOperation({ summary: 'Login do usuário' })
-  async login(
-    @Body() dto: LoginClientUserDto,
+  async login(@Body() dto: LoginClientUserDto, @Headers('x-request-id') requestId: string, @Res({ passthrough: true }) res: Response) {
+    CommonLoggerGateway.logStart('Gateway', 'LOGIN', dto.email, requestId);
+    const { headers, body } = await this.invokeAndHandle('/client-user/login', 'POST', dto, requestId);
+    this.applyHeadersToResponse(res, headers);
+    return body;
+  }
+
+  @Post('verify-password')
+  @ApiOperation({ summary: 'Verifica a senha do usuário' })
+  async verifyPassword(
+    @Body() body: { password: string },
     @Headers('x-request-id') requestId: string,
     @Headers('cookie') cookie: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    CommonLoggerGateway.logStart('Gateway', 'LOGIN', dto.email, requestId);
-    const { body } = await this.invokeAndHandle<SessionClientUserDto>('/client-user/login', 'POST', dto, requestId, undefined, cookie);
-
-    res.cookie('auth_token', body.accessToken.accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: body.accessToken.expiresIn ? body.accessToken.expiresIn * 1000 : 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return {
-      firstName: body.firstName,
-      lastName: body.lastName,
-      id: body.id,
-      clinicalInfo: body.clinicalInfoId,
-    };
+    CommonLoggerGateway.logStart('Gateway', 'VERIFY_PASSWORD', 'N/A', requestId);
+    const { headers, body: responseBody } = await this.invokeAndHandle('/verify-password', 'POST', body, requestId, undefined, cookie);
+    this.applyHeadersToResponse(res, headers);
+    return responseBody;
   }
 
-  @Patch('client-user/change-password')
+  @Post('new-verification-code')
+  @ApiOperation({ summary: 'Gera um novo código de verificação para o usuário' })
+  async generateVerificationCode(
+    @Body() body: { email: string },
+    @Query('type') type: 'verify-account' | 'forgot-password',
+    @Headers('x-request-id') requestId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    CommonLoggerGateway.logStart('Gateway', 'GENERATE_VERIFICATION_CODE', `${body.email} | type: ${type}`, requestId);
+    const payload = { ...body };
+    const queryParams = { type };
+    const { headers, body: responseBody } = await this.invokeAndHandle(
+      '/new-verification-code',
+      'POST',
+      payload,
+      requestId,
+      undefined,
+      undefined,
+      queryParams,
+    );
+
+    this.applyHeadersToResponse(res, headers);
+    return responseBody;
+  }
+
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Reseta a senha do usuário usando código de verificação' })
+  async resetPassword(
+    @Body() body: { email: string; verificationCode: string; newPassword: string },
+    @Headers('x-request-id') requestId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    CommonLoggerGateway.logStart('Gateway', 'RESET_PASSWORD', `Reset de senha solicitado para ${body.email}`, requestId);
+
+    const payload = { ...body };
+
+    const { headers, body: responseBody } = await this.invokeAndHandle(
+      '/reset-password',
+      'POST',
+      payload,
+      requestId,
+      undefined,
+      undefined,
+      undefined,
+    );
+
+    this.applyHeadersToResponse(res, headers);
+    return responseBody;
+  }
+
+  @Post('refresh-token')
+  @ApiOperation({ summary: 'Gera um novo access token usando o refresh token' })
+  async refreshToken(
+    @Headers('x-request-id') requestId: string,
+    @Headers('cookie') cookie: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    CommonLoggerGateway.logStart('Gateway', 'REFRESH_TOKEN', 'N/A', requestId);
+    const { headers, body } = await this.invokeAndHandle('/refresh-token', 'POST', null, requestId, undefined, cookie);
+    this.applyHeadersToResponse(res, headers);
+    return body;
+  }
+
+  @Patch('/change-password')
   @HttpCode(204)
-  @ApiOperation({ summary: 'Atualiza a senha do usuário' })
-  @ApiResponse({ status: 204, description: 'Senha alterada com sucesso' })
   async changePassword(
     @Body() dto: ChangePasswordClientUserDto,
     @Headers('x-request-id') requestId: string,
     @Headers('cookie') cookie: string,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    if (!dto.newPassword) throw new BadRequestException('Nova senha não fornecida');
     CommonLoggerGateway.logStart('Gateway', 'CHANGE_PASSWORD', 'N/A', requestId);
-    await this.invokeAndHandle(
-      '/client-user/change-password',
+    const { headers, body } = await this.invokeAndHandle(
+      '/change-password',
       'PATCH',
-      { newPassword: dto.newPassword },
+      { password: dto.password, newPassword: dto.newPassword },
       requestId,
-      this.extractAuthToken(cookie) ? `Bearer ${this.extractAuthToken(cookie)}` : '',
+      undefined,
       cookie,
     );
+    this.applyHeadersToResponse(res, headers);
+    return body;
   }
 
   @Patch('client-user/associate-clinical-info')
-  @ApiOperation({ summary: 'Associa informações clínicas ao usuário logado' })
   async associateClinicalInfo(
     @Query('clinicalInfoId') clinicalInfoId: string,
-    @Headers('cookie') cookie: string,
-    @Headers('authorization') authorization: string,
     @Headers('x-request-id') requestId: string,
+    @Headers('cookie') cookie: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    if (!clinicalInfoId) {
-      throw new BadRequestException('ID das informações clínicas não informado');
-    }
-    console.log('clinical info id:', clinicalInfoId);
     CommonLoggerGateway.logStart('Gateway', 'ASSOCIATE_CLINICAL_INFO', requestId);
-    const authToken =
-      (authorization?.startsWith('Bearer ') ? authorization.split(' ')[1] : null) || (cookie ? this.extractAuthToken(cookie) : null);
-    const { body } = await this.invokeAndHandle<SessionClientUserDto>(
+    const { headers, body } = await this.invokeAndHandle(
       '/client-user/associate-clinical-info',
       'PATCH',
       null,
       requestId,
-      authToken ? `Bearer ${authToken}` : undefined,
+      undefined,
       cookie,
       { clinicalInfoId },
     );
-    if (body.accessToken?.accessToken) {
-      res.cookie('auth_token', body.accessToken.accessToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        maxAge: body.accessToken.expiresIn ? body.accessToken.expiresIn * 1000 : 7 * 24 * 60 * 60 * 1000,
-      });
-    }
-
-    return {
-      firstName: body.firstName,
-      lastName: body.lastName,
-      id: body.id,
-      clinicalInfo: body.clinicalInfoId,
-    };
+    this.applyHeadersToResponse(res, headers);
+    return body;
   }
 
   @Patch('client-user/change-name')
-  @ApiOperation({ summary: 'Atualiza o nome do usuário' })
   async changeName(
-    @Query('id') clientUserId: string,
     @Body() dto: ChangeNameClientUserDto,
-    @Headers('cookie') cookie: string,
     @Headers('x-request-id') requestId: string,
+    @Headers('cookie') cookie: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    if (!clientUserId) throw new BadRequestException('ID do usuário não fornecido');
-    if (!dto.newFirstName || !dto.newLastName) throw new BadRequestException('Novo nome não fornecido');
+    CommonLoggerGateway.logStart('Gateway', 'CHANGE_NAME', 'N/A', requestId);
 
-    CommonLoggerGateway.logStart('Gateway', 'CHANGE_NAME', clientUserId, requestId);
-    const authToken = this.extractAuthToken(cookie) ? `Bearer ${this.extractAuthToken(cookie)}` : '';
-    const { body } = await this.invokeAndHandle<SessionClientUserDto>(
+    const { headers, body } = await this.invokeAndHandle(
       '/client-user/change-name',
       'PATCH',
       { newFirstName: dto.newFirstName, newLastName: dto.newLastName },
       requestId,
-      authToken,
+      undefined,
       cookie,
     );
 
-    res.cookie('auth_token', body.accessToken.accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: body.accessToken.expiresIn ? body.accessToken.expiresIn * 1000 : 7 * 24 * 60 * 60 * 1000,
-    });
+    this.applyHeadersToResponse(res, headers);
+    return body;
+  }
 
-    return { firstName: body.firstName, lastName: body.lastName, id: body.id, clinicalInfo: body.clinicalInfoId };
+  @Post('/logout')
+  @ApiOperation({ summary: 'Encaminha logout para o auth-service' })
+  async logout(@Headers('x-request-id') requestId: string, @Headers('cookie') cookie: string, @Res({ passthrough: true }) res: Response) {
+    CommonLoggerGateway.logStart('Gateway', 'LOGOUT', 'N/A', requestId);
+    const { headers, body } = await this.invokeAndHandle('/logout', 'POST', null, requestId, undefined, cookie);
+    this.applyHeadersToResponse(res, headers);
+
+    return body;
+  }
+
+  @Delete('client-user/delete-account')
+  @HttpCode(204)
+  async deleteAccount(
+    @Body() dto: { password: string },
+    @Headers('x-request-id') requestId: string,
+    @Headers('cookie') cookie: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    CommonLoggerGateway.logStart('Gateway', 'DELETE_ACCOUNT', 'N/A', requestId);
+
+    const { headers, body } = await this.invokeAndHandle(
+      'client-user/delete-account',
+      'DELETE', // método HTTP
+      { password: dto.password },
+      requestId,
+      undefined,
+      cookie,
+    );
+
+    this.applyHeadersToResponse(res, headers);
+    return body;
   }
 
   // ================= Database-Service Routes =================
   @Get('clinical-info/all')
-  async getAllClinicalInfo(@Headers('cookie') cookie: string, @Headers('x-request-id') requestId: string) {
+  async getAllClinicalInfo(
+    @Headers('x-request-id') requestId: string,
+    @Headers('cookie') cookie: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     CommonLoggerGateway.logStart('Gateway', 'GET_ALL_CLINICAL_INFO', 'N/A', requestId);
-    return this.handleDatabaseServiceCall('get', '/clinical-info/all', requestId, cookie);
+    const { data, headers } = await this.handleDatabaseServiceCall('get', '/clinical-info/all', requestId, cookie);
+    this.applyHeadersToResponse(res, headers);
+    return data;
   }
 
   @Get('clinical-info')
-  async getClinicalInfo(@Query('id') clientUserId: string, @Headers('cookie') cookie: string, requestId: string) {
-    if (!clientUserId) throw new BadRequestException('ID do usuário não fornecido');
-    CommonLoggerGateway.logStart('Gateway', 'GET_CLINICAL_INFO', clientUserId, requestId);
-    return this.handleDatabaseServiceCall('get', `/clinical-info?id=${encodeURIComponent(clientUserId)}`, requestId, cookie);
+  async getClinicalInfo(
+    @Headers('x-request-id') requestId: string,
+    @Headers('cookie') cookie: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    CommonLoggerGateway.logStart('Gateway', 'GET_CLINICAL_INFO', 'N/A', requestId);
+    const { data, headers } = await this.handleDatabaseServiceCall('get', `/clinical-info`, requestId, cookie);
+    this.applyHeadersToResponse(res, headers);
+    return data;
+  }
+
+  @Get('clinical-info/qr-code')
+  async getQrCode(@Headers('x-request-id') requestId: string, @Headers('cookie') cookie: string, @Res() res: Response) {
+    const { data, headers } = await this.handleDatabaseServiceCall('get', `/clinical-info/qr-code`, requestId, cookie);
+    this.applyHeadersToResponse(res, headers);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="qr_code.pdf"');
+    res.setHeader('Content-Length', data.length);
+    res.send(data);
   }
 
   @Post('clinical-info')
-  async createClinicalInfo(@Body() payload: any, @Headers('cookie') cookie: string, @Headers('x-request-id') requestId: string) {
+  async createClinicalInfo(
+    @Body() payload: any,
+    @Headers('x-request-id') requestId: string,
+    @Headers('cookie') cookie: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     CommonLoggerGateway.logStart('Gateway', 'CREATE_CLINICAL_INFO', 'N/A', requestId);
-    return this.handleDatabaseServiceCall('post', `/clinical-info`, requestId, cookie, payload);
+    const { data, headers } = await this.handleDatabaseServiceCall('post', `/clinical-info`, requestId, cookie, payload);
+    this.applyHeadersToResponse(res, headers);
+    return data;
   }
 
   @Put('clinical-info')
   async putClinicalInfo(
-    @Query('id') clinicalInfoId: string,
     @Body() partial: any,
-    @Headers('cookie') cookie: string,
     @Headers('x-request-id') requestId: string,
+    @Headers('cookie') cookie: string,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    if (!clinicalInfoId) {
-      throw new BadRequestException('ID das informações clínicas não fornecido');
-    }
-
-    CommonLoggerGateway.logStart('Gateway', 'PUT_CLINICAL_INFO', clinicalInfoId, requestId);
-
-    return this.handleDatabaseServiceCall('put', `/clinical-info?id=${encodeURIComponent(clinicalInfoId)}`, requestId, cookie, partial);
+    CommonLoggerGateway.logStart('Gateway', 'PUT_CLINICAL_INFO', 'N/A', requestId);
+    const { data, headers } = await this.handleDatabaseServiceCall('put', `/clinical-info`, requestId, cookie, partial);
+    this.applyHeadersToResponse(res, headers);
+    return data;
   }
 
   @Delete('clinical-info')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteClinicalInfo(
-    @Query('id') clientUserId: string,
-    @Headers('cookie') cookie: string,
     @Headers('x-request-id') requestId: string,
+    @Headers('cookie') cookie: string,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    if (!clientUserId) throw new BadRequestException('ID do usuário não fornecido');
-    CommonLoggerGateway.logStart('Gateway', 'DELETE_CLINICAL_INFO', clientUserId, requestId);
-    return this.handleDatabaseServiceCall('delete', `/clinical-info?id=${encodeURIComponent(clientUserId)}`, requestId, cookie);
+    CommonLoggerGateway.logStart('Gateway', 'DELETE_CLINICAL_INFO', 'N/A', requestId);
+    const { data, headers } = await this.handleDatabaseServiceCall('delete', `/clinical-info`, requestId, cookie);
+    this.applyHeadersToResponse(res, headers);
+    return data;
+  }
+
+  // ================= Public Data Routes =================
+
+  @Post('public/clinical-info-access-alert')
+  @ApiOperation({ summary: 'Dispara alerta de acesso público para o auth-service' })
+  async publicDataAccessAlert(
+    @Body('id') id: string,
+    @Headers('x-request-id') requestId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    CommonLoggerGateway.logStart('Gateway', 'PUBLIC_DATA_ACCESS_ALERT', id, requestId);
+
+    const { headers, body } = await this.invokeAndHandle('/public/clinical-info-access-alert', 'POST', { id }, requestId);
+
+    this.applyHeadersToResponse(res, headers);
+    return body;
+  }
+
+  @Post('public/clinical-info')
+  @ApiOperation({ summary: 'Busca informações clínicas públicas pelo código' })
+  async getPublicData(
+    @Query('id') id: string,
+    @Query('code') code: string,
+    @Headers('x-request-id') requestId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    CommonLoggerGateway.logStart('Gateway', 'GET_PUBLIC_DATA', id, requestId);
+
+    const { data, headers } = await this.handleDatabaseServiceCall(
+      'get',
+      `/public/clinical-info/${encodeURIComponent(id)}`,
+      requestId,
+      undefined,
+      { code },
+    );
+
+    this.applyHeadersToResponse(res, headers);
+    return data;
   }
 }

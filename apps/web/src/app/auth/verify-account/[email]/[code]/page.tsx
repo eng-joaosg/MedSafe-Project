@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import ConfirmButton from "@/components/ConfirmButton";
-import Input from "@/components/Input";
+import ConfirmButton from "@/components/buttons/ConfirmButton";
+import Input from "@/components/inputs/Input";
 import { verifyAccountCode } from "@/lib/api";
 
 export default function VerifyAccountEmailPage() {
@@ -11,6 +11,7 @@ export default function VerifyAccountEmailPage() {
   const router = useRouter();
 
   const emailParam = params.email;
+  const codeParam = params.code;
   if (!emailParam || Array.isArray(emailParam)) {
     return (
       <div className="flex flex-col items-center pt-20 px-6 w-full">
@@ -25,6 +26,12 @@ export default function VerifyAccountEmailPage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (codeParam && !Array.isArray(codeParam)) {
+      setCode(codeParam);
+    }
+  }, [codeParam]);
 
   async function handleVerify() {
     if (!code.trim()) return;

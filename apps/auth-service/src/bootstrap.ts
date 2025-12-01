@@ -1,10 +1,17 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/require-await */
 import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import { handler } from './lambda';
 
 const PORT = process.env.PORT || 3002;
+
+// Interface para tipar o resultado da Lambda
+interface LambdaResult {
+  statusCode: number;
+  headers?: Record<string, string>;
+  multiValueHeaders?: Record<string, string[]>;
+  body: string;
+}
 
 async function bootstrap() {
   const app = express();
@@ -42,22 +49,25 @@ async function bootstrap() {
         isBase64Encoded: false,
       };
 
-      if (headers['cookie']) {
-        console.log('Cookies recebidos:', headers['cookie']);
-      }
-      const result = await handler(lambdaEvent);
+      const result: LambdaResult = await handler(lambdaEvent);
 
-      let responseBody = result.body;
-      if (typeof result.body === 'object') {
-        responseBody = JSON.stringify(result.body);
+      // Aplica headers simples
+      if (result.headers) {
+        res.set(result.headers);
       }
 
-      res
-        .status(result.statusCode)
-        .set(result.headers || {})
-        .send(responseBody);
+      // Aplica multiValueHeaders (ex.: Set-Cookie)
+      if (result.multiValueHeaders) {
+        for (const [key, values] of Object.entries(result.multiValueHeaders)) {
+          values.forEach((value) => {
+            res.append(key, value);
+          });
+        }
+      }
+
+      // Devolve o envelope completo (statusCode, headers, multiValueHeaders, body
+      res.status(result.statusCode).json(result);
     } catch (err: any) {
-      console.error('Erro no handler local:', err);
       res.status(500).json({
         error: err instanceof Error ? err.message : 'Erro desconhecido',
         requestId: req.headers['x-request-id'] || null,

@@ -30,6 +30,12 @@ export class ClientUserService implements IClientUserService {
     return result;
   }
 
+  async getByClinicalInfoId(id: string): Promise<ClientUserModel> {
+    const result = await this.clientUserRepository.getById(id);
+    if (!result) throw new UserNotFoundException(`ClientUser com ClinicalInfoId ${id} não foi encontrado`);
+    return result;
+  }
+
   async getByEmail(email: string): Promise<ClientUserModel> {
     const result = await this.clientUserRepository.getByEmail(email);
     if (!result) throw new UserNotFoundException(`Usuário com o email ${email} não foi encontrado`);

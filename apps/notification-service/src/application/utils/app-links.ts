@@ -8,5 +8,6 @@ export class AppLinks {
   }
   public front = {
     verifyPage: () => `${this.base}/auth/verify-account`,
+    resetPasswordPage: () => `${this.base}/auth/reset-password`,
   };
 }

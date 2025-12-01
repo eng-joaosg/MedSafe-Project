@@ -5,6 +5,7 @@ interface Props {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  onSelect?: (v: string) => void;
   placeholder?: string;
   options?: string[];
   editable?: boolean;
@@ -30,33 +31,17 @@ export function InputSearch({
   label,
   value,
   onChange,
+  onSelect,
   placeholder,
   options = [],
   editable = true,
 }: Props) {
   const [showDropdown, setShowDropdown] = useState(false);
-  const [clickedOption, setClickedOption] = useState(false);
 
   const filtered =
     value.length >= 3
       ? options.filter((o) => o.toLowerCase().includes(value.toLowerCase()))
       : [];
-
-  const handleBlur = () => {
-    setTimeout(() => {
-      setShowDropdown(false);
-      if (!clickedOption && value && !options.includes(value)) {
-        onChange('');
-      }
-      setClickedOption(false);
-    }, 0);
-  };
-
-  const handleOptionClick = (item: string) => {
-    setClickedOption(true);
-    onChange(item);
-    setShowDropdown(false);
-  };
 
   return (
     <div className="relative w-full max-w-md mx-auto mb-4">
@@ -71,7 +56,7 @@ export function InputSearch({
           onChange(e.target.value);
           setShowDropdown(true);
         }}
-        onBlur={handleBlur}
+        onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
         placeholder={placeholder ?? 'Pesquisar...'}
         disabled={!editable}
         className={`
@@ -99,7 +84,11 @@ export function InputSearch({
             <div
               key={idx}
               className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-grayscale-900"
-              onMouseDown={() => handleOptionClick(item)}
+              onMouseDown={() => {
+                onChange(item);
+                if (onSelect) onSelect(item);
+                setShowDropdown(false);
+              }}
             >
               {item}
             </div>

@@ -2,7 +2,7 @@ import { AuthTokenOutput } from 'src/domain/services/i-token.service';
 import { ClientUser } from '../../domain/entities/client-user.entity';
 import { ClientUserDbtDto } from '../dtos/client-user/client-user-db.dto';
 import { RegisterClientUserDto } from '../dtos/client-user/register-client-user.dto';
-import { SessionClientUserDto } from '../dtos/client-user/session-client-user.dto';
+import { SessionDto } from '../dtos/client-user/session.dto';
 import { IClientUserMapper } from './i-client-user.mapper';
 
 export class ClientUserMapper implements IClientUserMapper {
@@ -60,8 +60,8 @@ export class ClientUserMapper implements IClientUserMapper {
     );
   }
 
-  public toSessionDto(entity: ClientUser, token: AuthTokenOutput): SessionClientUserDto {
-    return new SessionClientUserDto(
+  public toSessionDto(entity: ClientUser, token: AuthTokenOutput): SessionDto {
+    return new SessionDto(
       entity.getId().toString(),
       entity.getEmail(),
       entity.getRole(),

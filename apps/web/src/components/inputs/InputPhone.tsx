@@ -69,11 +69,10 @@ export function InputPhone({ ddd, setDDD, phone, setPhone, editable = false }: P
             ))}
           </select>
 
-          {ddd === null && (
-            <span className="absolute right-3 pointer-events-none">
-              <ChevronDownIcon />
-            </span>
-          )}
+          {/* Chevron sempre aparece */}
+          <span className="absolute right-3 pointer-events-none">
+            <ChevronDownIcon />
+          </span>
         </div>
       </div>
 

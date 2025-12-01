@@ -18,7 +18,8 @@ export class KnexClinicalInfoRepository implements IClinicalInfoRepository {
       const row = await this.knex(TABLES.CLINICAL_INFO).where({ id }).first();
       if (!row) return null;
 
-      const allergies = await this.knex(TABLES.CLINICAL_INFO_ALLERGY)
+      // --- Buscar informações relacionadas ---
+      const allergiesRows = await this.knex(TABLES.CLINICAL_INFO_ALLERGY)
         .join(TABLES.ALLERGY, `${TABLES.CLINICAL_INFO_ALLERGY}.allergy_id`, `${TABLES.ALLERGY}.id`)
         .where({ clinical_info_id: id })
         .select(`${TABLES.ALLERGY}.name`, `${TABLES.CLINICAL_INFO_ALLERGY}.severity`);
@@ -28,7 +29,7 @@ export class KnexClinicalInfoRepository implements IClinicalInfoRepository {
         .where({ clinical_info_id: id })
         .pluck(`${TABLES.DISEASE}.name`);
 
-      const medications = await this.knex(TABLES.CLINICAL_INFO_MEDICATION)
+      const medicationsRows = await this.knex(TABLES.CLINICAL_INFO_MEDICATION)
         .join(TABLES.MEDICATION, `${TABLES.CLINICAL_INFO_MEDICATION}.medication_id`, `${TABLES.MEDICATION}.id`)
         .where({ clinical_info_id: id })
         .select(
@@ -42,12 +43,13 @@ export class KnexClinicalInfoRepository implements IClinicalInfoRepository {
         .where({ clinical_info_id: id })
         .pluck(`${TABLES.SURGERY}.name`);
 
-      const contacts = await this.knex(TABLES.EMERGENCY_CONTACT)
+      const contactsRows = await this.knex(TABLES.EMERGENCY_CONTACT)
         .where({ clinical_info_id: id })
         .orderBy('id')
         .select('id', 'first_name', 'last_name', 'ddd', 'phone', 'relationship');
 
-      return {
+      // --- Mapeamento para o DTO ---
+      const dto: ClinicalInfoDto = {
         id: row.id,
         firstName: row.first_name,
         lastName: row.last_name,
@@ -55,17 +57,18 @@ export class KnexClinicalInfoRepository implements IClinicalInfoRepository {
         sex: row.sex,
         dateOfBirth: row.date_of_birth,
         otherInfo: row.other_info,
+        publicCode: row.public_code,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
 
-        allergies: allergies.map((a) => ({
+        allergies: allergiesRows.map((a) => ({
           name: a.name,
           severity: a.severity ?? '',
         })),
 
         diseases,
 
-        medications: medications.map((m) => ({
+        medications: medicationsRows.map((m) => ({
           name: m.name,
           dosage: m.dosage,
           usageInterval: m.usage_interval,
@@ -73,7 +76,7 @@ export class KnexClinicalInfoRepository implements IClinicalInfoRepository {
 
         surgeries,
 
-        contacts: contacts.map((c) => ({
+        contacts: contactsRows.map((c) => ({
           id: c.id,
           firstName: c.first_name,
           lastName: c.last_name,
@@ -82,14 +85,13 @@ export class KnexClinicalInfoRepository implements IClinicalInfoRepository {
           relationship: c.relationship,
         })),
       };
+      return dto;
     } catch (error) {
       throw new DatabaseOperationException(`Erro ao buscar ClinicalInfo por ID: ${id}`, error);
     }
   }
 
   async save(dto: Partial<ClinicalInfoDto>, id: string): Promise<ClinicalInfoDto | null> {
-    console.log('=============model==============');
-    console.log(dto);
     try {
       const existing = await this.knex(TABLES.CLINICAL_INFO).where({ id }).first();
 
@@ -100,6 +102,7 @@ export class KnexClinicalInfoRepository implements IClinicalInfoRepository {
         sex: dto.sex,
         date_of_birth: dto.dateOfBirth,
         other_info: dto.otherInfo,
+        public_code: dto.publicCode,
       };
 
       if (!existing) {

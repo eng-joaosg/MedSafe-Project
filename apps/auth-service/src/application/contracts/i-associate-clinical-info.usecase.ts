@@ -1,5 +1,5 @@
-import { SessionClientUserDto } from '../dtos/client-user/session-client-user.dto';
+import { SessionDto } from '../dtos/client-user/session.dto';
 
 export interface IAssociateClinicalInfoUsecase {
-  execute(clientUserId: string, clinicalInfoId: string): Promise<SessionClientUserDto>;
+  execute(clientUserId: string, clinicalInfoId: string): Promise<SessionDto>;
 }

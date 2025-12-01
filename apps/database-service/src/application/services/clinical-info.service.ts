@@ -1,10 +1,12 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ClinicalInfoDto } from '../dtos/clinical-info.dto';
 import { ClinicalInfoNotFoundException } from '../../common/exceptions/app.exceptions';
 import type { IClinicalInfoService } from '../contracts/i-clinical-info.service';
 import type { IClinicalInfoRepository } from '../repositories/i-clinical-info.repository';
 import { CLINICAL_INFO_REPOSITORY } from '../../common/contants/tokens.contants';
 import { v4 as uuidv4 } from 'uuid';
+import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
 
 @Injectable()
 export class ClinicalInfoService implements IClinicalInfoService {
@@ -19,7 +21,7 @@ export class ClinicalInfoService implements IClinicalInfoService {
     if (!savedModel) {
       throw new ClinicalInfoNotFoundException(`ClinicalInfo ID ${id} não foi encontrado`);
     }
-    return this.rowToDto(savedModel);
+    return savedModel;
   }
 
   async save(dto: Partial<ClinicalInfoDto>, id: string): Promise<ClinicalInfoDto> {
@@ -27,13 +29,20 @@ export class ClinicalInfoService implements IClinicalInfoService {
     if (!savedModel) {
       throw new ClinicalInfoNotFoundException(`ClinicalInfo ID ${id} não foi encontrado`);
     }
-    return this.rowToDto(savedModel);
+    return savedModel;
   }
 
   async getById(id: string): Promise<ClinicalInfoDto> {
     const model = await this.clinicalInfoRepository.getById(id);
     if (!model) throw new ClinicalInfoNotFoundException(`ClinicalInfo com ID ${id} não foi encontrado`);
-    return this.rowToDto(model);
+    return model;
+  }
+
+  async getByPublicCode(id: string, code: string): Promise<ClinicalInfoDto> {
+    const model = await this.clinicalInfoRepository.getById(id);
+    if (!model) throw new ClinicalInfoNotFoundException(`ClinicalInfo com ID ${id} não foi encontrado`);
+    if (code !== model.publicCode) throw new UnauthorizedException('Código de acesso inválido.');
+    return model;
   }
 
   async deleteById(id: string): Promise<void> {
@@ -49,24 +58,46 @@ export class ClinicalInfoService implements IClinicalInfoService {
     return await this.clinicalInfoRepository.getAllClinicalInfo();
   }
 
-  // -------------------
-  // Helpers privados
-  // -------------------
-  private rowToDto(row: any): ClinicalInfoDto {
-    return {
-      id: row.id,
-      firstName: row.first_name ?? row.firstName,
-      lastName: row.last_name ?? row.lastName,
-      bloodType: row.blood_type ?? row.bloodType,
-      sex: row.sex,
-      dateOfBirth: row.date_of_birth ?? row.dateOfBirth,
-      otherInfo: row.other_info ?? row.otherInfo,
-      allergies: row.allergies,
-      diseases: row.diseases,
-      medications: row.medications,
-      surgeries: row.surgeries,
-      createdAt: row.created_at ?? row.createdAt,
-      updatedAt: row.updated_at ?? row.updatedAt,
-    };
+  async generatePublicQrPdf(qrUrl: string, publicCode: string): Promise<Buffer> {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const buffers: Uint8Array[] = [];
+
+    doc.on('data', (chunk: Uint8Array) => buffers.push(chunk));
+
+    const finishedPromise = new Promise<Buffer>((resolve) => {
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+    });
+
+    // Gera QR Code
+    const qrBuffer: Buffer = await QRCode.toBuffer(qrUrl, { type: 'png', width: 100 });
+
+    // Cabeçalho
+    const headerFontSize = 11;
+    doc.fontSize(headerFontSize).text('Dados Médicos', { align: 'center' });
+
+    // Aproxima o QR Code do título
+    const spacingAfterHeader = -1;
+    const y = doc.y + spacingAfterHeader;
+
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const qrSize = 100;
+    const x = doc.page.margins.left + (pageWidth - qrSize) / 2;
+
+    doc.image(qrBuffer, x, y, { width: qrSize, height: qrSize });
+
+    // Código de acesso
+    const spacingAfterQr = 2; // distância entre QR e código
+    doc.y = y + qrSize + spacingAfterQr;
+    const codeFontSize = 10;
+    doc.fontSize(codeFontSize).text(`Código de acesso: ${publicCode}`, { align: 'center' });
+
+    // Texto adicional afastado do código de acesso
+    const spacingAfterCode = 10; // distância em pontos
+    doc.y += spacingAfterCode;
+    doc.fontSize(12).text('Recorte e coloque em seu crachá, ou onde desejar.', { align: 'center' });
+
+    doc.end();
+
+    return finishedPromise;
   }
 }

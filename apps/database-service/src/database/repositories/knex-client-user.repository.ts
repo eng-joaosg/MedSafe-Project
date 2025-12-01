@@ -31,6 +31,15 @@ export class KnexClientUserRepository implements IClientUserRepository {
     }
   }
 
+  async getByClinicalInfoId(clinicalInfoId: string): Promise<ClientUserModel | null> {
+    try {
+      const row = await this.knex(TABLES.CLIENT_USER).where({ clinical_info_id: clinicalInfoId }).first();
+      return row || null;
+    } catch (error) {
+      throw new DatabaseOperationException(`Erro ao buscar ClientUser por clinicalInfoId: ${clinicalInfoId}`, error);
+    }
+  }
+
   async save(model: Partial<ClientUserModel>, id: string | null): Promise<ClientUserModel> {
     try {
       const existing = await this.knex(TABLES.CLIENT_USER).where({ id: id }).first();

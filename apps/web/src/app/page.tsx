@@ -1,4 +1,4 @@
-import RegisterButton from "@/components/RegisterButton";
+import RegisterButton from "@/components/buttons/RegisterButton";
 
 export default function HomePage() {
   return (

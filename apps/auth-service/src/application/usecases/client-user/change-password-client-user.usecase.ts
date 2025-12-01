@@ -1,12 +1,12 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { IClientUserRepository } from '../../../domain/repositories/i-client-user.repository';
 import { InvalidPasswordException } from '../../../common/exceptions/app.exception';
-import { SessionClientUserDto } from '../../../application/dtos/client-user/session-client-user.dto';
+import { SessionDto } from '../../dtos/client-user/session.dto';
 import type { ITokenService } from '../../../domain/services/i-token.service';
 import type { IHashService } from '../../../domain/services/i-hash.service';
 import { CLIENT_USER_MAPPER, CLIENT_USER_REPOSITORY, HASH_SERVICE, TOKEN_SERVICE } from '../../../common/utils/tokens.contants';
 import { IChangePasswordClientUserUseCase } from '../../../application/contracts/i-change-password-client-user.usecase';
-import type { IClientUserMapper } from 'src/application/mapping/i-client-user.mapper';
+import type { IClientUserMapper } from '../../../application/mapping/i-client-user.mapper';
 
 @Injectable()
 export class ChangePasswordClientUserUseCase implements IChangePasswordClientUserUseCase {
@@ -21,7 +21,7 @@ export class ChangePasswordClientUserUseCase implements IChangePasswordClientUse
     private readonly mapper: IClientUserMapper,
   ) {}
 
-  async execute(id: string, password: string, newPassword: string): Promise<SessionClientUserDto> {
+  async execute(id: string, password: string, newPassword: string): Promise<SessionDto> {
     const user = await this.repository.getById(id);
     if (!user) throw new UnauthorizedException('Usuário não autorizado.');
 

@@ -56,6 +56,14 @@ export class ClientUserAuthController {
     return await this.clientUserService.getById(id);
   }
 
+  @Get('by-clinical-info-id')
+  @ApiOperation({ summary: 'Busca um usuário cliente pelo ID do clinical info.' })
+  @ApiQuery({ name: 'id', required: true })
+  @ApiResponse({ status: 200, type: ClientUserModel })
+  async findClientUserByClinicalInfoId(@Query('id', ParseUUIDPipe) id: string): Promise<ClientUserModel> {
+    return await this.clientUserService.getByClinicalInfoId(id);
+  }
+
   @Get('by-email')
   @ApiOperation({ summary: 'Busca um usuário cliente pelo email.' })
   @ApiQuery({ name: 'email', required: true })
@@ -78,10 +86,6 @@ export class ClientUserAuthController {
   @ApiQuery({ name: 'id', required: true })
   @ApiResponse({ status: 200, description: 'Usuário atualizado.', type: ClientUserModel })
   async saveClientUser(@Query('id', ParseUUIDPipe) id: string, @Body() partial: Partial<ClientUserModel>): Promise<ClientUserModel> {
-    console.log('=================CONTROLLER==============');
-    console.log('id:', id);
-    console.log(partial);
-    console.log('===============================');
     return await this.clientUserService.save(id, partial);
   }
 }

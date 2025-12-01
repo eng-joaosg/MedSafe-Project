@@ -1,14 +1,14 @@
 'use client';
 import React from 'react';
-import { InputSearch } from '@/components/InputSearch';
-import InputDouble from '@/components/InputDouble';
+import { InputSearch } from '@/components/inputs/InputSearch';
+import InputDouble from '@/components/inputs/InputDouble';
 import { Medication } from '@/lib/api';
 
 interface Props {
   userItems: Medication[];
   systemOptions: string[];
   setUserItems: (meds: Medication[]) => void;
-  editable?: boolean; // padrão true
+  editable?: boolean;
 }
 
 export default function MedicationsSection({
@@ -18,21 +18,19 @@ export default function MedicationsSection({
   editable = true,
 }: Props) {
 
-  // Função para adicionar um novo medicamento
   const addMedication = () => {
-    if (!editable) return; 
-    if (
-      userItems.length < 10 &&
-      userItems.every(m => m.name && systemOptions.includes(m.name)) &&
-      new Set(userItems.map(m => m.name).filter(Boolean)).size === userItems.filter(m => m.name).length
-    ) {
-      setUserItems([...userItems, { name: '', dosage: null, usageInterval: null }]);
+    if (!editable) return;
+    if (userItems.length < 10) {
+      const last = userItems[userItems.length - 1];
+      // só adiciona se o último estiver completo
+      if (last.name.trim() !== '' && last.dosage && last.usageInterval) {
+        setUserItems([...userItems, { name: '', dosage: null, usageInterval: null }]);
+      }
     }
   };
 
-  // Função para remover um medicamento
   const removeMedication = (index: number) => {
-    if (!editable) return; 
+    if (!editable) return;
     if (userItems.length === 1) {
       setUserItems([{ name: '', dosage: null, usageInterval: null }]);
     } else {
@@ -40,66 +38,86 @@ export default function MedicationsSection({
     }
   };
 
-  // Função para atualizar os dados do medicamento
-  const updateMedication = (index: number, field: keyof Medication, value: string) => {
+  const updateMedication = (
+    index: number,
+    field: keyof Medication,
+    value: string
+  ) => {
     if (!editable) return;
+
     const updated = [...userItems];
-    if (field === 'dosage' || field === 'usageInterval') {
-      const num = Number(value);
-      updated[index][field] = isNaN(num) ? null : num; // Atualiza a dosagem ou o intervalo com número ou null
+
+    if (field === 'name') {
+      updated[index].name = value;
     } else {
-      updated[index][field] = value; // Atualiza o nome
+      const num = Number(value);
+      updated[index][field] = isNaN(num) ? null : num;
     }
+
     setUserItems(updated);
   };
 
-  // Função para garantir que apenas números sejam inseridos
   const handleNumberInput = (value: string) => value.replace(/\D/g, '');
 
+  // verifica se o último medicamento está completo
+  const isLastComplete = (() => {
+    const last = userItems[userItems.length - 1];
+    return last.name.trim() !== '' && !!last.dosage && !!last.usageInterval;
+  })();
+
   return (
-    <div className="w-full mx-auto border-grayscale-200 border mb-8">
-      <h3 className="text-grayscale-100 font-semibold text-left mb-3">Medicamentos:</h3>
+    <div className="w-full mx-auto border-grayscale-200 border-y md:border pb-2">
+      <h3 className="text-grayscale-100 font-semibold text-left text-lg p-4">
+        Medicamentos:
+      </h3>
+
       {userItems.map((m, i) => (
-        <div key={i} className="mb-4 pt-8">
+        <div key={i} className="mb-4">
           <InputSearch
             label="Medicamento"
             placeholder="Buscar medicamento..."
             value={m.name}
             onChange={(v) => updateMedication(i, 'name', v)}
+            onSelect={(v: string) => updateMedication(i, 'name', v)}
             options={systemOptions}
-            editable={editable} 
+            editable={editable}
           />
+
           <div className="flex justify-center w-full items-center mt-2">
             <InputDouble
-              fieldName1="Dosagem"
+              fieldName1="Dosagem(mg)"
               value1={m.dosage ?? ''}
               onChange1={(v) => updateMedication(i, 'dosage', handleNumberInput(v))}
-              placeholder1="mg"
-              fieldName2="Intervalo"
+              fieldName2="Intervalo(h)"
               value2={m.usageInterval ?? ''}
               onChange2={(v) => updateMedication(i, 'usageInterval', handleNumberInput(v))}
-              placeholder2="h"
               editable={editable}
             />
           </div>
-          <div className="flex justify-between mt-2 px-4">
-            <button
-              onClick={() => removeMedication(i)}
-              disabled={!editable}
-              className="flex items-center justify-center text-info hover:text-info-dark transition-colors w-8 h-8 rounded-full border border-info disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              -
-            </button>
-            {i === userItems.length - 1 && userItems.length < 10 && (
+
+          {editable && (
+            <div className="flex justify-between mt-2 px-4">
               <button
-                onClick={addMedication}
-                disabled={!editable}
-                className="flex items-center justify-center text-info hover:text-info-dark transition-colors w-8 h-8 rounded-full border border-info disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => removeMedication(i)}
+                className="flex items-center justify-center text-info hover:text-info-dark transition-colors w-8 h-8 rounded-full border border-info"
               >
-                +
+                -
               </button>
-            )}
-          </div>
+
+              {i === userItems.length - 1 && userItems.length < 10 && (
+                <button
+                  onClick={isLastComplete ? addMedication : undefined}
+                  disabled={!isLastComplete}
+                  className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors
+                    ${isLastComplete
+                      ? 'text-info hover:text-info-dark border-info'
+                      : 'text-grayscale-300 border-grayscale-300'}`}
+                >
+                  +
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

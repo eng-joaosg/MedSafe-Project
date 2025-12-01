@@ -11,7 +11,8 @@ export class EmailTemplates implements IEmailTemplates {
   ) {}
 
   verificationEmail(name: string, email: string, code: string): string {
-    const verifyUrl = `${this.appLinks.front.verifyPage()}/${encodeURIComponent(email)}`;
+    const encodedEmail = encodeURIComponent(email);
+    const verifyUrl = `${this.appLinks.front.verifyPage()}/${encodedEmail}/${code}`;
 
     return `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
@@ -43,19 +44,40 @@ export class EmailTemplates implements IEmailTemplates {
     `;
   }
 
-  passwordRecovery(name: string, token: string): string {
+  passwordRecovery(name: string, email: string, resetToken: string): string {
+    // Encode do email para URL
+    const encodedEmail = encodeURIComponent(email);
+
+    // Link completo para a página de reset
+    const resetPasswordPage = `${this.appLinks.front.resetPasswordPage()}/${encodedEmail}/${resetToken}`;
+
     return `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Olá, ${name}!</h2>
-        <p>Recebemos uma solicitação para redefinir sua senha.</p>
-        <p>Use o código abaixo para continuar o processo:</p>
-        <h3 style="color: #d9534f;">${token}</h3>
-        <p>Se você não solicitou a recuperação de senha, ignore este e-mail.</p>
-        <br/>
-        <small>Equipe MedSafe</small>
-        ${this.footer()}
-      </div>
-    `;
+    <div style="font-family: Arial, sans-serif; padding: 20px;">
+      <h2>Olá, ${name}!</h2>
+      <p>Recebemos uma solicitação para redefinir sua senha.</p>
+      <p>Use o código abaixo para continuar o processo:</p>
+      <h3 style="color: #d9534f;">${resetToken}</h3>
+
+      <p>Clique no botão abaixo para redefinir sua senha:</p>
+      <a href="${resetPasswordPage}"
+         style="
+           display: inline-block;
+           padding: 12px 20px;
+           background-color: #d9534f;
+           color: white;
+           text-decoration: none;
+           border-radius: 6px;
+           margin: 15px 0;
+         ">
+        Redefinir senha
+      </a>
+
+      <p>Se você não solicitou a recuperação de senha, ignore este e-mail.</p>
+      <br/>
+      <small>Equipe MedSafe</small>
+      ${this.footer()}
+    </div>
+  `;
   }
 
   accountCreated(name: string): string {

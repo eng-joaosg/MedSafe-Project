@@ -8,6 +8,8 @@ interface InputProps {
   options?: string[];
   height?: string;
   editable?: boolean;
+  textAlign?: 'left' | 'center' | 'right';
+  maxLength?: number;
 }
 
 export default function Input({
@@ -20,6 +22,7 @@ export default function Input({
   options,
   height,
   editable = true,
+  textAlign = 'center',
 }: InputProps) {
 
   const inputType =
@@ -33,10 +36,11 @@ export default function Input({
 
   const inputHeight = height ?? 'h-18';
 
+  const textAlignClass = textAlign === 'left' ? 'text-left' : textAlign === 'right' ? 'text-right' : 'text-center';
+
   return (
     <div className="relative w-full max-w-md mx-auto mb-4">
-
-      <span className="absolute top-1 left-6 text-md text-grayscale-700 pointer-events-none">
+      <span className="absolute top-1 left-6 text-md text-grayscale-900 pointer-events-none">
         {fieldName}:
       </span>
 
@@ -54,8 +58,8 @@ export default function Input({
           rounded-none md:rounded-3xl
           border-2 border-transparent
           focus:outline-none
-          text-center
           transition-all
+          ${textAlignClass} 
           ${className}
         `}
       />

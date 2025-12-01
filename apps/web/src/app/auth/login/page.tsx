@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Input from "@/components/Input";
-import ConfirmButton from "@/components/ConfirmButton";
+import Input from "@/components/inputs/Input";
+import ConfirmButton from "@/components/buttons/ConfirmButton";
 import { login } from "@/lib/api";
 import { useUser } from "@/contexts/userContext";
 
@@ -16,9 +16,11 @@ export default function LoginPage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [showVerificationButton, setShowVerificationButton] = useState(false); 
 
   async function handleLogin() {
     setMessage("");
+    setShowVerificationButton(false);
 
     if (!email.trim() || !password.trim()) {
       setMessage("Preencha todos os campos.");
@@ -30,24 +32,33 @@ export default function LoginPage() {
     try {
       const res = await login({ email, password });
 
-      // ✅ populando o contexto com os dados retornados do login
       setUser({
         id: res.id,
-        clinicalInfoId: res.clinicalInfoId ?? null,
+        clinicalInfoId: res.clinicalInfoId,
         firstName: res.firstName ?? "",
         lastName: res.lastName ?? "",
+        role: res.role!.toString(),
       });
 
-      router.push(`/client-user/${res.id}`);
+      router.push('/client-user');
+
     } catch (err: any) {
-      setMessage(err.message || "Erro inesperado ao fazer login.");
+      // Detecta pelo message do erro
+      if (err.message?.includes("não foi verificada")) {
+        setMessage("Conta ainda não verificada.");
+        setShowVerificationButton(true);
+      } else if (err.message?.includes("Email ou senha")) {
+        setMessage("Email ou senha incorretos.");
+      } else {
+        setMessage(err.message || "Erro inesperado ao fazer login.");
+      }
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex flex-col items-center pt-20 px-6">
+    <div className="flex flex-col items-center pt-20">
       <h2 className="text-xl font-semibold mb-4">Entrar</h2>
 
       <div className="w-full max-w-md space-y-4">
@@ -74,7 +85,8 @@ export default function LoginPage() {
         )}
       </div>
 
-      <div className="w-full max-w-md flex items-center justify-between mt-4">
+      {/* Botões principais */}
+      <div className="w-full max-w-md flex items-center justify-between mt-4 pr-4">
         <div className="flex flex-col text-left pl-4 text-base mr-5">
           <p>
             Não tem uma conta?{" "}
@@ -87,7 +99,7 @@ export default function LoginPage() {
           </p>
 
           <p
-            onClick={() => router.push("/auth/recovery")}
+            onClick={() => router.push("/auth/new-verification-code/forgot-password")}
             className="text-info cursor-pointer hover:underline"
           >
             Recuperar senha.
@@ -102,6 +114,21 @@ export default function LoginPage() {
           disabled={loading || !email.trim() || !password.trim()}
         />
       </div>
+
+      {/* Novo código de validação - só aparece se conta não verificada */}
+      {showVerificationButton && (
+        <div className="w-full max-w-md mt-4 flex flex-col text-left pl-2 pt-8 text-sm md:text-base">
+          <p>
+            Para gerar um novo código de validação{" "}
+            <span
+              onClick={() => router.push("/auth/new-verification-code/verify-account")}
+              className="text-info cursor-pointer hover:underline"
+            >
+              clique aqui.
+            </span>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

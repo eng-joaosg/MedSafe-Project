@@ -1,20 +1,20 @@
 import { AuthTokenOutput } from '../../../domain/services/i-token.service';
 
-export class SessionClientUserDto {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  clinicalInfo: string | null;
+export class SessionDto {
+  id: string | number;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  clinicalInfoId: string | null;
   role: string;
   accessToken: AuthTokenOutput;
 
   constructor(
     id: string,
-    email: string,
+    email: string | null,
     role: string,
-    firstName: string,
-    lastName: string,
+    firstName: string | null,
+    lastName: string | null,
     accessToken: AuthTokenOutput,
     clinicalInfoId: string | null,
   ) {
@@ -24,6 +24,6 @@ export class SessionClientUserDto {
     this.firstName = firstName;
     this.lastName = lastName;
     this.accessToken = accessToken;
-    this.clinicalInfo = clinicalInfoId;
+    this.clinicalInfoId = clinicalInfoId;
   }
 }

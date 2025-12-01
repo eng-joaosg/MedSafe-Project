@@ -9,6 +9,7 @@ import {
 import type { INotificationService } from '../../../domain/services/i-notification.service';
 import { IVerifyAccountClientUserUseCase } from '../../contracts/i-verify-account-client-user.usecase';
 import { CLIENT_USER_REPOSITORY, NOTIFICATION_SERVICE } from '../../../common/utils/tokens.contants';
+import { ClientUser } from '../../../domain/entities/client-user.entity';
 
 @Injectable()
 export class VerifyAccountClientUserUseCase implements IVerifyAccountClientUserUseCase {
@@ -20,7 +21,16 @@ export class VerifyAccountClientUserUseCase implements IVerifyAccountClientUserU
   ) {}
 
   async execute(dto: VerifyAccountClientUserDto): Promise<boolean> {
-    const user = await this.clientUserRepository.getByEmail(dto.email);
+    let user: ClientUser;
+    try {
+      user = await this.clientUserRepository.getByEmail(dto.email);
+    } catch (err: any) {
+      if (err?.status && err.status >= 500) {
+        throw err;
+      }
+      throw new UserNotFoundException(`Usuário com e-mail ${dto.email} não encontrado`);
+    }
+
     if (!user) throw new UserNotFoundException();
 
     const userCode = user.getVerificationCode();
@@ -28,14 +38,14 @@ export class VerifyAccountClientUserUseCase implements IVerifyAccountClientUserU
 
     if (dto.verificationCode !== userCode) throw new InvalidVerificationCodeException();
 
-    const now = new Date(Date.now());
+    const now = new Date();
 
     if (!userCodeExpiresAt || userCodeExpiresAt < now) throw new VerificationCodeExpiredException();
-
     user.activate();
 
     const updated = await this.clientUserRepository.activate(user.getId().toString());
     await this.notificationService.sendAccountCreated(updated);
+
     return true;
   }
 }

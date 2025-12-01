@@ -12,12 +12,21 @@ export class SessionClientUserDto {
   role: string;
   accessToken: AuthTokenOutput;
 
-  constructor(id: string, email: string, role: string, firstName: string, lastName: string, accessToken: AuthTokenOutput) {
+  constructor(
+    id: string,
+    email: string,
+    role: string,
+    firstName: string,
+    lastName: string,
+    clinicalInfoId: string,
+    accessToken: AuthTokenOutput,
+  ) {
     this.id = id;
     this.email = email;
     this.role = role;
     this.firstName = firstName;
     this.lastName = lastName;
+    this.clinicalInfoId = clinicalInfoId;
     this.accessToken = accessToken;
   }
 }

@@ -10,6 +10,7 @@ import {
   ASSOCIATE_CLINICAL_INFO_USECASE,
   CHANGE_NAME_CLIENT_USER_USECASE,
   CHANGE_PASSWORD_CLIENT_USER_USECASE,
+  DELETE_CLIENT_USER_USECASE,
   FIND_EMAIL_CLIENT_USER_USECASE,
   LOGIN_CLIENT_USER_USECASE,
   REGISTER_CLIENT_USER_USECASE,
@@ -17,6 +18,7 @@ import {
 } from '../../common/utils/tokens.contants';
 import { ChangeNameClientUserUseCase } from '../usecases/client-user/change-name-client-user.usecase';
 import { AssociateClinicalInfoUsecase } from '../usecases/client-user/associate-clinical-info.usecase';
+import { DeleteClientUserUseCase } from '../usecases/client-user/delete-client-user.usecase';
 
 @Module({
   imports: [ClientUserInfraModule, MappingModule],
@@ -49,6 +51,10 @@ import { AssociateClinicalInfoUsecase } from '../usecases/client-user/associate-
       provide: ASSOCIATE_CLINICAL_INFO_USECASE,
       useClass: AssociateClinicalInfoUsecase,
     },
+    {
+      provide: DELETE_CLIENT_USER_USECASE,
+      useClass: DeleteClientUserUseCase,
+    },
   ],
   exports: [
     FIND_EMAIL_CLIENT_USER_USECASE,
@@ -58,6 +64,7 @@ import { AssociateClinicalInfoUsecase } from '../usecases/client-user/associate-
     LOGIN_CLIENT_USER_USECASE,
     CHANGE_NAME_CLIENT_USER_USECASE,
     ASSOCIATE_CLINICAL_INFO_USECASE,
+    DELETE_CLIENT_USER_USECASE,
   ],
 })
 export class ClientUserApplicationModule {}

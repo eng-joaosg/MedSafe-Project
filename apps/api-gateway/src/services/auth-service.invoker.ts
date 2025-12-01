@@ -6,8 +6,9 @@ import { ServicesConfig } from './service-config';
 
 export interface GatewayResponse<T = unknown> {
   statusCode: number;
-  body: T;
+  body: T; // mantém como string se vier string do Lambda
   headers?: Record<string, string | string[]>;
+  multiValueHeaders?: Record<string, string[]>;
 }
 
 @Injectable()
@@ -68,18 +69,44 @@ export class AuthServiceInvoker {
       .pipe(map((res) => res.data as GatewayResponse<T>));
 
     const lambdaRes = await lastValueFrom(observable$);
+    // ======== Pega statusCode do body do Lambda se existir ========
+    let finalResponse: GatewayResponse<T>;
+    try {
+      const parsedBody = lambdaRes.body ? JSON.parse(lambdaRes.body as string) : null;
 
-    return this.normalizeResponse(lambdaRes);
+      if (parsedBody && typeof parsedBody.statusCode === 'number') {
+        finalResponse = {
+          statusCode: parsedBody.statusCode,
+          body: parsedBody.body ?? null,
+          headers: lambdaRes.headers,
+          multiValueHeaders: lambdaRes.multiValueHeaders,
+        };
+      } else {
+        // Se não tem statusCode no body, mantém como veio
+        finalResponse = lambdaRes;
+      }
+    } catch {
+      // Se o body não é JSON, mantém como veio
+      finalResponse = lambdaRes;
+    }
+
+    return this.normalizeResponse(finalResponse);
   }
 
   private normalizeResponse<T>(res: GatewayResponse<T>): GatewayResponse<T> {
-    if (typeof res.body === 'string') {
-      try {
-        res.body = JSON.parse(res.body) as T;
-      } catch {
-        // mantém string caso não seja JSON
+    // NÃO parseia o body — mantém exatamente como veio do Lambda
+    // Apenas normaliza headers e multiValueHeaders para repassar ao front
+    const normalizedHeaders: Record<string, string | string[]> = {};
+    if (res.headers) {
+      Object.assign(normalizedHeaders, res.headers);
+    }
+    if (res.multiValueHeaders) {
+      for (const [key, values] of Object.entries(res.multiValueHeaders)) {
+        normalizedHeaders[key] = values;
       }
     }
+    res.headers = normalizedHeaders;
+
     return res;
   }
 }

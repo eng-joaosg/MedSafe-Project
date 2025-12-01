@@ -8,6 +8,7 @@ import type { INotificationService } from '../../../domain/services/i-notificati
 import { UserAlreadyExistsException } from '../../../common/exceptions/app.exception';
 import { v4 as uuidv4 } from 'uuid';
 import { CommonLogger } from '../../../common/logger/common.logger';
+import { IRegisterClientUserUsecase } from '../../../application/contracts/i-register-client-user.usecase';
 import {
   CLIENT_USER_MAPPER,
   CLIENT_USER_REPOSITORY,
@@ -17,7 +18,7 @@ import {
 } from '../../../common/utils/tokens.contants';
 
 @Injectable()
-export class RegisterClientUserUsecase {
+export class RegisterClientUserUsecase implements IRegisterClientUserUsecase {
   constructor(
     @Inject(CLIENT_USER_REPOSITORY)
     private readonly clientUserRepository: IClientUserRepository,
