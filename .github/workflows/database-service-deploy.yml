@@ -63,7 +63,7 @@ jobs:
         run: |
           aws cloudformation deploy \
             --stack-name MedSafe-Database-Service \
-            --template-file /apps/database-service/cloudformation.yml \
+            --template-file apps/database-service/cloudformation.yml \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
               DockerImageTag=${{ github.sha }} \
