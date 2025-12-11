@@ -26,7 +26,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t3.micro
-      ImageId: ami-0a5b3df1cd80ab831
+      ImageId: ami-0bde73fd629657a59
       SecurityGroupIds:
         - !Ref DatabaseServiceSG
       UserData:
