@@ -18,9 +18,9 @@ export class DatabaseGateway implements IDatabaseGateway {
     private readonly httpService: HttpService,
     private readonly requestContext: RequestContextService,
   ) {
-    const key = this.configService.get<string>('DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY');
+    const key = this.configService.get<string>('DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY');
     if (!key) {
-      throw new ConfigurationException('DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY não configurada.');
+      throw new ConfigurationException('DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY não configurada.');
     }
     this.apiKey = key;
   }

@@ -1,13 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MedSafe Database Stack Deployment (EC2 imutável)
+Description: MedSafe Database Stack Deployment (EC2 imutável com Secrets Manager)
 
 Parameters:
   ApiPort:
     Type: Number
     Default: 443
-  DbConnectionString:
-    Type: String
-    NoEcho: true
   NodeEnv:
     Type: String
     Default: production
@@ -20,12 +17,6 @@ Parameters:
   FrontUrl:
     Type: String
     Default: http://177.16.162.33
-  DatabaseApiKey:
-    Type: String
-    NoEcho: true
-  JwtSecret:
-    Type: String
-    NoEcho: true
   CorsOrigins:
     Type: String
     Default: http://177.16.162.33
@@ -41,6 +32,9 @@ Parameters:
   SubnetId:
     Type: String
     Default: subnet-0ac4c6abfbd794fdf
+  IAMRoleName:
+    Type: String
+    Default: MedSafe-DatabaseService
 
 Resources:
   DatabaseServiceSG:
@@ -58,6 +52,12 @@ Resources:
           ToPort: 22
           CidrIp: 177.16.162.33/32
 
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref IAMRoleName
+
   DatabaseEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -67,6 +67,7 @@ Resources:
       SecurityGroupIds:
         - !Ref DatabaseServiceSG
       ImageId: ami-077aec33f15de0896
+      IamInstanceProfile: !Ref EC2InstanceProfile
       Tags:
         - Key: Name
           Value: medsafe-database-service
@@ -74,10 +75,15 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           apt update -y
-          apt install -y docker.io
+          apt install -y docker.io jq
           systemctl enable docker
           systemctl start docker
-          
+
+          # Busca os segredos do Secrets Manager
+          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id /medsafe/database-service/prod --query SecretString --output text)
+          DB_CONNECTION_STRING=$(echo $SECRET_JSON | jq -r '.DB_CONNECTION_STRING')
+          JWT_SECRET=$(echo $SECRET_JSON | jq -r '.JWT_SECRET')
+
           docker pull devjoaosg/medsafe-database-service:latest
           
           docker stop medsafe-database-service || true
@@ -92,8 +98,8 @@ Resources:
             -e SERVICE_NAME=${ServiceName} \
             -e FRONT_URL=${FrontUrl} \
             -e DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=${DatabaseApiKey} \
-            -e JWT_SECRET=${JwtSecret} \
-            -e DB_CONNECTION_STRING=${DbConnectionString} \
+            -e JWT_SECRET=${JWT_SECRET} \
+            -e DB_CONNECTION_STRING=${DB_CONNECTION_STRING} \
             -e CORS_ORIGINS=${CorsOrigins} \
             devjoaosg/medsafe-database-service:latest
 
