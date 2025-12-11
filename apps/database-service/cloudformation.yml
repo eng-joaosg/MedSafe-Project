@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MedSafe Database Stack Deployment (EC2 imutável com Secrets Manager)
+Description: MedSafe Database Stack Deployment (EC2 imutável com variáveis do GitHub Secrets)
 
 Parameters:
   ApiPort:
@@ -35,6 +35,15 @@ Parameters:
   IAMRoleName:
     Type: String
     Default: MedSafe-DatabaseService
+  DBConnectionString:
+    Type: String
+    NoEcho: true
+  JWTSecret:
+    Type: String
+    NoEcho: true
+  XAuthServiceApiKey:
+    Type: String
+    NoEcho: true
 
 Resources:
   DatabaseServiceSG:
@@ -75,15 +84,9 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           apt update -y
-          apt install -y docker.io jq awscli
+          apt install -y docker.io
           systemctl enable docker
           systemctl start docker
-
-          # Busca os segredos do Secrets Manager
-          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id /medsafe/database-service/prod --query SecretString --output text)
-          DB_CONNECTION_STRING=$(echo $SECRET_JSON | jq -r '.DB_CONNECTION_STRING')
-          JWT_SECRET=$(echo $SECRET_JSON | jq -r '.JWT_SECRET')
-          DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=$(echo $SECRET_JSON | jq -r '.DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY')
 
           docker pull devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
           
@@ -99,6 +102,9 @@ Resources:
             -e SERVICE_NAME=${ServiceName} \
             -e FRONT_URL=${FrontUrl} \
             -e CORS_ORIGINS=${CorsOrigins} \
+            -e DB_CONNECTION_STRING=${DBConnectionString} \
+            -e JWT_SECRET=${JWTSecret} \
+            -e DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=${XAuthServiceApiKey} \
             devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
 
 Outputs:
