@@ -34,6 +34,10 @@ Parameters:
   RequestTimeoutMs:
     Type: Number
     Default: 7000
+  EC2KeyPair:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Nome do par de chaves para acesso SSH
+    Default: medsafe-prod-key
 
 Resources:
   # Security Group da EC2
@@ -61,6 +65,7 @@ Resources:
       ImageId: ami-0bde73fd629657a59
       SecurityGroupIds:
         - !Ref DatabaseServiceSG
+      KeyName: !Ref EC2KeyPair
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
