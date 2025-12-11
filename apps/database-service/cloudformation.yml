@@ -4,23 +4,41 @@ Description: MedSafe Database Stack Deployment
 Parameters:
   DockerImageTag:
     Type: String
+
   ApiPort:
     Type: Number
     Default: 3002
+
   DbConnectionString:
     Type: String
     NoEcho: true
 
+  MyIP:
+    Type: String
+    Description: Your public IP for SSH access (format: X.X.X.X/32)
+
 Resources:
-  DatabaseStackSG:
+  MedSafeBackendSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Security group for MedSafe Database API
+      GroupDescription: Security group for MedSafe Database Service
+      VpcId: vpc-0d3b446d45264fea7  # sua VPC padrão
       SecurityGroupIngress:
+        # Porta da API (pública)
         - IpProtocol: tcp
           FromPort: !Ref ApiPort
           ToPort: !Ref ApiPort
           CidrIp: 0.0.0.0/0
+
+        # Porta SSH (somente seu IP)
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref MyIP
+
+      Tags:
+        - Key: Name
+          Value: medsafe-backend-sg
 
   DatabaseStackEC2:
     Type: AWS::EC2::Instance
@@ -28,7 +46,10 @@ Resources:
       InstanceType: t3.micro
       ImageId: ami-0bde73fd629657a59
       SecurityGroupIds:
-        - !Ref DatabaseStackSG
+        - !Ref MedSafeBackendSG
+      Tags:
+        - Key: Name
+          Value: medsafe-database-ec2
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
@@ -37,14 +58,11 @@ Resources:
           systemctl enable docker
           systemctl start docker
 
-          # Pull da imagem
           docker pull devjoaosg/medsafe-database-service:${DockerImageTag}
 
-          # Remover container anterior
           docker stop medsafe-database-service || true
           docker rm medsafe-database-service || true
 
-          # Rodar container
           docker run -d \
             --restart=always \
             --name medsafe-database-service \
