@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 20
 
-      # 3. Instalar dependências
+      # 3. Instalação das dependências
       - name: Install dependencies
         working-directory: apps/database-service
         run: npm install
