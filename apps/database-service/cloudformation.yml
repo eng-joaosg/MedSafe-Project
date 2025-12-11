@@ -71,9 +71,9 @@ Resources:
           #!/bin/bash
           set -e
 
-          # Atualização e instalação do Docker
-          dnf update -y
-          dnf install -y docker
+          # Atualização e instalação do Docker no Ubuntu
+          apt update -y
+          apt install -y docker.io
           systemctl enable docker
           systemctl start docker
 
