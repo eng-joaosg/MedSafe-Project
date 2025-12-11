@@ -37,7 +37,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 6. Build da imagem
+      # 6. Build da imagem Docker
       - name: Build Docker image
         working-directory: apps/database-service
         run: |
@@ -50,7 +50,7 @@ jobs:
           docker push devjoaosg/medsafe-database-service:latest
           docker push devjoaosg/medsafe-database-service:${{ github.sha }}
 
-      # 8. Configurar AWS
+      # 8. Configurar credenciais AWS
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -62,7 +62,7 @@ jobs:
       - name: Deploy CloudFormation
         run: |
           aws cloudformation deploy \
-            --stack-name MedSafe-Database-Service \
+            --stack-name MedSafe-Database-Stack \
             --template-file apps/database-service/cloudformation.yml \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
@@ -73,9 +73,10 @@ jobs:
       - name: Show CloudFormation events
         run: |
           aws cloudformation describe-stack-events \
-            --stack-name MedSafe-Database-Service \
+            --stack-name MedSafe-Database-Stack \
             --max-items 20
 
+      # 11. Debug CloudFormation failure
       - name: Debug CloudFormation failure
         if: failure()
         run: |
