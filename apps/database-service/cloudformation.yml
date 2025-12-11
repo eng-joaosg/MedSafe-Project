@@ -36,6 +36,9 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Nome do par de chaves para acesso SSH
     Default: medsafe-prod-key
+  ExistingEC2Id:
+    Type: String
+    Description: "ID da EC2 existente (já criada manualmente)"
 
 Resources:
   DatabaseServiceSG:
@@ -52,14 +55,10 @@ Resources:
           ToPort: 22
           CidrIp: 177.16.162.33/32
 
-  DatabaseStackEC2:
+  DatabaseStackEC2UserData:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: t3.micro
-      ImageId: ami-0bde73fd629657a59
-      SecurityGroupIds:
-        - !Ref DatabaseServiceSG
-      KeyName: !Ref EC2KeyPair
+      InstanceId: !Ref ExistingEC2Id
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
