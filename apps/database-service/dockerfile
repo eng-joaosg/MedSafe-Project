@@ -1,19 +1,19 @@
-# Imagem base
-FROM node:20-alpine
+FROM node:22-alpine
 
-# Diretório de trabalho
+RUN apk add --no-cache bash curl jq python3 py3-pip \
+    && pip install --no-cache-dir awscli
+
 WORKDIR /app
-
-# Copiar package.json e instalar dependências
 COPY package*.json ./
 RUN npm ci
-
-# Copiar todo o código da aplicação
 COPY . .
 
-# Porta que o container vai expor (pode ser sobrescrita pelo ambiente)
 EXPOSE 443
 
-# Comando de inicialização da aplicação
-# A aplicação deve usar process.env para pegar todas as variáveis
-CMD ["npm", "start"]
+CMD sh -c '\
+  SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id /medsafe/database-service/prod --query SecretString --output text) && \
+  export DB_CONNECTION_STRING=$(echo $SECRET_JSON | jq -r ".DB_CONNECTION_STRING") && \
+  export JWT_SECRET=$(echo $SECRET_JSON | jq -r ".JWT_SECRET") && \
+  export DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=$(echo $SECRET_JSON | jq -r ".DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY") && \
+  npm start \
+'
