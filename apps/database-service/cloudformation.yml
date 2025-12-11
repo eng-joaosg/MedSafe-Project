@@ -10,28 +10,28 @@ Parameters:
   DbConnectionString:
     Type: String
     NoEcho: true
-  NODE_ENV:
+  NodeEnv:
     Type: String
     Default: production
-  PORT:
+  Port:
     Type: Number
     Default: 443
-  SERVICE_NAME:
+  ServiceName:
     Type: String
     Default: database-service
-  FRONT_URL:
+  FrontUrl:
     Type: String
     Default: http://177.16.162.33
-  DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY:
+  DatabaseApiKey:
     Type: String
     NoEcho: true
-  JWT_SECRET:
+  JwtSecret:
     Type: String
     NoEcho: true
-  CORS_ORIGINS:
+  CorsOrigins:
     Type: String
     Default: http://177.16.162.33
-  REQUEST_TIMEOUT_MS:
+  RequestTimeoutMs:
     Type: Number
     Default: 7000
 
@@ -84,15 +84,15 @@ Resources:
             --restart=always \
             --name medsafe-database-service \
             -p ${ApiPort}:${ApiPort} \
-            -e NODE_ENV=${NODE_ENV} \
-            -e PORT=${PORT} \
-            -e SERVICE_NAME=${SERVICE_NAME} \
-            -e FRONT_URL=${FRONT_URL} \
-            -e DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY=${DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY} \
-            -e JWT_SECRET=${JWT_SECRET} \
+            -e NODE_ENV=${NodeEnv} \
+            -e PORT=${Port} \
+            -e SERVICE_NAME=${ServiceName} \
+            -e FRONT_URL=${FrontUrl} \
+            -e DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY=${DatabaseApiKey} \
+            -e JWT_SECRET=${JwtSecret} \
             -e DB_CONNECTION_STRING="${DbConnectionString}" \
-            -e CORS_ORIGINS=${CORS_ORIGINS} \
-            -e REQUEST_TIMEOUT_MS=${REQUEST_TIMEOUT_MS} \
+            -e CORS_ORIGINS=${CorsOrigins} \
+            -e REQUEST_TIMEOUT_MS=${RequestTimeoutMs} \
             devjoaosg/medsafe-database-service:${DockerImageTag}
 
 Outputs:
