@@ -2,8 +2,6 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: MedSafe Database Stack Deployment
 
 Parameters:
-  DockerImageTag:
-    Type: String
   ApiPort:
     Type: Number
     Default: 443
@@ -40,24 +38,20 @@ Parameters:
     Default: medsafe-prod-key
 
 Resources:
-  # Security Group da EC2
   DatabaseServiceSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for MedSafe Database API
       SecurityGroupIngress:
-        # Acesso à API
         - IpProtocol: tcp
           FromPort: !Ref ApiPort
           ToPort: !Ref ApiPort
           CidrIp: 177.16.162.33/32
-        # SSH
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 177.16.162.33/32
 
-  # Instância EC2
   DatabaseStackEC2:
     Type: AWS::EC2::Instance
     Properties:
@@ -71,20 +65,29 @@ Resources:
           #!/bin/bash
           set -e
 
-          # Atualização e instalação do Docker no Ubuntu
+          # Atualiza pacotes e instala dependências
           apt update -y
-          apt install -y docker.io
+          apt install -y ca-certificates curl gnupg lsb-release apt-transport-https software-properties-common
+
+          # Instala Docker oficial
+          mkdir -p /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
+          apt update -y
+          apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+          # Habilita e inicia Docker
           systemctl enable docker
           systemctl start docker
 
-          # Pull da imagem
-          docker pull devjoaosg/medsafe-database-service:${DockerImageTag}
+          # Pull da imagem com tag fixa
+          docker pull devjoaosg/medsafe-database-service:1f263ad6b2a4814d1104c2946692b317701df9db
 
-          # Remover container antigo
+          # Remove container antigo
           docker stop medsafe-database-service || true
           docker rm medsafe-database-service || true
 
-          # Rodar container com variáveis de ambiente
+          # Roda container com tag fixa
           docker run -d \
             --restart=always \
             --name medsafe-database-service \
@@ -98,7 +101,7 @@ Resources:
             -e DB_CONNECTION_STRING="${DbConnectionString}" \
             -e CORS_ORIGINS=${CorsOrigins} \
             -e REQUEST_TIMEOUT_MS=${RequestTimeoutMs} \
-            devjoaosg/medsafe-database-service:${DockerImageTag}
+            devjoaosg/medsafe-database-service:1f263ad6b2a4814d1104c2946692b317701df9db
 
 Outputs:
   PublicIP:
