@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MedSafe Database Service Deployment
+Description: MedSafe Database Stack Deployment
 
 Parameters:
   DockerImageTag:
@@ -12,7 +12,7 @@ Parameters:
     NoEcho: true
 
 Resources:
-  DatabaseServiceSG:
+  DatabaseStackSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for MedSafe Database API
@@ -22,13 +22,13 @@ Resources:
           ToPort: !Ref ApiPort
           CidrIp: 0.0.0.0/0
 
-  DatabaseServiceEC2:
+  DatabaseStackEC2:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t3.micro
       ImageId: ami-0bde73fd629657a59
       SecurityGroupIds:
-        - !Ref DatabaseServiceSG
+        - !Ref DatabaseStackSG
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
@@ -55,4 +55,4 @@ Resources:
 Outputs:
   PublicIP:
     Description: Public IP of the API instance
-    Value: !GetAtt DatabaseServiceEC2.PublicIp
+    Value: !GetAtt DatabaseStackEC2.PublicIp
