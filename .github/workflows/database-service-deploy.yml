@@ -64,14 +64,18 @@ jobs:
           aws cloudformation deploy \
             --stack-name MedSafe-Database-Stack \
             --template-file apps/database-service/cloudformation.yml \
-            --capabilities CAPABILITY_IAM \
+            --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
               NodeEnv=production \
               Port=443 \
               ServiceName=database-service \
               FrontUrl=http://177.16.162.33 \
               CorsOrigins=http://177.16.162.33 \
-              RequestTimeoutMs=7000
+              RequestTimeoutMs=7000 \
+              EC2KeyPair=medsafe-prod-key \
+              VpcId=vpc-0d3b446d45264fea7 \
+              SubnetId=subnet-0ac4c6abfbd794fdf \
+              IAMRoleName=MedSafe-DatabaseService
 
       # 10. Logs CloudFormation
       - name: Show CloudFormation events
