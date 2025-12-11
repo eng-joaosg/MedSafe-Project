@@ -6,10 +6,34 @@ Parameters:
     Type: String
   ApiPort:
     Type: Number
-    Default: 3002
+    Default: 443
   DbConnectionString:
     Type: String
     NoEcho: true
+  NODE_ENV:
+    Type: String
+    Default: production
+  PORT:
+    Type: Number
+    Default: 443
+  SERVICE_NAME:
+    Type: String
+    Default: database-service
+  FRONT_URL:
+    Type: String
+    Default: http://177.16.162.33
+  DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY:
+    Type: String
+    NoEcho: true
+  JWT_SECRET:
+    Type: String
+    NoEcho: true
+  CORS_ORIGINS:
+    Type: String
+    Default: http://177.16.162.33
+  REQUEST_TIMEOUT_MS:
+    Type: Number
+    Default: 7000
 
 Resources:
   # Security Group da EC2
@@ -18,16 +42,16 @@ Resources:
     Properties:
       GroupDescription: Security group for MedSafe Database API
       SecurityGroupIngress:
-        # Regra para a API
+        # Acesso à API
         - IpProtocol: tcp
           FromPort: !Ref ApiPort
           ToPort: !Ref ApiPort
-          CidrIp: 177.16.162.33
-        # Regra para SSH
+          CidrIp: 177.16.162.33/32
+        # SSH
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: 177.16.162.33
+          CidrIp: 177.16.162.33/32
 
   # Instância EC2
   DatabaseStackEC2:
@@ -40,6 +64,9 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
+          set -e
+
+          # Atualização e instalação do Docker
           dnf update -y
           dnf install -y docker
           systemctl enable docker
@@ -48,16 +75,24 @@ Resources:
           # Pull da imagem
           docker pull devjoaosg/medsafe-database-service:${DockerImageTag}
 
-          # Remover container anterior
+          # Remover container antigo
           docker stop medsafe-database-service || true
           docker rm medsafe-database-service || true
 
-          # Rodar container
+          # Rodar container com variáveis de ambiente
           docker run -d \
             --restart=always \
             --name medsafe-database-service \
             -p ${ApiPort}:${ApiPort} \
+            -e NODE_ENV=${NODE_ENV} \
+            -e PORT=${PORT} \
+            -e SERVICE_NAME=${SERVICE_NAME} \
+            -e FRONT_URL=${FRONT_URL} \
+            -e DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY=${DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY} \
+            -e JWT_SECRET=${JWT_SECRET} \
             -e DB_CONNECTION_STRING="${DbConnectionString}" \
+            -e CORS_ORIGINS=${CORS_ORIGINS} \
+            -e REQUEST_TIMEOUT_MS=${REQUEST_TIMEOUT_MS} \
             devjoaosg/medsafe-database-service:${DockerImageTag}
 
 Outputs:

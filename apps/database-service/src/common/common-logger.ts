@@ -12,12 +12,7 @@ const loggerInstance: Logger = createLogger({
     printf((info: TransformableInfo) => {
       const level = info.level;
       const ts = info.timestamp?.toString() ?? new Date().toISOString();
-      const msg =
-        typeof info.message === 'string'
-          ? info.message
-          : info.message != null
-            ? JSON.stringify(info.message)
-            : '';
+      const msg = typeof info.message === 'string' ? info.message : info.message != null ? JSON.stringify(info.message) : '';
       return `[${ts}] ${level}: ${msg}`;
     }),
   ),
@@ -55,20 +50,13 @@ export abstract class CommonLogger {
     loggerInstance.warn(`[${serviceName}] [${action}]${requestId ? ` [${requestId}]` : ''} ${msg}`);
   }
 
-  static error(
-    serviceName: string,
-    action: string,
-    message: string | object,
-    error?: unknown,
-  ): void {
+  static error(serviceName: string, action: string, message: string | object, error?: unknown): void {
     const requestId = this.getRequestId();
     const msg = typeof message === 'string' ? message : JSON.stringify(message);
     const errMessage = safeString(error);
     const stack = error instanceof Error ? error.stack : undefined;
 
-    loggerInstance.error(
-      `[${serviceName}] [${action}]${requestId ? ` [${requestId}]` : ''} ${msg} ${errMessage}`,
-    );
+    loggerInstance.error(`[${serviceName}] [${action}]${requestId ? ` [${requestId}]` : ''} ${msg} ${errMessage}`);
     if (stack) {
       loggerInstance.error(stack);
     }

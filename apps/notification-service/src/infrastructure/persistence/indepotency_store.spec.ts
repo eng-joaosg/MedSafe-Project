@@ -29,7 +29,7 @@ describe('IdempotencyStore Check Logic', () => {
 
     mockConfigService = {
       get: jest.fn((key: string) => {
-        if (key === 'NODE_ENV') return 'PROD';
+        if (key === 'NODE_ENV') return 'production';
         if (key === 'AWS_REGION') return 'us-east-1';
         return null;
       }),
