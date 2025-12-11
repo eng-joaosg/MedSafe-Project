@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MedSafe Database Stack Deployment (aplica SG à EC2 existente)
+Description: MedSafe Database Stack Deployment (EC2 imutável)
 
 Parameters:
   ApiPort:
@@ -35,17 +35,19 @@ Parameters:
   EC2KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
     Default: medsafe-prod-key
-  ExistingEC2Id:
+  VpcId:
     Type: String
-    Default: i-07694bdb7e64088e2
-    Description: "ID da EC2 existente (medsafe-database-service)"
+    Default: vpc-0d3b446d45264fea7
+  SubnetId:
+    Type: String
+    Default: subnet-0ac4c6abfbd794fdf
 
 Resources:
   DatabaseServiceSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for MedSafe Database API
-      VpcId: vpc-0d3b446d45264fea7
+      VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: !Ref ApiPort
@@ -56,19 +58,50 @@ Resources:
           ToPort: 22
           CidrIp: 177.16.162.33/32
 
-  AttachSGtoExistingEC2:
-    Type: AWS::EC2::SecurityGroupIngress
+  DatabaseEC2Instance:
+    Type: AWS::EC2::Instance
     Properties:
-      GroupId: !Ref DatabaseServiceSG
-      IpProtocol: -1
-      SourceSecurityGroupId: !Ref DatabaseServiceSG
-      Description: "Attach SG to existing EC2"
+      InstanceType: t3.micro
+      KeyName: !Ref EC2KeyPair
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref DatabaseServiceSG
+      ImageId: ami-077aec33f15de0896
+      Tags:
+        - Key: Name
+          Value: medsafe-database-service
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt update -y
+          apt install -y docker.io
+          systemctl enable docker
+          systemctl start docker
+          
+          docker pull devjoaosg/medsafe-database-service:latest
+          
+          docker stop medsafe-database-service || true
+          docker rm medsafe-database-service || true
+          
+          docker run -d \
+            --restart=always \
+            --name medsafe-database-service \
+            -p ${Port}:${Port} \
+            -e NODE_ENV=${NodeEnv} \
+            -e PORT=${Port} \
+            -e SERVICE_NAME=${ServiceName} \
+            -e FRONT_URL=${FrontUrl} \
+            -e DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=${DatabaseApiKey} \
+            -e JWT_SECRET=${JwtSecret} \
+            -e DB_CONNECTION_STRING=${DbConnectionString} \
+            -e CORS_ORIGINS=${CorsOrigins} \
+            devjoaosg/medsafe-database-service:latest
 
 Outputs:
   SecurityGroupId:
     Description: "ID do Security Group"
     Value: !Ref DatabaseServiceSG
 
-  ExistingEC2PublicIP:
-    Description: "IP público da EC2 existente"
-    Value: 54.94.6.220
+  EC2PublicIP:
+    Description: "IP público da nova EC2"
+    Value: !GetAtt DatabaseEC2Instance.PublicIp
