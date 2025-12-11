@@ -67,7 +67,15 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
               DockerImageTag=${{ github.sha }} \
-              DbConnectionString=${{ secrets.DB_CONNECTION_STRING }}
+              DbConnectionString=${{ secrets.DB_CONNECTION_STRING }} \
+              NodeEnv=production \
+              Port=443 \
+              ServiceName=database-service \
+              FrontUrl=http://177.16.162.33 \
+              DatabaseApiKey=${{ secrets.DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY }} \
+              JwtSecret=${{ secrets.JWT_SECRET }} \
+              CorsOrigins=http://177.16.162.33 \
+              RequestTimeoutMs=7000
 
       # 10. Logs CloudFormation
       - name: Show CloudFormation events
