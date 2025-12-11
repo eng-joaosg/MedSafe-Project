@@ -88,7 +88,7 @@ Resources:
             -e PORT=${Port} \
             -e SERVICE_NAME=${ServiceName} \
             -e FRONT_URL=${FrontUrl} \
-            -e DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY=${DatabaseApiKey} \
+            -e DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=${DatabaseApiKey} \
             -e JWT_SECRET=${JwtSecret} \
             -e DB_CONNECTION_STRING="${DbConnectionString}" \
             -e CORS_ORIGINS=${CorsOrigins} \
