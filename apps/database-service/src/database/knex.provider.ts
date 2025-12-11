@@ -6,8 +6,8 @@ import { KNEX_CONNECTION } from '../common/contants/tokens.contants';
 
 export const KnexProvider: Provider = {
   provide: KNEX_CONNECTION,
-  useFactory: async (configService: ConfigService): Promise<Knex> => {
-    const config = await knexConfig(configService);
+  useFactory: (configService: ConfigService): Knex => {
+    const config = knexConfig(configService);
     return knex(config);
   },
   inject: [ConfigService],

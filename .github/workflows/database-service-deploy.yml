@@ -37,18 +37,18 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 6. Build da imagem Docker
+      # 6. Build da imagem Docker (hardcoded tag)
       - name: Build Docker image
         working-directory: apps/database-service
         run: |
-          docker build -t devjoaosg/medsafe-database-service:latest .
-          docker tag devjoaosg/medsafe-database-service:latest devjoaosg/medsafe-database-service:${{ github.sha }}
+          docker build -t devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9 .
+          docker tag devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9 devjoaosg/medsafe-database-service:latest
 
       # 7. Push da imagem
       - name: Push Docker image
         run: |
+          docker push devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
           docker push devjoaosg/medsafe-database-service:latest
-          docker push devjoaosg/medsafe-database-service:${{ github.sha }}
 
       # 8. Configurar credenciais AWS
       - name: Configure AWS Credentials
@@ -66,14 +66,10 @@ jobs:
             --template-file apps/database-service/cloudformation.yml \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
-              DockerImageTag=${{ github.sha }} \
-              DbConnectionString=${{ secrets.DB_CONNECTION_STRING }} \
               NodeEnv=production \
               Port=443 \
               ServiceName=database-service \
               FrontUrl=http://177.16.162.33 \
-              DatabaseApiKey=${{ secrets.DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY }} \
-              JwtSecret=${{ secrets.JWT_SECRET }} \
               CorsOrigins=http://177.16.162.33 \
               RequestTimeoutMs=7000
 

@@ -75,7 +75,7 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           apt update -y
-          apt install -y docker.io jq
+          apt install -y docker.io jq awscli
           systemctl enable docker
           systemctl start docker
 
@@ -83,8 +83,9 @@ Resources:
           SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id /medsafe/database-service/prod --query SecretString --output text)
           DB_CONNECTION_STRING=$(echo $SECRET_JSON | jq -r '.DB_CONNECTION_STRING')
           JWT_SECRET=$(echo $SECRET_JSON | jq -r '.JWT_SECRET')
+          DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=$(echo $SECRET_JSON | jq -r '.DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY')
 
-          docker pull devjoaosg/medsafe-database-service:latest
+          docker pull devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
           
           docker stop medsafe-database-service || true
           docker rm medsafe-database-service || true
@@ -97,11 +98,11 @@ Resources:
             -e PORT=${Port} \
             -e SERVICE_NAME=${ServiceName} \
             -e FRONT_URL=${FrontUrl} \
-            -e DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=${DatabaseApiKey} \
+            -e DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=${DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY} \
             -e JWT_SECRET=${JWT_SECRET} \
             -e DB_CONNECTION_STRING=${DB_CONNECTION_STRING} \
             -e CORS_ORIGINS=${CorsOrigins} \
-            devjoaosg/medsafe-database-service:latest
+            devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
 
 Outputs:
   SecurityGroupId:
