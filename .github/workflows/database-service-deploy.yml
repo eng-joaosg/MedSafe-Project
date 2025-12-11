@@ -72,7 +72,7 @@ jobs:
               Port=443 \
               ServiceName=database-service \
               FrontUrl=http://177.16.162.33 \
-              DatabaseApiKey=${{ secrets.DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY }} \
+              DatabaseApiKey=${{ secrets.DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY }} \
               JwtSecret=${{ secrets.JWT_SECRET }} \
               CorsOrigins=http://177.16.162.33 \
               RequestTimeoutMs=7000

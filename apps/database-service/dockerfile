@@ -12,7 +12,7 @@ RUN npm ci
 COPY . .
 
 # Porta que o container vai expor (pode ser sobrescrita pelo ambiente)
-EXPOSE 3002
+EXPOSE 443
 
 # Comando de inicialização da aplicação
 # A aplicação deve usar process.env para pegar todas as variáveis
