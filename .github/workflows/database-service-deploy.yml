@@ -75,3 +75,10 @@ jobs:
           aws cloudformation describe-stack-events \
             --stack-name MedSafe-Database-Service \
             --max-items 20
+
+      - name: Debug CloudFormation failure
+        if: failure()
+        run: |
+          aws cloudformation describe-stack-events \
+            --stack-name MedSafe-Database-Stack \
+            --max-items 20
