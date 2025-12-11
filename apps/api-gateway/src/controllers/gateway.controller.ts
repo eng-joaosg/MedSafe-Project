@@ -303,7 +303,7 @@ export class GatewayController {
     CommonLoggerGateway.logStart('Gateway', 'DELETE_ACCOUNT', 'N/A', requestId);
 
     const { headers, body } = await this.invokeAndHandle(
-      'client-user/delete-account',
+      '/client-user/delete-account',
       'DELETE', // método HTTP
       { password: dto.password },
       requestId,
@@ -394,12 +394,21 @@ export class GatewayController {
   @Post('public/clinical-info-access-alert')
   @ApiOperation({ summary: 'Dispara alerta de acesso público para o auth-service' })
   async publicDataAccessAlert(
-    @Body('id') id: string,
+    @Query('id') id: string,
     @Headers('x-request-id') requestId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
     CommonLoggerGateway.logStart('Gateway', 'PUBLIC_DATA_ACCESS_ALERT', id, requestId);
-    const { headers, body } = await this.invokeAndHandle('/public/clinical-info-access-alert', 'POST', { id }, requestId);
+    const queryParams = { id };
+    const { headers, body } = await this.invokeAndHandle(
+      '/public/clinical-info-access-alert',
+      'POST',
+      undefined,
+      requestId,
+      undefined,
+      undefined,
+      queryParams,
+    );
 
     this.applyHeadersToResponse(res, headers);
     return body;
@@ -418,15 +427,16 @@ export class GatewayController {
       const { data, headers } = await this.handleDatabaseServiceCall(
         'get',
         `/public/clinical-info?id=${encodeURIComponent(id)}&code=${encodeURIComponent(code)}`,
-        requestId, // <- agora vem do header
+        requestId,
         undefined,
         { code },
       );
+      console.log(data);
       this.applyHeadersToResponse(res, headers);
       return data;
     } catch (err: any) {
       console.error('Erro capturado no controller:', err?.message || err);
-      throw err; // importante relançar para o Nest tratar e enviar 500
+      throw err;
     }
   }
 }

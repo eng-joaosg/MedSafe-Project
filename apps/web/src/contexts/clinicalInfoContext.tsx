@@ -32,6 +32,7 @@ export const useClinicalInfo = () => useContext(ClinicalInfoContext);
 export function ClinicalInfoProvider({ children }: { children: ReactNode }) {
   const [clinicalInfo, setClinicalInfo] = useState<ClinicalInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false); // Adicionado para controlar a hidratação
 
   // -----------------------------------------
   // Carregar do backend ao montar
@@ -47,6 +48,7 @@ export function ClinicalInfoProvider({ children }: { children: ReactNode }) {
         setClinicalInfo(null);
       } finally {
         setLoading(false);
+        setIsMounted(true); // Garante que a primeira renderização no cliente seja concluída
       }
     };
 
@@ -55,7 +57,7 @@ export function ClinicalInfoProvider({ children }: { children: ReactNode }) {
 
   return (
     <ClinicalInfoContext.Provider value={{ clinicalInfo, setClinicalInfo, loading }}>
-      {children}
+      {isMounted ? children : null} {/* Renderização condicional para hidratação */}
     </ClinicalInfoContext.Provider>
   );
 }

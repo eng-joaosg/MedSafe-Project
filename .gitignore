@@ -21,7 +21,6 @@ out/
 temp/
 tmp/
 coverage/
-lib/
 
 # TypeScript
 *.tsbuildinfo

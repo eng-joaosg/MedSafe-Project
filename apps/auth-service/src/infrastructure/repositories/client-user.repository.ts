@@ -100,7 +100,7 @@ export class ClientUserRepository implements IClientUserRepository {
 
   public async getByClinicalInfoId(id: string): Promise<ClientUser> {
     try {
-      const response = await this.gateway.getClientUserById(id);
+      const response = await this.gateway.getClientUserByClinicalInfoId(id);
       return this.mapper.dbResponseToEntity(response);
     } catch (err: any) {
       if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
@@ -113,7 +113,7 @@ export class ClientUserRepository implements IClientUserRepository {
 
   public async delete(id: string): Promise<void> {
     try {
-      await this.gateway.getClientUserById(id);
+      await this.gateway.deleteClientUser(id);
     } catch (err: any) {
       if (err?.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
         CommonLogger.error('DatabaseService', 'DELETE_CLIENT_USER', `Erro ao deletar ClientUser com id: ${id}`, err);

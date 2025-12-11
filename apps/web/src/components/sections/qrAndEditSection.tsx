@@ -55,9 +55,8 @@ export default function QrAndEditSection({
 
   return (
     <div className="w-full flex justify-between items-center mb-4 px-8">
-      {/* Lado esquerdo */}
       <div>
-        {publicCode && editable && (
+        {publicCode && !editable && (
           <QrCodeButton
             hasPublicCode={true}
             editable={editable}
@@ -66,8 +65,6 @@ export default function QrAndEditSection({
           />
         )}
       </div>
-
-      {/* Lado direito */}
       <div>
         <EditSaveButton
           label={saving ? 'Salvando...' : editable ? 'Salvar' : 'Editar'}

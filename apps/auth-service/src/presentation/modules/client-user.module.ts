@@ -7,6 +7,7 @@ import { ChangePasswordClientUserHandler } from '../handlers/client-user/change-
 import { LoginClientUserHandler } from '../handlers/client-user/login-client-user.handler';
 import { ChangeNameClientUserHandler } from '../handlers/client-user/change-name-client-user.handler';
 import { AssociateClinicalInfoHandler } from '../handlers/client-user/associate-clinical-info.handler';
+import { DeleteClientUserHandler } from '../handlers/client-user/delete-client-user.handler';
 
 @Module({
   imports: [ClientUserApplicationModule],
@@ -18,6 +19,7 @@ import { AssociateClinicalInfoHandler } from '../handlers/client-user/associate-
     LoginClientUserHandler,
     ChangeNameClientUserHandler,
     AssociateClinicalInfoHandler,
+    DeleteClientUserHandler,
   ],
   exports: [
     FindEmailClientUserHandler,
@@ -27,6 +29,7 @@ import { AssociateClinicalInfoHandler } from '../handlers/client-user/associate-
     LoginClientUserHandler,
     ChangeNameClientUserHandler,
     AssociateClinicalInfoHandler,
+    DeleteClientUserHandler,
   ],
 })
 export class ClientUserModule {}

@@ -27,10 +27,6 @@ export class PublicClinicalInfoController {
       throw new BadRequestException('O código deve ter no máximo 6 caracteres.');
     }
     const data = await this.clinicalInfoService.getByPublicCode(id, code);
-    if (!data) {
-      throw new BadRequestException('Registro não encontrado ou código inválido.');
-    }
-
     data.contacts = data.contacts?.map((c, index) => ({
       id: index + 1,
       firstName: c?.firstName ?? undefined,
@@ -39,7 +35,7 @@ export class PublicClinicalInfoController {
       phone: c?.phone ?? undefined,
       relationship: c?.relationship ?? '',
     }));
-
+    console.log(data);
     return data;
   }
 }

@@ -35,20 +35,20 @@ const UserContext = createContext<UserContextType>({
 });
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUserState] = useState<UserState>(() => {
-    // tenta ler do sessionStorage
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('user');
-      return stored ? JSON.parse(stored) : defaultUser;
-    }
-    return defaultUser;
-  });
+  const [user, setUserState] = useState<UserState>(defaultUser);
   const [isLoggedOut, setIsLoggedOut] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    const stored = sessionStorage.getItem('user');
+    if (stored) setUserState(JSON.parse(stored));
+    
+    setIsMounted(true);
+  }, []);
 
   const setUser = (newUser: UserState | ((prev: UserState) => UserState)) => {
     setUserState(prev => {
       const updated = typeof newUser === 'function' ? (newUser as Function)(prev) : newUser;
-      if (typeof window !== 'undefined') sessionStorage.setItem('user', JSON.stringify(updated));
+      sessionStorage.setItem('user', JSON.stringify(updated));
       return updated;
     });
     setIsLoggedOut(false);
@@ -57,14 +57,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const clearUser = () => {
     setUserState(defaultUser);
     setIsLoggedOut(true);
-    if (typeof window !== 'undefined') sessionStorage.removeItem('user');
+    sessionStorage.removeItem('user');
   };
 
   const setLoggedOut = (value: boolean) => setIsLoggedOut(value);
 
   return (
     <UserContext.Provider value={{ user, setUser, clearUser, isLoggedOut, setLoggedOut }}>
-      {children}
+      {/* Renderiza os filhos SOMENTE após a montagem (e carregamento do sessionStorage) */}
+      {isMounted ? children : null}
     </UserContext.Provider>
   );
 }

@@ -110,7 +110,7 @@ export default function ChangePasswordPage() {
           </p>
         )}
 
-        {/* Div fixa para mensagens */}
+        {/* Div para mensagens */}
         <div className="min-h-6 flex justify-center items-center">
           {message && (
             <p className={`${messageColor} text-sm text-center animate-fade`}>
@@ -118,15 +118,14 @@ export default function ChangePasswordPage() {
             </p>
           )}
         </div>
-
-        {/* Botão Alterar Senha */}
+        <div className="flex flex-col items-end pr-8">
         <ConfirmButton
           onClick={handleChangePassword}
-          label="Alterar Senha"
+          label="Confirmar"
           loading={loading}
           disabled={loading}
         />
-
+        </div>
         {/* Regras de senha */}
         <div className="pt-4 pl-12 text-xs text-justify">
           <p>Senha entre 8 e 16 caracteres;</p>
