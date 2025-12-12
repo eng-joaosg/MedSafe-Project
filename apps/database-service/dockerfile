@@ -11,17 +11,12 @@ RUN npm ci
 # Copiar todo o código da aplicação
 COPY . .
 
-# Criar pasta de logs
-RUN mkdir -p /app/logs
-
 # Configurar variáveis de ambiente padrão
-# Porta padrão (5000) e diretório de logs
 ENV PORT=5000
-ENV LOG_DIR=/app/logs
+ENV NODE_ENV=production
 
 # Expor porta da aplicação
 EXPOSE 5000
 
 # Comando de inicialização da aplicação
-# A aplicação deve usar process.env para pegar as variáveis
 CMD ["npm", "start"]
