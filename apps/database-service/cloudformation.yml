@@ -117,7 +117,7 @@ Resources:
             --log-driver=awslogs \
             --log-opt awslogs-group=/medsafe/database-service \
             --log-opt awslogs-region=sa-east-1 \
-            --log-opt awslogs-stream=container \
+            --log-opt awslogs-stream=$(hostname) \
             devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
 
   # Elastic IP
