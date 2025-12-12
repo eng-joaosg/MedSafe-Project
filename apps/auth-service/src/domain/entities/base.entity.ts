@@ -3,11 +3,7 @@ export abstract class BaseEntity {
   protected createdAt: Date | null;
   protected updatedAt: Date | null;
 
-  constructor(
-    id: string | number,
-    createdAt: Date | null,
-    updatedAt: Date | null,
-  ) {
+  constructor(id: string | number, createdAt: Date | null, updatedAt: Date | null) {
     this.id = id;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
