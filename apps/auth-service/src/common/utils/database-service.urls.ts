@@ -6,7 +6,7 @@ export class DatabaseServiceUrls {
   constructor(private readonly config: ConfigService) {}
 
   private get base(): string {
-    return this.config.get<string>('DATABASE_SERVICE_URL', 'http://localhost:3004');
+    return this.config.get<string>('DATABASE_SERVICE_URL', 'http://localhost:5000');
   }
 
   public clientUser = {

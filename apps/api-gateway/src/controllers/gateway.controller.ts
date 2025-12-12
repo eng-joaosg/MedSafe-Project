@@ -16,7 +16,7 @@ import { CommonLoggerGateway } from '../common/common.logger';
 export class GatewayController {
   constructor(private readonly invoker: AuthServiceInvoker) {}
 
-  private databaseServiceUrl = 'http://localhost:3004';
+  private databaseServiceUrl = 'http://localhost:5000';
 
   private async invokeAndHandle<T>(
     path: string,

@@ -80,17 +80,21 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          apt update -y
-          apt install -y docker.io
-          systemctl enable docker
-          systemctl start docker
+          set -e
 
-          docker pull devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
+          sleep 5
+
+          sudo apt update -y
+          sudo apt install -y docker.io
+          sudo systemctl enable docker
+          sudo systemctl start docker
+
+          sudo docker pull devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
+
+          sudo docker stop medsafe-database-service || true
+          sudo docker rm medsafe-database-service || true
           
-          docker stop medsafe-database-service || true
-          docker rm medsafe-database-service || true
-          
-          docker run -d \
+          sudo docker run -d \
             --restart=always \
             --name medsafe-database-service \
             -p ${ApiPort}:${ApiPort} \
