@@ -72,13 +72,13 @@ jobs:
               FrontUrl=http://177.16.162.33 \
               CorsOrigins=http://177.16.162.33 \
               RequestTimeoutMs=7000 \
-              EC2KeyPair=medsafe-prod-key \
+              EC2KeyPair="${{ secrets.EC2_KEY_NAME}}" \
               VpcId=vpc-0d3b446d45264fea7 \
               SubnetId=subnet-0ac4c6abfbd794fdf \
               IAMRoleName=MedSafe-DatabaseService \
-              DB_CONNECTION_STRING="${{ secrets.DB_CONNECTION_STRING }}" \
-              JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-              DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY="${{ secrets.DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY }}"
+              DBConnectionString="${{ secrets.DB_CONNECTION_STRING }}" \
+              JWTSecret="${{ secrets.JWT_SECRET }}" \
+              XAuthServiceApiKey="${{ secrets.DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY }}"
 
       # 10. Mostrar eventos recentes do CloudFormation
       - name: Show CloudFormation events
