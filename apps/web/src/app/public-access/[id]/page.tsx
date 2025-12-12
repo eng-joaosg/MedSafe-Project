@@ -135,7 +135,6 @@ export default function PublicAccessPage() {
     );
   }
 
-  // Tela de acesso com código
   return (
     <div className="flex flex-col items-center pt-20 px-4">
       <h2 className="text-xl font-semibold mb-4">Acesso Público</h2>
