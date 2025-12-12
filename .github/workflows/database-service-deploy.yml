@@ -67,7 +67,7 @@ jobs:
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
               NodeEnv=production \
-              Port=443 \
+              Port=5000 \
               ServiceName=database-service \
               FrontUrl=http://177.16.162.33 \
               CorsOrigins=http://177.16.162.33 \

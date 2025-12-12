@@ -14,7 +14,7 @@ async function bootstrap() {
 
   const requestContext = app.get(RequestContextService);
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT') || 3004;
+  const port = configService.get<number>('PORT') || 5000;
   const apiVersion = configService.get<string>('API_VERSION') || '1.0';
 
   // -----------------------------

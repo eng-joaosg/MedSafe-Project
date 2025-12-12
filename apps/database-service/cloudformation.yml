@@ -4,13 +4,13 @@ Description: MedSafe Database Stack Deployment (EC2 imutável com variáveis do 
 Parameters:
   ApiPort:
     Type: Number
-    Default: 443
+    Default: 5000
   NodeEnv:
     Type: String
     Default: production
   Port:
     Type: Number
-    Default: 443
+    Default: 5000
   ServiceName:
     Type: String
     Default: database-service
