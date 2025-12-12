@@ -64,6 +64,13 @@ Resources:
       Roles:
         - !Ref IAMRoleName
 
+  # CloudWatch Log Group
+  DatabaseServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /medsafe/database-service
+      RetentionInDays: 30
+
   # EC2 Instance
   DatabaseServiceEC2Instance:
     Type: AWS::EC2::Instance
@@ -86,12 +93,9 @@ Resources:
 
           # Instalar Docker
           sudo apt update -y
-          sudo apt install -y docker.io awscli
+          sudo apt install -y docker.io
           sudo systemctl enable docker
           sudo systemctl start docker
-
-          # Criar grupo de logs no CloudWatch
-          aws logs create-log-group --log-group-name /medsafe/database-service || true
 
           # Pull da imagem
           sudo docker pull devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
