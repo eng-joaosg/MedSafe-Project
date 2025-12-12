@@ -8,9 +8,6 @@ Parameters:
   NodeEnv:
     Type: String
     Default: production
-  Port:
-    Type: Number
-    Default: 5000
   ServiceName:
     Type: String
     Default: database-service
@@ -75,7 +72,7 @@ Resources:
       SubnetId: !Ref SubnetId
       SecurityGroupIds:
         - !Ref DatabaseServiceSG
-      ImageId: ami-077aec33f15de0896
+      ImageId: ami-077aec33f15de0896  # Ubuntu 22.04 LTS
       IamInstanceProfile: !Ref EC2InstanceProfile
       Tags:
         - Key: Name
@@ -96,9 +93,9 @@ Resources:
           docker run -d \
             --restart=always \
             --name medsafe-database-service \
-            -p ${Port}:${Port} \
+            -p ${ApiPort}:${ApiPort} \
             -e NODE_ENV=${NodeEnv} \
-            -e PORT=${Port} \
+            -e PORT=${ApiPort} \
             -e SERVICE_NAME=${ServiceName} \
             -e FRONT_URL=${FrontUrl} \
             -e CORS_ORIGINS=${CorsOrigins} \
