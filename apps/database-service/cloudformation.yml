@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MedSafe Database Service Stack Deployment (EC2 + EIP + Docker)
+Description: MedSafe Database Service Stack Deployment (EC2 + EIP + Docker + CloudWatch Logs)
 
 Parameters:
   ApiPort:
@@ -83,13 +83,24 @@ Resources:
           #!/bin/bash
           set -e
           sleep 5
+
+          # Instalar Docker
           sudo apt update -y
-          sudo apt install -y docker.io
+          sudo apt install -y docker.io awscli
           sudo systemctl enable docker
           sudo systemctl start docker
+
+          # Criar grupo de logs no CloudWatch
+          aws logs create-log-group --log-group-name /medsafe/database-service || true
+
+          # Pull da imagem
           sudo docker pull devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
+
+          # Stop & remove container antigo
           sudo docker stop medsafe-database-service || true
           sudo docker rm medsafe-database-service || true
+
+          # Rodar container com logs no CloudWatch
           sudo docker run -d --restart=always --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
             -e NODE_ENV=${NodeEnv} \
             -e PORT=${ApiPort} \
@@ -99,6 +110,10 @@ Resources:
             -e DB_CONNECTION_STRING=${DBConnectionString} \
             -e JWT_SECRET=${JWTSecret} \
             -e DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=${XAuthServiceApiKey} \
+            --log-driver=awslogs \
+            --log-opt awslogs-group=/medsafe/database-service \
+            --log-opt awslogs-region=sa-east-1 \
+            --log-opt awslogs-stream=container \
             devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
 
   # Elastic IP
