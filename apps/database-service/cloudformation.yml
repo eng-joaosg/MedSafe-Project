@@ -54,27 +54,12 @@ Resources:
           ToPort: 22
           CidrIp: 177.16.162.33/32
 
-  # IAM Role
-  DatabaseServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: MedSafe-DatabaseService
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ec2.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-
-  # IAM Instance Profile
+  # IAM Instance Profile (referencia role já existente)
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - !Ref DatabaseServiceRole
+        - MedSafe-DatabaseService
 
   # CloudWatch Log Group
   DatabaseServiceLogGroup:
