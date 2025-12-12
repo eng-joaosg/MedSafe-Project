@@ -3,6 +3,7 @@ import { TransformableInfo } from 'logform';
 import { RequestContextService } from './request-context/context-context.service';
 
 const { combine, timestamp, printf, colorize } = format;
+const logFilePath = '/var/log/medsafe-database-service.log';
 
 const loggerInstance: Logger = createLogger({
   level: 'info',
@@ -16,7 +17,7 @@ const loggerInstance: Logger = createLogger({
       return `[${ts}] ${level}: ${msg}`;
     }),
   ),
-  transports: [new transports.Console()],
+  transports: [new transports.Console(), new transports.File({ filename: logFilePath, level: 'info' })],
 });
 
 function safeString(error: unknown): string {
