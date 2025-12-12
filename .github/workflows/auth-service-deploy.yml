@@ -1,0 +1,87 @@
+name: Deploy Auth Service
+
+on:
+  push:
+    branches:
+      - Auth-Service-PROD
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout do repositório
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2. Setup Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      # 3. Instalação das dependências
+      - name: Install dependencies
+        working-directory: apps/auth-service
+        run: npm ci
+
+      # 4. Rodar testes
+      - name: Run tests
+        working-directory: apps/auth-service
+        run: npm test
+
+      # 5. Build Auth Service
+      - name: Build Auth Service
+        working-directory: apps/auth-service
+        run: npm run build
+
+      # 6. Preparar pacote Lambda
+      - name: Prepare Lambda package
+        working-directory: apps/auth-service
+        run: |
+          mkdir -p lambda-package
+          cp -r dist lambda-package/
+          cp package.json lambda-package/
+          cp -r node_modules lambda-package/
+
+      # 7. Zip Lambda code
+      - name: Zip Lambda code
+        working-directory: apps/auth-service/lambda-package
+        run: zip -r ../auth-service.zip .
+
+      # 8. Configurar credenciais AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: sa-east-1
+
+      # 9. Upload ZIP para o S3
+      - name: Upload ZIP to S3
+        working-directory: apps/auth-service
+        run: aws s3 cp auth-service.zip s3://medsafe-deploy-bucket/auth-service-${{ github.sha }}.zip
+
+      # 10. Deploy CloudFormation Stack
+      - name: Deploy CloudFormation Stack
+        working-directory: apps/auth-service
+        run: |
+          aws cloudformation deploy \
+            --template-file template.yml \
+            --stack-name MedSafe-Auth-Stack \
+            --capabilities CAPABILITY_IAM \
+            --parameter-overrides \
+              DeploymentBucket=medsafe-deploy-bucket \
+              S3Key=auth-service-${{ github.sha }}.zip \
+              DatabaseServiceApiKey=${{ secrets.DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY }} \
+              JwtSecret=${{ secrets.JWT_SECRET }} \
+              AuthServiceApiKey=${{ secrets.AUTH_SERVICE_API_KEY }} \
+            --no-fail-on-empty-changeset
+
+      # 11. Debug CloudFormation failure
+      - name: Debug CloudFormation failure
+        if: failure()
+        run: |
+          aws cloudformation describe-stack-events \
+            --stack-name MedSafe-Auth-Stack \
+            --max-items 20
