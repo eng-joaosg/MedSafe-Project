@@ -62,7 +62,7 @@ Resources:
           HASH_SALT_ROUNDS: 10
           AUTH_SERVICE_API_KEY: !Ref AuthServiceApiKey
           CORS_ALLOWED_ORIGINS: http://177.16.162.33
-          SqsQueueUrl: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
+          SQS_QUEUE_URL: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
 
 Outputs:
   AuthLambdaArn:
