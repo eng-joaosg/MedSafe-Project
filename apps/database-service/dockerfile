@@ -19,5 +19,5 @@ ENV NODE_ENV=production
 EXPOSE 5000
 
 # Comando de inicialização da aplicação
-CMD ["npm", "run", "start:prod"]
+CMD ["node", "dist/main"]
 
