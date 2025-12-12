@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Auth Service Stack
+
+Parameters:
+  DeploymentBucket:
+    Type: String
+    Default: medsafe-deploy-bucket
+  S3Key:
+    Type: String
+    Default: auth-service-latest.zip
+
+  DBServiceUrl:
+    Type: String
+    Default: http://database-service:5000
+  DatabaseServiceApiKey:
+    Type: String
+    Default: my-database-service-api-key
+  JwtSecret:
+    Type: String
+    Default: my-jwt-secret
+  AuthServiceApiKey:
+    Type: String
+    Default: my-auth-service-api-key
+  CORSAllowedOrigins:
+    Type: String
+    Default: http://localhost:3000
+  AwsAccessKey:
+    Type: String
+    Default: YOUR_AWS_ACCESS_KEY
+    NoEcho: true
+  AwsSecretKey:
+    Type: String
+    Default: YOUR_AWS_SECRET_KEY
+    NoEcho: true
+  SqsQueueUrl:
+    Type: String
+    Default: https://sqs.sa-east-1.amazonaws.com/123456789012/medsafe-auth-to-notification
+
+Resources:
+
+  AuthLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: medsafe-auth-service
+      Handler: dist/lambda.handler
+      Runtime: nodejs22.x
+      Role: arn:aws:iam::326993352985:role/MedSafe-AuthService
+      MemorySize: 128
+      Timeout: 20
+      EphemeralStorage:
+        Size: 512
+      Code:
+        S3Bucket: !Ref DeploymentBucket
+        S3Key: !Ref S3Key
+      Environment:
+        Variables:
+          NODE_ENV: production
+          SERVICE_NAME: auth-service
+          DATABASE_SERVICE_URL: ec2-56-125-238-63.sa-east-1.compute.amazonaws.com
+          DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY: !Ref DatabaseServiceApiKey
+          JWT_SECRET: !Ref JwtSecret
+          HASH_SALT_ROUNDS: 10
+          AUTH_SERVICE_API_KEY: !Ref AuthServiceApiKey
+          CORS_ALLOWED_ORIGINS: http://177.16.162.33
+          SqsQueueUrl: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
+
+Outputs:
+  AuthLambdaArn:
+    Description: "ARN da Lambda Auth Service"
+    Value: !GetAtt AuthLambda.Arn

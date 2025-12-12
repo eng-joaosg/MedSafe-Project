@@ -126,7 +126,7 @@ export class ClinicalInfoController {
 
     const publicCode: string = clinicalInfo.publicCode;
 
-    const qrUrl: string = `${this.configService.get('FRONT_URL')}/public-access/id=${publicCode}`;
+    const qrUrl: string = `${this.configService.get('FRONT_URL')}/public-access/${clinicalInfoId}`;
 
     const pdfBuffer: Buffer = await this.clinicalInfoService.generatePublicQrPdf(qrUrl, publicCode);
 

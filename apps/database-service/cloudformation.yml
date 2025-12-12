@@ -1,58 +1,124 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MedSafe Database Service Deployment
+Description: MedSafe Database Service Stack Deployment (EC2 + EIP + Docker)
 
 Parameters:
-  DockerImageTag:
-    Type: String
   ApiPort:
     Type: Number
-    Default: 3002
-  DbConnectionString:
+    Default: 5000
+  NodeEnv:
+    Type: String
+    Default: production
+  ServiceName:
+    Type: String
+    Default: database-service
+  FrontUrl:
+    Type: String
+    Default: http://177.16.162.33
+  CorsOrigins:
+    Type: String
+    Default: http://177.16.162.33
+  EC2KeyPair:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: medsafe-prod-key
+  VpcId:
+    Type: String
+    Default: vpc-0d3b446d45264fea7
+  SubnetId:
+    Type: String
+    Default: subnet-0ac4c6abfbd794fdf
+  IAMRoleName:
+    Type: String
+    Default: MedSafe-DatabaseService
+  DBConnectionString:
+    Type: String
+    NoEcho: true
+  JWTSecret:
+    Type: String
+    NoEcho: true
+  XAuthServiceApiKey:
     Type: String
     NoEcho: true
 
 Resources:
+
+  # Security Group
   DatabaseServiceSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Security group for MedSafe Database API
+      GroupDescription: Security group for MedSafe Database Service API
+      VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: !Ref ApiPort
           ToPort: !Ref ApiPort
-          CidrIp: 0.0.0.0/0
+          CidrIp: 177.16.162.33/32
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 177.16.162.33/32
 
-  DatabaseServiceEC2:
+  # IAM Instance Profile
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref IAMRoleName
+
+  # EC2 Instance
+  DatabaseServiceEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t3.micro
-      ImageId: ami-0a5b3df1cd80ab831
+      KeyName: !Ref EC2KeyPair
+      SubnetId: !Ref SubnetId
       SecurityGroupIds:
         - !Ref DatabaseServiceSG
+      ImageId: ami-077aec33f15de0896
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      Tags:
+        - Key: Name
+          Value: medsafe-database-service
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          dnf update -y
-          dnf install -y docker
-          systemctl enable docker
-          systemctl start docker
+          set -e
+          sleep 5
+          sudo apt update -y
+          sudo apt install -y docker.io
+          sudo systemctl enable docker
+          sudo systemctl start docker
+          sudo docker pull devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
+          sudo docker stop medsafe-database-service || true
+          sudo docker rm medsafe-database-service || true
+          sudo docker run -d --restart=always --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
+            -e NODE_ENV=${NodeEnv} \
+            -e PORT=${ApiPort} \
+            -e SERVICE_NAME=${ServiceName} \
+            -e FRONT_URL=${FrontUrl} \
+            -e CORS_ORIGINS=${CorsOrigins} \
+            -e DB_CONNECTION_STRING=${DBConnectionString} \
+            -e JWT_SECRET=${JWTSecret} \
+            -e DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=${XAuthServiceApiKey} \
+            devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
 
-          # Pull da imagem
-          docker pull devjoaosg/medsafe-database-service:${DockerImageTag}
+  # Elastic IP
+  DatabaseServiceEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
 
-          # Remover container anterior
-          docker stop medsafe-database-service || true
-          docker rm medsafe-database-service || true
-
-          # Rodar container
-          docker run -d \
-            --restart=always \
-            --name medsafe-database-service \
-            -p ${ApiPort}:${ApiPort} \
-            -e DB_CONNECTION_STRING="${DbConnectionString}" \
-            devjoaosg/medsafe-database-service:${DockerImageTag}
+  # EIP Association
+  DatabaseServiceEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref DatabaseServiceEC2Instance
+      AllocationId: eipalloc-0c95ae1750ad0954d
 
 Outputs:
-  PublicIP:
-    Description: Public IP of the API instance
-    Value: !GetAtt DatabaseServiceEC2.PublicIp
+  SecurityGroupId:
+    Description: ID do Security Group
+    Value: !Ref DatabaseServiceSG
+
+  EC2PublicIP:
+    Description: IP público fixo da EC2
+    Value: !Ref DatabaseServiceEIP

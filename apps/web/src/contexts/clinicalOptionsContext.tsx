@@ -87,15 +87,22 @@ export function useClinicalOptions() {
 
 export function ClinicalOptionsProvider({ children }: { children: ReactNode }) {
   const [options, setOptions] = useState<ClinicalOptions>(defaultOptions);
+  const [isMounted, setIsMounted] = useState(false); // Adicionado para hidratação
 
   // ------------------------------------------------------
   // CARREGA DO SESSION STORAGE NA PRIMEIRA RENDERIZAÇÃO
   // ------------------------------------------------------
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+        setIsMounted(true); // Se fosse SSR, forçamos a montagem
+        return;
+    }
 
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+    if (!raw) {
+        setIsMounted(true); // Termina a hidratação se estiver vazio
+        return;
+    }
 
     try {
       const parsed = JSON.parse(raw);
@@ -104,13 +111,14 @@ export function ClinicalOptionsProvider({ children }: { children: ReactNode }) {
       // Expirou?
       if (Date.now() > expiresAt) {
         sessionStorage.removeItem(STORAGE_KEY);
-        return;
+      } else {
+        // Carrega as opções válidas
+        setOptions(savedOptions);
       }
-
-      // Carrega as opções válidas
-      setOptions(savedOptions);
     } catch (e) {
       console.error('Erro ao ler ClinicalOptions do sessionStorage:', e);
+    } finally {
+        setIsMounted(true); // Garante que children será renderizado após a tentativa de load
     }
   }, []);
 
@@ -235,7 +243,7 @@ export function ClinicalOptionsProvider({ children }: { children: ReactNode }) {
         resetAll,
       }}
     >
-      {children}
+      {isMounted ? children : null} {/* Renderização condicional para hidratação */}
     </ClinicalOptionsContext.Provider>
   );
 }

@@ -296,23 +296,31 @@ export const handler = async (event: LambdaEvent) => {
           const handlerInstance = appContext.get(AssociateClinicalInfoHandler);
           const authPayload = await validateAuth(headers);
           const userId = authPayload.sub;
+
           const clinicalInfoId = event.queryStringParameters?.clinicalInfoId as string;
 
-          body = await withTimeout(handlerInstance.execute(userId.toString(), clinicalInfoId), 10000);
+          // Agora o handler deve retornar SessionDto
+          const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), clinicalInfoId), 10000);
+
+          if (!session?.accessToken?.accessToken) {
+            throw new AppException('Falha ao atualizar o token após associar informações clínicas', 500);
+          }
+
+          const { accessToken, ...sessionWithoutToken } = session;
+
           logDuration(start, event.resource);
-          return lambdaResponse(body);
+
+          return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
         }
 
         // ================= PUBLIC ACCESS ALERT =================
         case '/public/clinical-info-access-alert': {
           const handlerInstance = appContext.get(PublicAccessAlertHandler);
-          const payload: { id: string } = event.body ? JSON.parse(event.body) : { id: '' };
-
-          if (!payload.id) {
+          const id = event.queryStringParameters?.id;
+          if (!id) {
             throw new AppException('ID não fornecido', 400);
           }
-
-          body = await withTimeout(handlerInstance.execute(payload.id), 10000);
+          body = await withTimeout(handlerInstance.execute(id), 10000);
 
           logDuration(start, event.resource);
           return lambdaResponse(body);

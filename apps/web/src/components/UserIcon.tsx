@@ -18,9 +18,15 @@ export default function UserIcon({ className = '', onClick }: UserIconProps) {
   const { resetAll: resetAllClinicalOptions } = useClinicalOptions();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false); // <--- chave
   const tooltipRef = useRef<HTMLDivElement>(null);
+
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    setHydrated(true); // Só consideramos cliente depois da montagem
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -32,21 +38,19 @@ export default function UserIcon({ className = '', onClick }: UserIconProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  if (!hydrated) return null; // <--- Não renderiza nada no SSR
+
   const handleLogout = async () => {
     try {
       await logout();
     } catch (err) {
       console.error('Erro ao fazer logout:', err);
     } finally {
-      // Limpar usuário
       clearUser();
       setLoggedOut(true);
-
-      // Limpar contextos clínicos
       setClinicalInfo(null);
       resetAllClinicalOptions();
 
-      // Limpar sessionStorage e localStorage
       if (typeof window !== 'undefined') {
         sessionStorage.clear();
         localStorage.clear();

@@ -13,7 +13,7 @@ export class IdempotencyStore implements IIdempotencyStore {
     private readonly configService: ConfigService,
     private readonly clientOverride?: DynamoDBClient,
   ) {
-    this.isDev = this.configService.get<string>('NODE_ENV') === 'DEV';
+    this.isDev = this.configService.get<string>('NODE_ENV') === 'development';
     this.tableName = tableName?.trim() || '';
 
     if (!this.tableName) {

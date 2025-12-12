@@ -1,11 +1,18 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  private readonly jwtSecret: string;
+
+  constructor(private readonly jwtService: JwtService) {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET não definido no ambiente');
+    }
+    this.jwtSecret = secret;
+  }
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
@@ -19,20 +26,19 @@ export class JwtAuthGuard implements CanActivate {
     } else if (request.headers.cookie) {
       const cookieEntries = request.headers.cookie.split(';').map((c) => c.trim());
       const match = cookieEntries.find((c) => c.startsWith('auth_token='));
-      if (match) {
-        token = match.split('=')[1];
-      }
+      if (match) token = match.split('=')[1];
     }
+
     if (!token) {
       throw new UnauthorizedException('Usuário não autenticado: token ausente');
     }
-    let payload: any;
+
     try {
-      payload = this.jwtService.verify(token);
-    } catch (error) {
+      const payload = this.jwtService.verify(token, { secret: this.jwtSecret });
+      (request as any).user = payload;
+    } catch {
       throw new UnauthorizedException('Token inválido ou expirado');
     }
-    (request as any).user = payload;
 
     return true;
   }

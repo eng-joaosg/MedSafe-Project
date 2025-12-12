@@ -91,7 +91,6 @@ export class ClinicalInfoService implements IClinicalInfoService {
     const codeFontSize = 10;
     doc.fontSize(codeFontSize).text(`Código de acesso: ${publicCode}`, { align: 'center' });
 
-    // Texto adicional afastado do código de acesso
     const spacingAfterCode = 10; // distância em pontos
     doc.y += spacingAfterCode;
     doc.fontSize(12).text('Recorte e coloque em seu crachá, ou onde desejar.', { align: 'center' });

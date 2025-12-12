@@ -8,17 +8,11 @@ export default (configService: ConfigService): Knex.Config => {
 
   const safeMessage = (msg: unknown): string | object =>
     typeof msg === 'string' || (typeof msg === 'object' && msg !== null) ? msg : String(msg);
+  const dbConnectionString = process.env.DB_CONNECTION_STRING || configService.get<string>('DB_CONNECTION_STRING')!;
 
   return {
     client: 'pg',
-    connection: {
-      host: configService.get<string>('DB_HOST', 'localhost'),
-      port: Number(configService.get<string>('DB_PORT', '5432')),
-      user: configService.get<string>('DB_USERNAME', 'postgres'),
-      password: configService.get<string>('DB_PASSWORD', 'postgres'),
-      database: configService.get<string>('DB_NAME', 'medsafe'),
-      ssl: isProduction ? { rejectUnauthorized: false } : false,
-    },
+    connection: isProduction ? { connectionString: dbConnectionString, ssl: { rejectUnauthorized: false } } : dbConnectionString,
     pool: {
       min: 2,
       max: 10,
@@ -28,9 +22,7 @@ export default (configService: ConfigService): Knex.Config => {
       warn: (message: unknown) => CommonLogger.warn(serviceName, 'DB_WARN', safeMessage(message)),
       deprecate: (message: unknown) => CommonLogger.warn(serviceName, 'DB_DEPRECATED', safeMessage(message)),
       debug: (message: unknown) => {
-        if (!isProduction) {
-          CommonLogger.info(serviceName, 'DB_DEBUG', safeMessage(message));
-        }
+        if (!isProduction) CommonLogger.info(serviceName, 'DB_DEBUG', safeMessage(message));
       },
     },
   };

@@ -3,7 +3,7 @@ import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import { handler } from './lambda';
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 4000;
 
 // Interface para tipar o resultado da Lambda
 interface LambdaResult {

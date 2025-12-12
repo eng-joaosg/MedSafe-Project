@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ApiKeyGuardBase } from './api-key-base.guard';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ApiKeyGuardForAuthService extends ApiKeyGuardBase {
-  constructor(configService: ConfigService) {
-    super(configService, 'DATABSE_SERVICE_X_AUTH_SERVICE_API_KEY');
+  constructor() {
+    super('DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY');
   }
 }

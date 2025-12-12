@@ -17,7 +17,6 @@ export class DeleteClientUserUseCase implements IDeleteClientUserUseCase {
   async execute(id: string, password: string): Promise<void> {
     const user = await this.repository.getById(id);
     if (!user) throw new UnauthorizedException('Usuário não autorizado.');
-
     const passwordHash = user.getPasswordHash();
     const authenticated = await this.hashService.compare(password, passwordHash);
     if (!authenticated) throw new InvalidPasswordException();

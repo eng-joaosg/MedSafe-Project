@@ -18,19 +18,34 @@ export default function PublicAccessPage() {
   const [message, setMessage] = useState('');
 
   async function handleVerify() {
-    if (!code.trim()) {
-      setMessage("Digite o código de acesso.");
+    if (code.length !== 6) {
+      setMessage('O código deve ter exatamente 6 dígitos.');
       return;
     }
 
     setLoading(true);
-    setMessage("");
+    setMessage('');
 
     try {
       const res = await getPublicData(id, code);
+      if ((res as any)?.statusCode && (res as any)?.message) {
+        switch ((res as any).statusCode) {
+          case 404:
+            throw new Error('Usuário inválido.');
+          case 401:
+            throw new Error('Código incorreto.');
+          default:
+            throw new Error((res as any).message || 'Erro ao buscar dados.');
+        }
+      }
+      if (!res.firstName && !res.lastName && !res.bloodType) {
+        throw new Error('Código incorreto.');
+      }
+
       setData(res);
     } catch (err: any) {
-      setMessage(err.message || "Código incorreto ou erro ao carregar dados.");
+      setMessage(err.message || 'Código inválido.');
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -48,18 +63,17 @@ export default function PublicAccessPage() {
       const today = new Date();
       let age = today.getFullYear() - birthDate.getFullYear();
       const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
       return age.toString();
     };
 
     const age = calculateAge(dateOfBirth);
-
-    // Filtra dados vazios
-    const validContacts: Contact[] = data.contacts?.filter(c => c.firstName || c.lastName) || [];
-    const validDiseases: string[] = data.diseases?.filter(d => d?.trim()) || [];
-    const validMedications: Medication[] = data.medications?.filter(m => m.name && m.dosage && m.usageInterval) || [];
-    const validAllergies: Allergy[] = data.allergies?.filter(a => a.name && a.severity) || [];
-    const validSurgeries: string[] = data.surgeries?.filter(s => s?.trim()) || [];
+    const validContacts: Contact[] = data.contacts?.filter((c) => c.firstName || c.lastName) || [];
+    const validDiseases: string[] = data.diseases?.filter((d) => d?.trim()) || [];
+    const validMedications: Medication[] =
+      data.medications?.filter((m) => m.name && m.dosage && m.usageInterval) || [];
+    const validAllergies: Allergy[] = data.allergies?.filter((a) => a.name && a.severity) || [];
+    const validSurgeries: string[] = data.surgeries?.filter((s) => s?.trim()) || [];
 
     return (
       <div className="w-full flex flex-col items-center mx-auto pt-10 md:max-w-lg">
@@ -83,9 +97,13 @@ export default function PublicAccessPage() {
         {validContacts.map((contact, idx) => {
           const contactLines = [
             `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || '-',
-            `Parentesco: ${contact.relationship || '-'} - Telefone: (${contact.ddd || '-'}) ${contact.phone || '-'}`,
+            `Parentesco: ${contact.relationship || '-'} - Telefone: (${contact.ddd || '-'}) ${
+              contact.phone || '-'
+            }`,
           ];
-          return <OneColumnTable key={idx} fieldName="Contato de Emergência" lines={contactLines} />;
+          return (
+            <OneColumnTable key={idx} fieldName="Contato de Emergência" lines={contactLines} />
+          );
         })}
 
         {validDiseases.length > 0 && (
@@ -95,14 +113,14 @@ export default function PublicAccessPage() {
         {validMedications.length > 0 && (
           <OneColumnTable
             fieldName="Medicamentos"
-            lines={validMedications.map(m => `${m.name}: ${m.dosage}mg c/${m.usageInterval}hrs`)}
+            lines={validMedications.map((m) => `${m.name}: ${m.dosage}mg c/${m.usageInterval}hrs`)}
           />
         )}
 
         {validAllergies.length > 0 && (
           <OneColumnTable
             fieldName="Alergias"
-            lines={validAllergies.map(a => `${a.name} - ${a.severity}`)}
+            lines={validAllergies.map((a) => `${a.name} - ${a.severity}`)}
           />
         )}
 
@@ -126,12 +144,14 @@ export default function PublicAccessPage() {
       <div className="w-full max-w-md space-y-4">
         <Input fieldName="Código de acesso" value={code} onChange={setCode} maxLength={6} />
         {message && <p className="text-error text-center">{message}</p>}
-        <ConfirmButton
-          onClick={handleVerify}
-          label="Verificar"
-          loading={loading}
-          disabled={loading || !code.trim()}
-        />
+        <div className="flex flex-col items-end pr-8">
+          <ConfirmButton
+            onClick={handleVerify}
+            label="Confirmar"
+            loading={loading}
+            disabled={loading || code.length !== 6}
+          />
+        </div>
       </div>
     </div>
   );

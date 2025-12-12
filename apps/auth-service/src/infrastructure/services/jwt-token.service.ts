@@ -8,7 +8,7 @@ import { UserRole } from '../../common/enums/user-role.enum';
 
 @Injectable()
 export class JwtTokenService implements ITokenService {
-  private readonly secrets: Record<UserRole, string>;
+  private readonly secret: string;
   private readonly clientExpiresInSeconds = 3600;
   private readonly publicExpiresInSeconds = 900;
 
@@ -16,36 +16,27 @@ export class JwtTokenService implements ITokenService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
-    const adminSecret = this.configService.get<string>('JWT_ADMIN_SECRET');
-    const clientSecret = this.configService.get<string>('JWT_CLIENT_SECRET');
-    const publicSecret = this.configService.get<string>('JWT_PUBLIC_SECRET');
+    const secret = this.configService.get<string>('JWT_SECRET');
 
-    if (!adminSecret || !clientSecret || !publicSecret) {
+    if (!secret) {
       throw new ConfigurationException('JWT_TOKEN_SERVICE');
     }
 
-    this.secrets = {
-      [UserRole.ADMIN]: adminSecret,
-      [UserRole.CLIENT]: clientSecret,
-      [UserRole.PUBLIC]: publicSecret,
-    };
+    this.secret = secret;
   }
 
   public async generateClientUserAuthToken(user: ClientUser): Promise<AuthTokenOutput> {
-    const role: UserRole = user.getRole();
-    const secret = this.secrets[UserRole.CLIENT];
-
     const payload: TokenPayload = {
       sub: user.getId().toString(),
       email: user.getEmail(),
       clinicalInfo: user.getClinicalInfoId(),
-      role,
+      role: user.getRole(),
       firstName: user.getFirstName(),
       iat: Date.now(),
       expiresIn: this.clientExpiresInSeconds,
     };
 
-    const accessToken = await this.jwtService.signAsync(payload, { secret });
+    const accessToken = await this.jwtService.signAsync(payload, { secret: this.secret });
 
     return {
       accessToken,
@@ -54,8 +45,6 @@ export class JwtTokenService implements ITokenService {
   }
 
   public async generatePublicAccessToken(recordId: string): Promise<AuthTokenOutput> {
-    const secret = this.secrets[UserRole.PUBLIC];
-
     const payload: TokenPayload = {
       sub: recordId,
       firstName: null,
@@ -66,7 +55,7 @@ export class JwtTokenService implements ITokenService {
       expiresIn: this.publicExpiresInSeconds,
     };
 
-    const accessToken = await this.jwtService.signAsync(payload, { secret });
+    const accessToken = await this.jwtService.signAsync(payload, { secret: this.secret });
 
     return {
       accessToken,
@@ -75,17 +64,10 @@ export class JwtTokenService implements ITokenService {
   }
 
   public async verifyToken(token: string): Promise<TokenPayload> {
-    const secrets = Object.values(this.secrets);
-
-    for (const secret of secrets) {
-      try {
-        const payload = await this.jwtService.verifyAsync<TokenPayload>(token, { secret });
-        return payload;
-      } catch {
-        // Continua tentando com outros secrets
-      }
+    try {
+      return await this.jwtService.verifyAsync<TokenPayload>(token, { secret: this.secret });
+    } catch {
+      throw new UnauthorizedException('Token inválido ou expirado');
     }
-
-    throw new UnauthorizedException('Token inválido ou expirado');
   }
 }
