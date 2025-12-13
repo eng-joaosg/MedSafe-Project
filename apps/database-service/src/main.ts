@@ -58,15 +58,6 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter(httpAdapter));
 
   // -----------------------------
-  // Habilita CORS apenas para Swagger / localhost / IP de teste
-  // -----------------------------
-  const allowedOrigins = ['http://localhost:5000', 'http://127.0.0.1:5000', 'http://177.16.162.33/32', 'http://56.125.238.63:5000'];
-  app.enableCors({
-    origin: allowedOrigins,
-    credentials: true,
-  });
-
-  // -----------------------------
   // Swagger (DOCUMENTAÇÃO APENAS)
   // -----------------------------
   const swaggerConfig = new DocumentBuilder()

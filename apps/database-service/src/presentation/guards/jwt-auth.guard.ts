@@ -1,4 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config/dist/config.service';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 
@@ -6,8 +7,11 @@ import type { Request } from 'express';
 export class JwtAuthGuard implements CanActivate {
   private readonly jwtSecret: string;
 
-  constructor(private readonly jwtService: JwtService) {
-    const secret = process.env.JWT_SECRET;
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {
+    const secret = this.configService.get<string>('JWT_SECRET');
     if (!secret) {
       throw new Error('JWT_SECRET não definido no ambiente');
     }
