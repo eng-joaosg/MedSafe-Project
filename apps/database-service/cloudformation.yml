@@ -72,12 +72,12 @@ Resources:
   DatabaseServiceEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: t3.small
+      InstanceType: t3.micro
       KeyName: !Ref EC2KeyPair
       SubnetId: !Ref SubnetId
       SecurityGroupIds:
         - !Ref DatabaseServiceSG
-      ImageId: ami-077aec33f15de0896
+      ImageId: ami-0bde73fd629657a59
       IamInstanceProfile: !Ref EC2InstanceProfile
       Tags:
         - Key: Name
