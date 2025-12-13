@@ -61,6 +61,11 @@ async function bootstrap() {
     .setTitle('MedSafe - Database Service API')
     .setDescription('API de acesso a banco do Sistema MedSafe.')
     .setVersion(apiVersion)
+    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'api-key')
+    .addCookieAuth('jwt-token', {
+      type: 'apiKey',
+      in: 'cookie',
+    })
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
