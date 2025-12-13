@@ -58,6 +58,15 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter(httpAdapter));
 
   // -----------------------------
+  // Habilita CORS apenas para Swagger / localhost / IP de teste
+  // -----------------------------
+  const allowedOrigins = ['http://localhost:5000', 'http://127.0.0.1:5000', 'http://177.16.162.33/32'];
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+  });
+
+  // -----------------------------
   // Swagger (DOCUMENTAÇÃO APENAS)
   // -----------------------------
   const swaggerConfig = new DocumentBuilder()
@@ -69,9 +78,7 @@ async function bootstrap() {
         '- Rotas privadas: protegidas por JWT em cookie HttpOnly.',
     )
     .setVersion(apiVersion)
-    // API Key usada APENAS em rotas internas (service-to-service)
     .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'api-key')
-    // JWT em cookie HttpOnly (não testável no Swagger, apenas documentado)
     .addCookieAuth('auth_token', {
       type: 'apiKey',
       in: 'cookie',
