@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MedSafe Database Service Stack Deployment (EC2 + EIP + Docker + CloudWatch Logs)
+Description: MedSafe Database Service Stack Deployment (EC2 + EIP + Docker + CloudWatch Logs + Script de Atualização)
 
 Parameters:
   ApiPort:
@@ -86,20 +86,22 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           set -e
+
+          # Instala Docker
           sudo apt update -y
           sudo apt install -y docker.io
           sudo systemctl enable docker
           sudo systemctl start docker
 
-          # Pull da imagem
-          sudo docker pull devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
-
-          # Stop & remove container antigo
-          sudo docker stop medsafe-database-service || true
-          sudo docker rm medsafe-database-service || true
-
-          # Rodar container com logs no CloudWatch
-          sudo docker run -d --restart=always --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
+          # Script de atualização do container
+          cat <<'EOF' > /home/ubuntu/update-container.sh
+          #!/bin/bash
+          set -e
+          echo "Atualizando container MedSafe Database Service..."
+          docker pull devjoaosg/medsafe-database-service:latest
+          docker stop medsafe-database-service || true
+          docker rm medsafe-database-service || true
+          docker run -d --restart=always --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
             -e NODE_ENV=${NodeEnv} \
             -e PORT=${ApiPort} \
             -e SERVICE_NAME=${ServiceName} \
@@ -111,8 +113,14 @@ Resources:
             --log-driver=awslogs \
             --log-opt awslogs-group=/medsafe/database-service \
             --log-opt awslogs-region=sa-east-1 \
-            --log-opt awslogs-stream=${AWS::StackName}-${AWS::Region} \
-            devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
+            --log-opt awslogs-stream=database-service \
+            devjoaosg/medsafe-database-service:latest
+          EOF
+
+          chmod +x /home/ubuntu/update-container.sh
+
+          # Rodar pela primeira vez
+          /home/ubuntu/update-container.sh
 
   # Elastic IP
   DatabaseServiceEIP:
