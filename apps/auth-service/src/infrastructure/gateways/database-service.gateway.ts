@@ -7,7 +7,6 @@ import { ConfigurationException } from '../../common/exceptions/app.exception';
 import { ClientUserDbtDto } from '../../application/dtos/client-user/client-user-db.dto';
 import { RequestContextService } from '../../common/request-context/request-context.service';
 import { IDatabaseGateway } from '../contracts/i-database-service.gateway';
-import { CommonLogger } from '../../common/logger/common.logger';
 
 @Injectable()
 export class DatabaseGateway implements IDatabaseGateway {
@@ -72,14 +71,12 @@ export class DatabaseGateway implements IDatabaseGateway {
 
   public async findEmail(email: string): Promise<boolean> {
     const url = this.urls.clientUser.findEmail(email);
-    CommonLogger.info('AUTH-SERVICE', 'FIND-EMAIL', `Buscando email no database-service ${email}. Urd: ${url}.`);
     const observable$: Observable<boolean> = this.httpService.get(url, { headers: this.headers }).pipe(map((res) => res.data));
     return await lastValueFrom(observable$);
   }
 
   public async deleteClientUser(id: string): Promise<void> {
     if (!id) throw new Error('ID do usuário é obrigatório para exclusão.');
-
     const url = this.urls.clientUser.delete(id);
     const observable$: Observable<void> = this.httpService.delete(url, { headers: this.headers }).pipe(map(() => undefined));
     return await lastValueFrom(observable$);
