@@ -149,7 +149,7 @@ export const handler = async (event: LambdaEvent) => {
           if (!event.body) throw new AppException('Payload não fornecido', 400);
           const payload: LoginClientUserPayload = JSON.parse(event.body);
 
-          const session: SessionDto | null = await withTimeout(handlerInstance.execute(payload), 10000);
+          const session: SessionDto | null = await withTimeout(handlerInstance.execute(payload), 30000);
 
           if (!session) {
             throw new AppException('AuthService não retornou body no login', 500);
@@ -179,7 +179,7 @@ export const handler = async (event: LambdaEvent) => {
           const role = authPayload.role;
           const handlerInstance = appContext.get(RefreshTokenHandler);
 
-          const session: SessionDto = await withTimeout(handlerInstance.execute(userId, role), 10000);
+          const session: SessionDto = await withTimeout(handlerInstance.execute(userId, role), 30000);
           const { accessToken, ...sessionWithoutToken } = session;
 
           logDuration(start, event.resource);
@@ -193,7 +193,7 @@ export const handler = async (event: LambdaEvent) => {
           const userId = authPayload.sub;
           const parsedBody: { password: string } = event.body ? JSON.parse(event.body) : {};
           const password = parsedBody.password;
-          await withTimeout(handlerInstance.execute(userId.toString(), password), 10000);
+          await withTimeout(handlerInstance.execute(userId.toString(), password), 30000);
           logDuration(start, event.resource);
           return lambdaResponseWithCookie({ message: 'Logout realizado' }, '', 0);
         }
@@ -204,7 +204,7 @@ export const handler = async (event: LambdaEvent) => {
           const parsedBody: { email: string } = event.body ? JSON.parse(event.body) : {};
           const email = parsedBody.email;
           const type = (event.queryStringParameters?.type ?? 'verify-account') as 'verify-account' | 'forgot-password';
-          await withTimeout(handlerInstance.execute(email, type), 10000);
+          await withTimeout(handlerInstance.execute(email, type), 30000);
           logDuration(start, event.resource);
           return lambdaResponse('');
         }
@@ -213,7 +213,7 @@ export const handler = async (event: LambdaEvent) => {
         case '/reset-password': {
           const handlerInstance = appContext.get(ResetPasswordHandler);
           const parsedBody: ResetPasswordDto = event.body ? JSON.parse(event.body) : {};
-          await withTimeout(handlerInstance.execute(parsedBody), 10000);
+          await withTimeout(handlerInstance.execute(parsedBody), 30000);
           logDuration(start, event.resource);
           return lambdaResponse('');
         }
@@ -225,7 +225,7 @@ export const handler = async (event: LambdaEvent) => {
           const userId = authPayload.sub;
           const parsedBody: { password: string } = event.body ? JSON.parse(event.body) : {};
           const password = parsedBody.password;
-          const result: boolean = await withTimeout(handlerInstance.execute(userId.toString(), password), 10000);
+          const result: boolean = await withTimeout(handlerInstance.execute(userId.toString(), password), 30000);
 
           logDuration(start, event.resource);
           return lambdaResponse({ verified: result });
@@ -239,7 +239,7 @@ export const handler = async (event: LambdaEvent) => {
           const newFirstName = parsedBody.newFirstName;
           const newLastName = parsedBody.newLastName;
 
-          const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), newFirstName, newLastName), 10000);
+          const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), newFirstName, newLastName), 30000);
           const { accessToken, ...sessionWithoutToken } = session;
 
           logDuration(start, event.resource);
@@ -255,7 +255,7 @@ export const handler = async (event: LambdaEvent) => {
           const password = parsedBody.password;
           const newPassword = parsedBody.newPassword;
 
-          const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), password, newPassword), 10000);
+          const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), password, newPassword), 30000);
 
           const { accessToken } = session;
 
@@ -267,7 +267,7 @@ export const handler = async (event: LambdaEvent) => {
         case '/client-user/find-email': {
           const handlerInstance = appContext.get(FindEmailClientUserHandler);
           const email = event.queryStringParameters?.email as string;
-          body = await withTimeout(handlerInstance.execute(email), 10000);
+          body = await withTimeout(handlerInstance.execute(email), 30000);
           logDuration(start, event.resource);
           return lambdaResponse(body);
         }
@@ -276,7 +276,7 @@ export const handler = async (event: LambdaEvent) => {
         case '/client-user/register': {
           const handlerInstance = appContext.get(RegisterClientUserHandler);
           const payload: RegisterClientUserPayload = event.body ? JSON.parse(event.body) : ({} as RegisterClientUserPayload);
-          body = await withTimeout(handlerInstance.execute(payload), 10000);
+          body = await withTimeout(handlerInstance.execute(payload), 30000);
           statusCode = 201;
           logDuration(start, event.resource);
           return lambdaResponse(body, statusCode);
@@ -286,7 +286,7 @@ export const handler = async (event: LambdaEvent) => {
         case '/client-user/verify-account': {
           const handlerInstance = appContext.get(VerifyAccountClientUserHandler);
           const payload: VerifyAccountClientUserPayload = event.body ? JSON.parse(event.body) : ({} as VerifyAccountClientUserPayload);
-          body = await withTimeout(handlerInstance.execute(payload), 10000);
+          body = await withTimeout(handlerInstance.execute(payload), 30000);
           logDuration(start, event.resource);
           return lambdaResponse(body);
         }
@@ -300,7 +300,7 @@ export const handler = async (event: LambdaEvent) => {
           const clinicalInfoId = event.queryStringParameters?.clinicalInfoId as string;
 
           // Agora o handler deve retornar SessionDto
-          const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), clinicalInfoId), 10000);
+          const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), clinicalInfoId), 30000);
 
           if (!session?.accessToken?.accessToken) {
             throw new AppException('Falha ao atualizar o token após associar informações clínicas', 500);
@@ -320,7 +320,7 @@ export const handler = async (event: LambdaEvent) => {
           if (!id) {
             throw new AppException('ID não fornecido', 400);
           }
-          body = await withTimeout(handlerInstance.execute(id), 10000);
+          body = await withTimeout(handlerInstance.execute(id), 30000);
 
           logDuration(start, event.resource);
           return lambdaResponse(body);
