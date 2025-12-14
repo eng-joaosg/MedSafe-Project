@@ -155,7 +155,11 @@ export const handler = async (event: LambdaEvent) => {
       let body: unknown;
       let statusCode = 200;
       const route = event.resource ?? event.rawPath ?? event.routeKey;
-
+      CommonLogger.info(
+        'AUTH-SERVICE',
+        'REQUEST_RECEIVED',
+        `Rota: ${route} | Método: ${event.httpMethod ?? event.requestContext?.http?.method}`,
+      );
       switch (route) {
         // ================= LOGIN =================
         case '/client-user/login': {
@@ -175,7 +179,7 @@ export const handler = async (event: LambdaEvent) => {
 
           const { accessToken, ...sessionWithoutToken } = session;
 
-          logDuration(start, event.resource);
+          logDuration(start, route);
 
           return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken);
         }
@@ -196,7 +200,7 @@ export const handler = async (event: LambdaEvent) => {
           const session: SessionDto = await withTimeout(handlerInstance.execute(userId, role), 10000);
           const { accessToken, ...sessionWithoutToken } = session;
 
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
         }
 
@@ -208,7 +212,7 @@ export const handler = async (event: LambdaEvent) => {
           const parsedBody: { password: string } = event.body ? JSON.parse(event.body) : {};
           const password = parsedBody.password;
           await withTimeout(handlerInstance.execute(userId.toString(), password), 10000);
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponseWithCookie({ message: 'Logout realizado' }, '', 0);
         }
 
@@ -219,7 +223,7 @@ export const handler = async (event: LambdaEvent) => {
           const email = parsedBody.email;
           const type = (event.queryStringParameters?.type ?? 'verify-account') as 'verify-account' | 'forgot-password';
           await withTimeout(handlerInstance.execute(email, type), 10000);
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponse('');
         }
 
@@ -228,7 +232,7 @@ export const handler = async (event: LambdaEvent) => {
           const handlerInstance = appContext.get(ResetPasswordHandler);
           const parsedBody: ResetPasswordDto = event.body ? JSON.parse(event.body) : {};
           await withTimeout(handlerInstance.execute(parsedBody), 10000);
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponse('');
         }
 
@@ -241,7 +245,7 @@ export const handler = async (event: LambdaEvent) => {
           const password = parsedBody.password;
           const result: boolean = await withTimeout(handlerInstance.execute(userId.toString(), password), 10000);
 
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponse({ verified: result });
         }
         // ================= CHANGE NAME =================
@@ -256,7 +260,7 @@ export const handler = async (event: LambdaEvent) => {
           const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), newFirstName, newLastName), 10000);
           const { accessToken, ...sessionWithoutToken } = session;
 
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
         }
 
@@ -273,7 +277,7 @@ export const handler = async (event: LambdaEvent) => {
 
           const { accessToken } = session;
 
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponseWithCookie(null, accessToken?.accessToken ?? '', 7200, 200);
         }
 
@@ -282,7 +286,7 @@ export const handler = async (event: LambdaEvent) => {
           const handlerInstance = appContext.get(FindEmailClientUserHandler);
           const email = event.queryStringParameters?.email as string;
           body = await withTimeout(handlerInstance.execute(email), 10000);
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponse(body);
         }
 
@@ -292,7 +296,7 @@ export const handler = async (event: LambdaEvent) => {
           const payload: RegisterClientUserPayload = event.body ? JSON.parse(event.body) : ({} as RegisterClientUserPayload);
           body = await withTimeout(handlerInstance.execute(payload), 10000);
           statusCode = 201;
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponse(body, statusCode);
         }
 
@@ -301,7 +305,7 @@ export const handler = async (event: LambdaEvent) => {
           const handlerInstance = appContext.get(VerifyAccountClientUserHandler);
           const payload: VerifyAccountClientUserPayload = event.body ? JSON.parse(event.body) : ({} as VerifyAccountClientUserPayload);
           body = await withTimeout(handlerInstance.execute(payload), 10000);
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponse(body);
         }
 
@@ -322,7 +326,7 @@ export const handler = async (event: LambdaEvent) => {
 
           const { accessToken, ...sessionWithoutToken } = session;
 
-          logDuration(start, event.resource);
+          logDuration(start, route);
 
           return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
         }
@@ -336,12 +340,12 @@ export const handler = async (event: LambdaEvent) => {
           }
           body = await withTimeout(handlerInstance.execute(id), 10000);
 
-          logDuration(start, event.resource);
+          logDuration(start, route);
           return lambdaResponse(body);
         }
 
         default:
-          throw new UnknownActionError(event.resource!);
+          throw new UnknownActionError(route ?? 'undefined');
       }
     }, initialContext);
   } catch (err: unknown) {
