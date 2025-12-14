@@ -154,8 +154,9 @@ export const handler = async (event: LambdaEvent) => {
       const start = Date.now();
       let body: unknown;
       let statusCode = 200;
+      const route = event.resource ?? event.rawPath ?? event.routeKey;
 
-      switch (event.resource) {
+      switch (route) {
         // ================= LOGIN =================
         case '/client-user/login': {
           const handlerInstance = appContext.get(LoginClientUserHandler);
