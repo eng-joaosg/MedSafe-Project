@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MedSafe Database Service Stack Deployment (EC2 + EIP + Docker)
+Description: MedSafe Database Service Stack Deployment (EC2 + EIP + Docker + CloudWatch Logs + Script de Atualização)
 
 Parameters:
   ApiPort:
@@ -26,9 +26,6 @@ Parameters:
   SubnetId:
     Type: String
     Default: subnet-0ac4c6abfbd794fdf
-  IAMRoleName:
-    Type: String
-    Default: MedSafe-DatabaseService
   DBConnectionString:
     Type: String
     NoEcho: true
@@ -62,7 +59,14 @@ Resources:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - !Ref IAMRoleName
+        - MedSafe-DatabaseService
+
+  # CloudWatch Log Group
+  DatabaseServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /medsafe/database-service
+      RetentionInDays: 30
 
   # EC2 Instance
   DatabaseServiceEC2Instance:
@@ -82,15 +86,22 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           set -e
-          sleep 5
+
+          # Instala Docker
           sudo apt update -y
           sudo apt install -y docker.io
           sudo systemctl enable docker
           sudo systemctl start docker
-          sudo docker pull devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
-          sudo docker stop medsafe-database-service || true
-          sudo docker rm medsafe-database-service || true
-          sudo docker run -d --restart=always --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
+
+          # Script de atualização do container
+          cat <<'EOF' > /home/ubuntu/update-container.sh
+          #!/bin/bash
+          set -e
+          echo "Atualizando container MedSafe Database Service..."
+          docker pull devjoaosg/medsafe-database-service:latest
+          docker stop medsafe-database-service || true
+          docker rm medsafe-database-service || true
+          docker run -d --restart=always --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
             -e NODE_ENV=${NodeEnv} \
             -e PORT=${ApiPort} \
             -e SERVICE_NAME=${ServiceName} \
@@ -99,7 +110,17 @@ Resources:
             -e DB_CONNECTION_STRING=${DBConnectionString} \
             -e JWT_SECRET=${JWTSecret} \
             -e DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY=${XAuthServiceApiKey} \
-            devjoaosg/medsafe-database-service:db5847052764a3811ac07dd06f9f395ccdeea4d9
+            --log-driver=awslogs \
+            --log-opt awslogs-group=/medsafe/database-service \
+            --log-opt awslogs-region=sa-east-1 \
+            --log-opt awslogs-stream=database-service \
+            devjoaosg/medsafe-database-service:latest
+          EOF
+
+          chmod +x /home/ubuntu/update-container.sh
+
+          # Rodar pela primeira vez
+          /home/ubuntu/update-container.sh
 
   # Elastic IP
   DatabaseServiceEIP:

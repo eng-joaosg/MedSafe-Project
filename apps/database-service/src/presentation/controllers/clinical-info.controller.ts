@@ -15,14 +15,16 @@ import {
   Res,
   Req,
 } from '@nestjs/common';
-import { ApiResponse, ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
+import { ApiResponse, ApiTags, ApiOperation, ApiBody, ApiSecurity } from '@nestjs/swagger';
 import type { IClinicalInfoService } from '../../application/contracts/i-clinical-info.service';
 import { CLINICAL_INFO_SERVICE } from '../../common/contants/tokens.contants';
 import { ClinicalInfoDto } from 'src/application/dtos/clinical-info.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
 
 @ApiTags('clinical-info')
+@ApiSecurity('jwt')
 @Controller('clinical-info')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 @UseGuards(JwtAuthGuard)
@@ -36,15 +38,15 @@ export class ClinicalInfoController {
   @Get()
   @ApiOperation({ summary: 'Busca o clinical info usando o clinicalInfoId do JWT.' })
   @ApiResponse({ status: 200, type: ClinicalInfoDto })
-  async getByToken(@Req() req: any): Promise<ClinicalInfoDto> {
-    const clinicalInfoId: string = req.user?.clinicalInfo;
+  @ApiResponse({ status: 401, description: 'Usuário não autenticado ou token inválido.' })
+  async getByToken(@Req() req: Request): Promise<ClinicalInfoDto> {
+    const clinicalInfoId: string | undefined = (req as any).user?.clinicalInfo;
 
     if (!clinicalInfoId) {
       throw new BadRequestException('Token não contém clinicalInfoId');
     }
 
-    const res = await this.clinicalInfoService.getById(clinicalInfoId);
-    return res;
+    return await this.clinicalInfoService.getById(clinicalInfoId);
   }
 
   @Get('all')
@@ -63,6 +65,7 @@ export class ClinicalInfoController {
       },
     },
   })
+  @ApiResponse({ status: 401, description: 'Usuário não autenticado ou token inválido.' })
   async getAllClinicalInfo(): Promise<{
     surgeries: string[];
     diseases: string[];
@@ -77,6 +80,7 @@ export class ClinicalInfoController {
   @ApiOperation({ summary: 'Cria um novo registro de clinical info.' })
   @ApiBody({ type: ClinicalInfoDto })
   @ApiResponse({ status: 201, type: ClinicalInfoDto })
+  @ApiResponse({ status: 401, description: 'Usuário não autenticado ou token inválido.' })
   async create(@Body() payload: ClinicalInfoDto): Promise<ClinicalInfoDto> {
     return await this.clinicalInfoService.create(payload);
   }
@@ -84,8 +88,9 @@ export class ClinicalInfoController {
   @Put()
   @ApiOperation({ summary: 'Atualiza clinical info usando o clinicalInfoId do JWT.' })
   @ApiResponse({ status: 200, type: ClinicalInfoDto })
-  async updateByToken(@Req() req: any, @Body() partial: Partial<ClinicalInfoDto>): Promise<ClinicalInfoDto> {
-    const clinicalInfoId: string = req.user?.clinicalInfo;
+  @ApiResponse({ status: 401, description: 'Usuário não autenticado ou token inválido.' })
+  async updateByToken(@Req() req: Request, @Body() partial: Partial<ClinicalInfoDto>): Promise<ClinicalInfoDto> {
+    const clinicalInfoId: string | undefined = (req as any).user?.clinicalInfo;
 
     if (!clinicalInfoId) {
       throw new BadRequestException('Token não contém clinicalInfoId');
@@ -98,8 +103,9 @@ export class ClinicalInfoController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Deleta clinical info usando o clinicalInfoId do JWT.' })
   @ApiResponse({ status: 204 })
-  async deleteByToken(@Req() req: any): Promise<void> {
-    const clinicalInfoId: string = req.user?.clinicalInfo;
+  @ApiResponse({ status: 401, description: 'Usuário não autenticado ou token inválido.' })
+  async deleteByToken(@Req() req: Request): Promise<void> {
+    const clinicalInfoId: string | undefined = (req as any).user?.clinicalInfo;
 
     if (!clinicalInfoId) {
       throw new BadRequestException('Token não contém clinicalInfoId');
@@ -110,9 +116,14 @@ export class ClinicalInfoController {
 
   @Get('qr-code')
   @ApiOperation({ summary: 'Gera e retorna o PDF com QR Code usando o clinicalInfoId do JWT.' })
-  @ApiResponse({ status: 200, description: 'PDF gerado com sucesso', content: { 'application/pdf': {} } })
-  async generateQrCodePdf(@Req() req: any, @Res() res: any) {
-    const clinicalInfoId: string = req.user?.clinicalInfo;
+  @ApiResponse({
+    status: 200,
+    description: 'PDF gerado com sucesso',
+    content: { 'application/pdf': {} },
+  })
+  @ApiResponse({ status: 401, description: 'Usuário não autenticado ou token inválido.' })
+  async generateQrCodePdf(@Req() req: Request, @Res() res: Response) {
+    const clinicalInfoId: string | undefined = (req as any).user?.clinicalInfo;
 
     if (!clinicalInfoId) {
       throw new BadRequestException('Token não contém clinicalInfoId');

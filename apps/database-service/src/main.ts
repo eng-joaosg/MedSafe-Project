@@ -21,17 +21,20 @@ async function bootstrap() {
   // Middleware para requestId
   // -----------------------------
   app.use((req, res, next) => {
-    const requestId = req.headers['x-request-id'] as string;
+    const requestId = req.headers['x-request-id'] as string | undefined;
     requestContext.run(() => {
-      requestContext.set('requestId', requestId);
+      if (requestId) {
+        requestContext.set('requestId', requestId);
+      }
       next();
     });
   });
 
   // -----------------------------
-  // Middleware para cookies
+  // Middleware para cookies (JWT HttpOnly)
   // -----------------------------
   app.use(cookieParser());
+
   // -----------------------------
   // Pipes globais
   // -----------------------------
@@ -55,12 +58,22 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter(httpAdapter));
 
   // -----------------------------
-  // Swagger
+  // Swagger (DOCUMENTAÇÃO APENAS)
   // -----------------------------
   const swaggerConfig = new DocumentBuilder()
     .setTitle('MedSafe - Database Service API')
-    .setDescription('API de acesso a banco do Sistema MedSafe.')
+    .setDescription(
+      'API de acesso a banco do Sistema MedSafe.\n\n' +
+        '- Rotas públicas: protegidas no API Gateway.\n' +
+        '- Rotas internas: protegidas por API Key.\n' +
+        '- Rotas privadas: protegidas por JWT em cookie HttpOnly.',
+    )
     .setVersion(apiVersion)
+    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'api-key')
+    .addCookieAuth('auth_token', {
+      type: 'apiKey',
+      in: 'cookie',
+    })
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
@@ -69,7 +82,7 @@ async function bootstrap() {
   // -----------------------------
   // Inicializa aplicação
   // -----------------------------
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   CommonLogger.info(
     'Bootstrap',
