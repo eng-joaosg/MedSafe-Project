@@ -162,7 +162,7 @@ export const handler = async (event: LambdaEvent) => {
       );
       switch (route) {
         // ================= LOGIN =================
-        case '/client-user/login': {
+        case '/production/auth/client-user/login': {
           const handlerInstance = appContext.get(LoginClientUserHandler);
           if (!event.body) throw new AppException('Payload não fornecido', 400);
           const payload: LoginClientUserPayload = JSON.parse(event.body);
@@ -185,13 +185,13 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= LOGOUT =================
-        case '/logout': {
+        case '/production/auth/logout': {
           CommonLogger.info('AUTH-SERVICE', 'LOGOUT', '');
           return lambdaResponseWithCookie({ message: 'Logout realizado' }, '', 0);
         }
 
         // ================= REFRESH TOKEN =================
-        case '/refresh-token': {
+        case '/production/auth/refresh-token': {
           const authPayload = await validateAuth(headers);
           const userId = authPayload.sub;
           const role = authPayload.role;
@@ -205,7 +205,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= DELETE ACCOUNT =================
-        case '/client-user/delete-account': {
+        case '/production/auth/client-user/delete-account': {
           const handlerInstance = appContext.get(DeleteClientUserHandler);
           const authPayload = await validateAuth(headers);
           const userId = authPayload.sub;
@@ -217,7 +217,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= REFRESH TOKEN =================
-        case '/new-verification-code': {
+        case '/production/auth/new-verification-code': {
           const handlerInstance = appContext.get(NewVerificationCodeHandler);
           const parsedBody: { email: string } = event.body ? JSON.parse(event.body) : {};
           const email = parsedBody.email;
@@ -228,7 +228,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= REFRESH TOKEN =================
-        case '/reset-password': {
+        case '/production/auth/reset-password': {
           const handlerInstance = appContext.get(ResetPasswordHandler);
           const parsedBody: ResetPasswordDto = event.body ? JSON.parse(event.body) : {};
           await withTimeout(handlerInstance.execute(parsedBody), 10000);
@@ -237,7 +237,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= VERIFY PASSWORD =================
-        case '/verify-password': {
+        case '/production/auth/verify-password': {
           const handlerInstance = appContext.get(VerifyPasswordHandler);
           const authPayload = await validateAuth(headers);
           const userId = authPayload.sub;
@@ -249,7 +249,7 @@ export const handler = async (event: LambdaEvent) => {
           return lambdaResponse({ verified: result });
         }
         // ================= CHANGE NAME =================
-        case '/client-user/change-name': {
+        case '/production/auth/client-user/change-name': {
           const handlerInstance = appContext.get(ChangeNameClientUserHandler);
           const authPayload = await validateAuth(headers);
           const userId = authPayload.sub;
@@ -265,7 +265,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= CHANGE PASSWORD =================
-        case '/change-password': {
+        case '/production/auth/change-password': {
           const handlerInstance = appContext.get(ChangePasswordClientUserHandler);
           const authPayload = await validateAuth(headers);
           const userId = authPayload.sub;
@@ -282,7 +282,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= FIND EMAIL =================
-        case '/client-user/find-email': {
+        case '/production/auth/client-user/find-email': {
           const handlerInstance = appContext.get(FindEmailClientUserHandler);
           const email = event.queryStringParameters?.email as string;
           body = await withTimeout(handlerInstance.execute(email), 10000);
@@ -291,7 +291,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= REGISTER =================
-        case '/client-user/register': {
+        case '/production/auth/client-user/register': {
           const handlerInstance = appContext.get(RegisterClientUserHandler);
           const payload: RegisterClientUserPayload = event.body ? JSON.parse(event.body) : ({} as RegisterClientUserPayload);
           body = await withTimeout(handlerInstance.execute(payload), 10000);
@@ -301,7 +301,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= VERIFY ACCOUNT =================
-        case '/client-user/verify-account': {
+        case '/production/auth/client-user/verify-account': {
           const handlerInstance = appContext.get(VerifyAccountClientUserHandler);
           const payload: VerifyAccountClientUserPayload = event.body ? JSON.parse(event.body) : ({} as VerifyAccountClientUserPayload);
           body = await withTimeout(handlerInstance.execute(payload), 10000);
@@ -310,7 +310,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= ASSOCIATE CLINICAL INFO =================
-        case '/client-user/associate-clinical-info': {
+        case '/production/auth/client-user/associate-clinical-info': {
           const handlerInstance = appContext.get(AssociateClinicalInfoHandler);
           const authPayload = await validateAuth(headers);
           const userId = authPayload.sub;
@@ -332,7 +332,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= PUBLIC ACCESS ALERT =================
-        case '/public/clinical-info-access-alert': {
+        case '/production/auth/public/clinical-info-access-alert': {
           const handlerInstance = appContext.get(PublicAccessAlertHandler);
           const id = event.queryStringParameters?.id;
           if (!id) {
