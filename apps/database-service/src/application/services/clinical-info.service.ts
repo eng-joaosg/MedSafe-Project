@@ -7,12 +7,14 @@ import { CLINICAL_INFO_REPOSITORY } from '../../common/contants/tokens.contants'
 import { v4 as uuidv4 } from 'uuid';
 import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ClinicalInfoService implements IClinicalInfoService {
   constructor(
     @Inject(CLINICAL_INFO_REPOSITORY)
     private readonly clinicalInfoRepository: IClinicalInfoRepository,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(dto: Partial<ClinicalInfoDto>): Promise<ClinicalInfoDto> {
@@ -61,6 +63,7 @@ export class ClinicalInfoService implements IClinicalInfoService {
   async generatePublicQrPdf(qrUrl: string, publicCode: string): Promise<Buffer> {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     const buffers: Uint8Array[] = [];
+    const env = this.configService.get<string>('NODE_ENV') || 'development';
 
     doc.on('data', (chunk: Uint8Array) => buffers.push(chunk));
 
@@ -68,14 +71,11 @@ export class ClinicalInfoService implements IClinicalInfoService {
       doc.on('end', () => resolve(Buffer.concat(buffers)));
     });
 
-    // Gera QR Code
     const qrBuffer: Buffer = await QRCode.toBuffer(qrUrl, { type: 'png', width: 100 });
 
-    // Cabeçalho
     const headerFontSize = 11;
     doc.fontSize(headerFontSize).text('Dados Médicos', { align: 'center' });
 
-    // Aproxima o QR Code do título
     const spacingAfterHeader = -1;
     const y = doc.y + spacingAfterHeader;
 
@@ -85,18 +85,19 @@ export class ClinicalInfoService implements IClinicalInfoService {
 
     doc.image(qrBuffer, x, y, { width: qrSize, height: qrSize });
 
-    // Código de acesso
-    const spacingAfterQr = 2; // distância entre QR e código
+    const spacingAfterQr = 2;
     doc.y = y + qrSize + spacingAfterQr;
     const codeFontSize = 10;
     doc.fontSize(codeFontSize).text(`Código de acesso: ${publicCode}`, { align: 'center' });
 
-    const spacingAfterCode = 10; // distância em pontos
+    const spacingAfterCode = 10;
     doc.y += spacingAfterCode;
     doc.fontSize(12).text('Recorte e coloque em seu crachá, ou onde desejar.', { align: 'center' });
-
+    doc.y += spacingAfterCode;
+    if (env === 'development') {
+      doc.fontSize(9).text(`Link do perfil (apenas em dev): ${qrUrl}`, { align: 'center' });
+    }
     doc.end();
-
     return finishedPromise;
   }
 }

@@ -46,22 +46,30 @@ export function useSaveClinicalInfo({
   lastName,
 }: SaveClinicalInfoProps) {
   const { user, setUser } = useUser();
-  const { clinicalInfo, setClinicalInfo } = useClinicalInfo();
+  const { setClinicalInfo } = useClinicalInfo();
 
   const [editable, setEditable] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Remove apenas o id dos contatos
   const stripId = (c?: any) => {
     if (!c) return { firstName: '', lastName: '', ddd: null, phone: null, relationship: '' };
     const { id, ...rest } = c;
     return rest;
   };
 
+  // Verifica se um contato está completo
+  const isContactComplete = (c: any) =>
+    !!c.firstName &&
+    !!c.lastName &&
+    !!c.ddd && c.ddd > 0 &&
+    !!c.phone && c.phone > 0 &&
+    !!c.relationship;
+
+  // Monta o snapshot atual para salvar
   const buildCurrentSnapshot = (): ClinicalInfo => {
-    const contactsWithId = contacts.map((c, idx) => ({
-      id: idx + 1,
-      ...stripId(c),
-    }));
+    // Filtra apenas contatos completos
+    const contactsNoId = contacts.filter(isContactComplete).map(stripId);
 
     return {
       id: originalData?.id || '',
@@ -75,7 +83,7 @@ export function useSaveClinicalInfo({
       medications,
       diseases,
       surgeries,
-      contacts: contactsWithId,
+      contacts: contactsNoId,
       publicCode: publicCode || originalData?.publicCode || generatePublicCode(),
     };
   };
@@ -89,10 +97,9 @@ export function useSaveClinicalInfo({
     if (current.sex !== original.sex) return false;
     if (current.dateOfBirth !== original.dateOfBirth) return false;
     if (current.otherInfo !== original.otherInfo) return false;
-
+    if (current.publicCode !== original.publicCode) return false;
     const contactsEqual =
-      JSON.stringify(current.contacts.map(({ id, ...rest }) => rest)) ===
-      JSON.stringify(original.contacts.map(({ id, ...rest }) => rest));
+      JSON.stringify(current.contacts) === JSON.stringify(original.contacts);
     if (!contactsEqual) return false;
 
     const arraysEqual = (a: any[], b: any[]) => JSON.stringify(a) === JSON.stringify(b);
@@ -144,33 +151,27 @@ export function useSaveClinicalInfo({
         setUser((prev) => ({ ...prev, firstName: current.firstName, lastName: current.lastName }));
       }
 
-      let effectiveClinicalId =
-        (originalData?.id && originalData.id.trim() !== '' ? originalData.id : undefined) ||
-        (user.clinicalInfoId ? `${user.clinicalInfoId}` : undefined);
+      let effectiveClinicalId = user.clinicalInfoId;
 
       if (!effectiveClinicalId) {
-        // tenta buscar antes de criar
-        if (user.clinicalInfoId) {
-          const existing = await getClinicalInfo();
-          if (existing) {
-            effectiveClinicalId = existing.id;
-            await saveClinicalInfo(current, effectiveClinicalId);
-          }
+        const existing = await getClinicalInfo();
+        if (existing?.id) {
+          effectiveClinicalId = existing.id;
+          await saveClinicalInfo(current, effectiveClinicalId);
         }
 
         if (!effectiveClinicalId) {
-          // se não achou nada, cria
           current.publicCode = effectivePublicCode;
           const created = await createAndAssociateClinicalInfo(user.id, current);
-          effectiveClinicalId = created.id;
-          setUser((prev) => ({ ...prev, clinicalInfoId: effectiveClinicalId ?? null }));
+          effectiveClinicalId = created.clinicalInfoId ?? null;
+          setUser((prev) => ({ ...prev, clinicalInfoId: effectiveClinicalId }));
         }
       } else {
         await saveClinicalInfo(current, effectiveClinicalId);
       }
 
-      setOriginalData({ ...current, id: effectiveClinicalId });
-      setClinicalInfo({ ...current, id: effectiveClinicalId });
+      setOriginalData({ ...current, id: effectiveClinicalId ?? '' });
+      setClinicalInfo({ ...current, id: effectiveClinicalId ?? '' });
       setEditable(false);
     } catch (err: any) {
       console.error('Erro ao salvar informações clínicas:', err);

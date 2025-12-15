@@ -1,11 +1,10 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import Input from '@/components/inputs/Input';
 import { InputPhone } from '../inputs/InputPhone';
 import { InputDropdown } from '../inputs/InputDropdown';
 
 export interface EmergencyContact {
-  id: number;
   firstName: string;
   lastName: string;
   ddd: number | null;
@@ -20,41 +19,13 @@ interface Props {
 }
 
 export default function ContactsSection({ userItems, setUserItems, editable }: Props) {
-  const addContact = () => {
-    if (userItems.length < 3) {
-      setUserItems([
-        ...userItems,
-        { id: userItems.length + 1, firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }
-      ]);
-    }
-  };
+  const initialContacts =
+    userItems.filter(c => c.firstName || c.lastName || c.ddd || c.phone || c.relationship).length > 0
+      ? userItems.filter(c => c.firstName || c.lastName || c.ddd || c.phone || c.relationship)
+      : [{ firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }];
 
-  const removeContact = (index: number) => {
-    if (userItems.length === 1) {
-      setUserItems([{ id: 1, firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }]);
-    } else {
-      const filtered = userItems.filter((_, i) => i !== index);
-      const resequenced = filtered.map((c, idx) => ({ ...c, id: idx + 1 }));
-      setUserItems(resequenced);
-    }
-  };
+  const [displayedContacts, setDisplayedContacts] = useState<EmergencyContact[]>(initialContacts);
 
-  const updateContact = (
-    index: number,
-    field: 'firstName' | 'lastName' | 'relationship' | 'ddd' | 'phone',
-    value: string | number | null
-  ) => {
-    const newContacts = [...userItems];
-    if (field === 'ddd' || field === 'phone') {
-      const num = Number(value);
-      newContacts[index][field] = num > 0 ? num : null;
-    } else {
-      newContacts[index][field] = String(value || '');
-    }
-    setUserItems(newContacts);
-  };
-
-  // Verifica se um contato está completamente preenchido
   const isContactComplete = (c: EmergencyContact) =>
     !!c.firstName &&
     !!c.lastName &&
@@ -62,12 +33,50 @@ export default function ContactsSection({ userItems, setUserItems, editable }: P
     !!c.phone && c.phone > 0 &&
     !!c.relationship;
 
+  const addContact = () => {
+    if (displayedContacts.length < 3) {
+      const newContacts = [
+        ...displayedContacts,
+        { firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }
+      ];
+      setDisplayedContacts(newContacts);
+      setUserItems(newContacts);
+    }
+  };
+
+  const removeContact = (index: number) => {
+    let newContacts = displayedContacts.filter((_, i) => i !== index);
+
+    if (newContacts.length === 0) {
+      newContacts = [{ firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }];
+    }
+
+    setDisplayedContacts(newContacts);
+    setUserItems(newContacts);
+  };
+
+  const updateContact = (
+    index: number,
+    field: 'firstName' | 'lastName' | 'relationship' | 'ddd' | 'phone',
+    value: string | number | null
+  ) => {
+    const newContacts = [...displayedContacts];
+    if (field === 'ddd' || field === 'phone') {
+      const num = Number(value);
+      newContacts[index][field] = num > 0 ? num : null;
+    } else {
+      newContacts[index][field] = String(value || '');
+    }
+    setDisplayedContacts(newContacts);
+    setUserItems(newContacts);
+  };
+
   return (
-    <div className="w-full mx-auto border-grayscale-200 border-y md:border pb-2">
+    <div className="w-full mx-auto border-grayscale-200 border-y md:border pb-4">
       <h3 className="text-grayscale-100 text-lg text-left p-4 font-semibold mb-3">Contatos de emergência:</h3>
 
-      {userItems.map((c, i) => (
-        <div key={c.id} className="mb-4">
+      {displayedContacts.map((c, i) => (
+        <div key={i} className={`mb-4 ${i > 0 ? 'pt-6' : ''}`}>
           <Input
             fieldName="Nome"
             value={c.firstName}
@@ -116,8 +125,7 @@ export default function ContactsSection({ userItems, setUserItems, editable }: P
                 -
               </button>
 
-              {/* Botão + só aparece até 2 contatos e no último */}
-              {i < 2 && i === userItems.length - 1 && (
+              {i < 2 && i === displayedContacts.length - 1 && (
                 <button
                   onClick={isContactComplete(c) ? addContact : undefined}
                   disabled={!isContactComplete(c)}

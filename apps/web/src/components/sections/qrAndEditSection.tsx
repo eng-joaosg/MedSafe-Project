@@ -27,9 +27,7 @@ export default function QrAndEditSection({
     if (!user.id) return;
 
     try {
-      const requestId = crypto.randomUUID();
-      const cookie = document.cookie;
-      const blob = await getClinicalInfoQrCode(requestId, cookie);
+      const blob = await getClinicalInfoQrCode();
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

@@ -1,13 +1,16 @@
 import { ClinicalInfo, Contact } from '@/lib/api';
 
-// Remove o id do contato
+/**
+ * Retorna o contato sem alteração de tipo (não usa id)
+ */
 export function stripId(c?: Contact) {
   if (!c) return { firstName: '', lastName: '', ddd: null, phone: null, relationship: '' };
-  const { id, ...rest } = c;
-  return rest;
+  return { firstName: c.firstName, lastName: c.lastName, ddd: c.ddd, phone: c.phone, relationship: c.relationship };
 }
 
-// Constroi snapshot do estado atual
+/**
+ * Constroi snapshot do estado atual
+ */
 export function buildCurrentSnapshot(params: {
   userFirstName: string;
   userLastName: string;
@@ -25,7 +28,8 @@ export function buildCurrentSnapshot(params: {
 }): ClinicalInfo {
   const { userFirstName, userLastName, blood, sex, birth, additionalInfo, allergies, medications, diseases, surgeries, contacts, publicCode, originalData } = params;
 
-  const contactsWithId: Contact[] = contacts.map((c, idx) => ({ id: idx + 1, ...stripId(c) }));
+  // Mantém contatos sem id
+  const contactsClean: Contact[] = contacts.map(c => stripId(c));
 
   return {
     id: originalData?.id || '',
@@ -39,12 +43,14 @@ export function buildCurrentSnapshot(params: {
     medications,
     diseases,
     surgeries,
-    contacts: contactsWithId,
+    contacts: contactsClean,
     publicCode: publicCode ?? originalData?.publicCode ?? crypto.randomUUID(),
   };
 }
 
-// Compara se houve mudanças
+/**
+ * Compara se houve mudanças
+ */
 export function noChangesMade(current: ClinicalInfo, original: ClinicalInfo | null) {
   if (!original) return false;
 
@@ -55,8 +61,7 @@ export function noChangesMade(current: ClinicalInfo, original: ClinicalInfo | nu
   if (current.dateOfBirth !== original.dateOfBirth) return false;
   if (current.otherInfo !== original.otherInfo) return false;
 
-  const contactsEqual = JSON.stringify(current.contacts.map(c => ({ ...c, id: undefined }))) ===
-                        JSON.stringify(original.contacts.map(c => ({ ...c, id: undefined })));
+  const contactsEqual = JSON.stringify(current.contacts) === JSON.stringify(original.contacts);
   if (!contactsEqual) return false;
 
   const arraysEqual = (a: any[], b: any[]) => JSON.stringify(a) === JSON.stringify(b);

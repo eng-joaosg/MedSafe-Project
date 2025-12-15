@@ -66,7 +66,7 @@ export default function MedicationsSection({
   })();
 
   return (
-    <div className="w-full mx-auto border-grayscale-200 border-y md:border pb-2">
+    <div className="w-full mx-auto border-grayscale-200 border-y md:border pb-4">
       <h3 className="text-grayscale-100 font-semibold text-left text-lg p-4">
         Medicamentos:
       </h3>

@@ -106,11 +106,13 @@ export class KnexClinicalInfoRepository implements IClinicalInfoRepository {
       };
 
       if (!existing) {
+        // INSERT → retorna registro completo com ID
         const [row] = await this.knex(TABLES.CLINICAL_INFO)
           .insert({ ...payload, created_at: this.knex.fn.now(), updated_at: this.knex.fn.now() })
           .returning('*');
         id = row.id;
       } else {
+        // UPDATE → garante ID e atualiza timestamp
         await this.knex(TABLES.CLINICAL_INFO)
           .where({ id })
           .update({ ...payload, updated_at: this.knex.fn.now() });
@@ -176,37 +178,39 @@ export class KnexClinicalInfoRepository implements IClinicalInfoRepository {
       }
 
       // --- CONTATOS ---
-      const existingContacts = await this.knex(TABLES.EMERGENCY_CONTACT).where({ clinical_info_id: id }).select('id');
+      const existingContacts = await this.knex(TABLES.EMERGENCY_CONTACT).where({ clinical_info_id: id }).orderBy('id').select('id');
 
-      for (let contactId = 1; contactId <= 3; contactId++) {
-        const payload = dto.contacts?.find((c) => c.id === contactId);
+      for (let i = 0; i < 3; i++) {
+        const contactPayload = dto.contacts?.[i] ?? {};
+        const contactId = i + 1;
 
         if (!existingContacts.some((ec) => ec.id === contactId)) {
           await this.knex(TABLES.EMERGENCY_CONTACT).insert({
             clinical_info_id: id,
             id: contactId,
-            first_name: payload?.firstName ?? '',
-            last_name: payload?.lastName ?? '',
-            ddd: payload?.ddd ?? '',
-            phone: payload?.phone ?? '',
-            relationship: payload?.relationship ?? '',
+            first_name: contactPayload.firstName ?? '',
+            last_name: contactPayload.lastName ?? '',
+            ddd: contactPayload.ddd ?? null,
+            phone: contactPayload.phone ?? null,
+            relationship: contactPayload.relationship ?? '',
             created_at: this.knex.fn.now(),
             updated_at: this.knex.fn.now(),
           });
-        } else if (payload) {
+        } else {
           await this.knex(TABLES.EMERGENCY_CONTACT)
             .where({ clinical_info_id: id, id: contactId })
             .update({
-              first_name: payload.firstName ?? '',
-              last_name: payload.lastName ?? '',
-              ddd: payload.ddd ?? '',
-              phone: payload.phone ?? '',
-              relationship: payload.relationship ?? '',
+              first_name: contactPayload.firstName ?? '',
+              last_name: contactPayload.lastName ?? '',
+              ddd: contactPayload.ddd ?? null,
+              phone: contactPayload.phone ?? null,
+              relationship: contactPayload.relationship ?? '',
               updated_at: this.knex.fn.now(),
             });
         }
       }
 
+      // --- Retorna DTO completo com ID ---
       return this.getById(id);
     } catch (error) {
       throw new DatabaseOperationException(`Erro ao salvar ClinicalInfo: ${id}`, error);

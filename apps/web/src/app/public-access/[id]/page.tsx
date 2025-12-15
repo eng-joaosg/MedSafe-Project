@@ -11,7 +11,6 @@ import OneColumnTable from '@/components/tables/oneColumnTable';
 export default function PublicAccessPage() {
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id ?? '';
-
   const [code, setCode] = useState('');
   const [data, setData] = useState<ClinicalInfo | null>(null);
   const [loading, setLoading] = useState(false);

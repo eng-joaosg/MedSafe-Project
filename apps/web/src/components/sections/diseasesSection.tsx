@@ -20,7 +20,6 @@ export default function DiseasesSection({
     if (!editable) return;
     if (userItems.length < 10) {
       const last = userItems[userItems.length - 1];
-      // só adiciona se a última estiver preenchida
       if (last && last.trim() !== '') {
         setUserItems([...userItems, '']);
       }
@@ -43,11 +42,10 @@ export default function DiseasesSection({
     setUserItems(updated);
   };
 
-  // verifica se a última doença está preenchida
   const isLastComplete = userItems[userItems.length - 1]?.trim() !== '';
 
   return (
-    <div className="w-full mx-auto border-grayscale-200 border-x-0 md:border-x pb-2">
+    <div className="w-full mx-auto border-grayscale-200 border-x-0 md:border-x pb-4">
       <h3 className="text-grayscale-100 font-semibold text-lg text-left p-4">Doenças pré-existentes:</h3>
 
       {userItems.map((d, i) => (

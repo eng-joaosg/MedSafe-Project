@@ -1,13 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsString, IsOptional, IsDate, IsArray, ValidateNested, IsInt, IsNumber, Length } from 'class-validator';
+import { IsString, IsOptional, IsDate, IsArray, ValidateNested, IsNumber, Length } from 'class-validator';
 
 export class ContactDto {
-  @ApiProperty({ example: 1 })
-  @IsInt()
-  @IsOptional()
-  id?: number;
-
   @ApiProperty({ example: 'João' })
   @IsOptional()
   @IsString()

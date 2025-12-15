@@ -50,24 +50,23 @@ export default function ClientUserPage() {
     setOriginalData,
   } = useInitializeUser();
 
-
-const { handleSave, editable, setEditable, saving } = useSaveClinicalInfo({
-  contacts,
-  diseases,
-  medications,
-  allergies,
-  surgeries,
-  additionalInfo,
-  publicCode,
-  setPublicCode,
-  originalData,
-  setOriginalData,
-  birth,
-  blood,
-  sex,
-  firstName: user.firstName,
-  lastName: user.lastName, 
-});
+  const { handleSave, editable, setEditable, saving } = useSaveClinicalInfo({
+    contacts,
+    diseases,
+    medications,
+    allergies,
+    surgeries,
+    additionalInfo,
+    publicCode,
+    setPublicCode,
+    originalData,
+    setOriginalData,
+    birth,
+    blood,
+    sex,
+    firstName: user.firstName,
+    lastName: user.lastName,
+  });
 
   if (loading) {
     return (
@@ -76,8 +75,10 @@ const { handleSave, editable, setEditable, saving } = useSaveClinicalInfo({
       </div>
     );
   }
-
-  const contactsToRender = contacts.filter((c, idx) => idx === 0 || c.firstName || c.lastName);
+  const contactsToRender =
+    contacts.length > 0
+      ? contacts
+      : [{ firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }];
 
   return (
     <div className="w-full flex flex-col items-center pt-10 md:px-6">

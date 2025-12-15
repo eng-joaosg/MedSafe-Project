@@ -94,18 +94,26 @@ export class GatewayController {
   }
 
   // ================= Auth-Service Routes =================
-  @Get('client-user/find-email')
+  @Get('auth/client-user/find-email')
   @ApiOperation({ summary: 'Verifica se o e-mail já está cadastrado' })
   async findEmail(@Query('email') email: string, @Headers('x-request-id') requestId: string, @Res({ passthrough: true }) res: Response) {
     CommonLoggerGateway.logStart('Gateway', 'FIND_EMAIL', email, requestId);
-    const { headers, body } = await this.invokeAndHandle('/client-user/find-email', 'GET', undefined, requestId, undefined, undefined, {
-      email,
-    });
+    const { headers, body } = await this.invokeAndHandle(
+      '/production/auth/client-user/find-email',
+      'GET',
+      undefined,
+      requestId,
+      undefined,
+      undefined,
+      {
+        email,
+      },
+    );
     this.applyHeadersToResponse(res, headers);
     return body;
   }
 
-  @Post('client-user/register')
+  @Post('auth/client-user/register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registra um novo usuário' })
   async register(
@@ -114,12 +122,12 @@ export class GatewayController {
     @Res({ passthrough: true }) res: Response,
   ) {
     CommonLoggerGateway.logStart('Gateway', 'REGISTER', dto.email, requestId);
-    const { headers, body } = await this.invokeAndHandle('/client-user/register', 'POST', dto, requestId);
+    const { headers, body } = await this.invokeAndHandle('/production/auth/client-user/register', 'POST', dto, requestId);
     this.applyHeadersToResponse(res, headers);
     return body;
   }
 
-  @Post('client-user/verify-account')
+  @Post('auth/client-user/verify-account')
   @ApiOperation({ summary: 'Verifica o código de ativação da conta' })
   async verifyAccount(
     @Body() dto: VerifyAccountClientUserDto,
@@ -127,21 +135,21 @@ export class GatewayController {
     @Res({ passthrough: true }) res: Response,
   ) {
     CommonLoggerGateway.logStart('Gateway', 'VERIFY_ACCOUNT', dto.email, requestId);
-    const { headers, body } = await this.invokeAndHandle('/client-user/verify-account', 'POST', dto, requestId);
+    const { headers, body } = await this.invokeAndHandle('/production/auth/client-user/verify-account', 'POST', dto, requestId);
     this.applyHeadersToResponse(res, headers);
     return body;
   }
 
-  @Post('client-user/login')
+  @Post('auth/client-user/login')
   @ApiOperation({ summary: 'Login do usuário' })
   async login(@Body() dto: LoginClientUserDto, @Headers('x-request-id') requestId: string, @Res({ passthrough: true }) res: Response) {
     CommonLoggerGateway.logStart('Gateway', 'LOGIN', dto.email, requestId);
-    const { headers, body } = await this.invokeAndHandle('/client-user/login', 'POST', dto, requestId);
+    const { headers, body } = await this.invokeAndHandle('/production/auth/client-user/login', 'POST', dto, requestId);
     this.applyHeadersToResponse(res, headers);
     return body;
   }
 
-  @Post('verify-password')
+  @Post('auth/verify-password')
   @ApiOperation({ summary: 'Verifica a senha do usuário' })
   async verifyPassword(
     @Body() body: { password: string },
@@ -150,12 +158,19 @@ export class GatewayController {
     @Res({ passthrough: true }) res: Response,
   ) {
     CommonLoggerGateway.logStart('Gateway', 'VERIFY_PASSWORD', 'N/A', requestId);
-    const { headers, body: responseBody } = await this.invokeAndHandle('/verify-password', 'POST', body, requestId, undefined, cookie);
+    const { headers, body: responseBody } = await this.invokeAndHandle(
+      '/production/auth/verify-password',
+      'POST',
+      body,
+      requestId,
+      undefined,
+      cookie,
+    );
     this.applyHeadersToResponse(res, headers);
     return responseBody;
   }
 
-  @Post('new-verification-code')
+  @Post('auth/new-verification-code')
   @ApiOperation({ summary: 'Gera um novo código de verificação para o usuário' })
   async generateVerificationCode(
     @Body() body: { email: string },
@@ -167,7 +182,7 @@ export class GatewayController {
     const payload = { ...body };
     const queryParams = { type };
     const { headers, body: responseBody } = await this.invokeAndHandle(
-      '/new-verification-code',
+      '/production/auth/new-verification-code',
       'POST',
       payload,
       requestId,
@@ -180,7 +195,7 @@ export class GatewayController {
     return responseBody;
   }
 
-  @Post('reset-password')
+  @Post('auth/reset-password')
   @ApiOperation({ summary: 'Reseta a senha do usuário usando código de verificação' })
   async resetPassword(
     @Body() body: { email: string; verificationCode: string; newPassword: string },
@@ -192,7 +207,7 @@ export class GatewayController {
     const payload = { ...body };
 
     const { headers, body: responseBody } = await this.invokeAndHandle(
-      '/reset-password',
+      '/production/auth/reset-password',
       'POST',
       payload,
       requestId,
@@ -205,7 +220,7 @@ export class GatewayController {
     return responseBody;
   }
 
-  @Post('refresh-token')
+  @Post('auth/refresh-token')
   @ApiOperation({ summary: 'Gera um novo access token usando o refresh token' })
   async refreshToken(
     @Headers('x-request-id') requestId: string,
@@ -213,12 +228,12 @@ export class GatewayController {
     @Res({ passthrough: true }) res: Response,
   ) {
     CommonLoggerGateway.logStart('Gateway', 'REFRESH_TOKEN', 'N/A', requestId);
-    const { headers, body } = await this.invokeAndHandle('/refresh-token', 'POST', null, requestId, undefined, cookie);
+    const { headers, body } = await this.invokeAndHandle('/production/auth/refresh-token', 'POST', null, requestId, undefined, cookie);
     this.applyHeadersToResponse(res, headers);
     return body;
   }
 
-  @Patch('/change-password')
+  @Patch('auth/change-password')
   @HttpCode(204)
   async changePassword(
     @Body() dto: ChangePasswordClientUserDto,
@@ -228,7 +243,7 @@ export class GatewayController {
   ) {
     CommonLoggerGateway.logStart('Gateway', 'CHANGE_PASSWORD', 'N/A', requestId);
     const { headers, body } = await this.invokeAndHandle(
-      '/change-password',
+      '/production/auth/change-password',
       'PATCH',
       { password: dto.password, newPassword: dto.newPassword },
       requestId,
@@ -239,7 +254,7 @@ export class GatewayController {
     return body;
   }
 
-  @Patch('client-user/associate-clinical-info')
+  @Patch('auth/client-user/associate-clinical-info')
   async associateClinicalInfo(
     @Query('clinicalInfoId') clinicalInfoId: string,
     @Headers('x-request-id') requestId: string,
@@ -248,7 +263,7 @@ export class GatewayController {
   ) {
     CommonLoggerGateway.logStart('Gateway', 'ASSOCIATE_CLINICAL_INFO', requestId);
     const { headers, body } = await this.invokeAndHandle(
-      '/client-user/associate-clinical-info',
+      '/production/auth/client-user/associate-clinical-info',
       'PATCH',
       null,
       requestId,
@@ -260,7 +275,7 @@ export class GatewayController {
     return body;
   }
 
-  @Patch('client-user/change-name')
+  @Patch('auth/client-user/change-name')
   async changeName(
     @Body() dto: ChangeNameClientUserDto,
     @Headers('x-request-id') requestId: string,
@@ -270,7 +285,7 @@ export class GatewayController {
     CommonLoggerGateway.logStart('Gateway', 'CHANGE_NAME', 'N/A', requestId);
 
     const { headers, body } = await this.invokeAndHandle(
-      '/client-user/change-name',
+      '/production/auth/client-user/change-name',
       'PATCH',
       { newFirstName: dto.newFirstName, newLastName: dto.newLastName },
       requestId,
@@ -282,17 +297,17 @@ export class GatewayController {
     return body;
   }
 
-  @Post('/logout')
+  @Post('auth/logout')
   @ApiOperation({ summary: 'Encaminha logout para o auth-service' })
   async logout(@Headers('x-request-id') requestId: string, @Headers('cookie') cookie: string, @Res({ passthrough: true }) res: Response) {
     CommonLoggerGateway.logStart('Gateway', 'LOGOUT', 'N/A', requestId);
-    const { headers, body } = await this.invokeAndHandle('/logout', 'POST', null, requestId, undefined, cookie);
+    const { headers, body } = await this.invokeAndHandle('/production/auth/logout', 'POST', null, requestId, undefined, cookie);
     this.applyHeadersToResponse(res, headers);
 
     return body;
   }
 
-  @Delete('client-user/delete-account')
+  @Delete('auth/client-user/delete-account')
   @HttpCode(204)
   async deleteAccount(
     @Body() dto: { password: string },
@@ -303,7 +318,7 @@ export class GatewayController {
     CommonLoggerGateway.logStart('Gateway', 'DELETE_ACCOUNT', 'N/A', requestId);
 
     const { headers, body } = await this.invokeAndHandle(
-      '/client-user/delete-account',
+      '/production/auth/client-user/delete-account',
       'DELETE', // método HTTP
       { password: dto.password },
       requestId,
@@ -391,7 +406,7 @@ export class GatewayController {
 
   // ================= Public Data Routes =================
 
-  @Post('public/clinical-info-access-alert')
+  @Post('auth/clinical-info-access-alert')
   @ApiOperation({ summary: 'Dispara alerta de acesso público para o auth-service' })
   async publicDataAccessAlert(
     @Query('id') id: string,
@@ -401,7 +416,7 @@ export class GatewayController {
     CommonLoggerGateway.logStart('Gateway', 'PUBLIC_DATA_ACCESS_ALERT', id, requestId);
     const queryParams = { id };
     const { headers, body } = await this.invokeAndHandle(
-      '/public/clinical-info-access-alert',
+      '/production/auth/clinical-info-access-alert',
       'POST',
       undefined,
       requestId,
@@ -431,7 +446,6 @@ export class GatewayController {
         undefined,
         { code },
       );
-      console.log(data);
       this.applyHeadersToResponse(res, headers);
       return data;
     } catch (err: any) {
