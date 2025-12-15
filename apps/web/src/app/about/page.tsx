@@ -1,6 +1,6 @@
 export default function AboutPage() {
   return (
-    <div className="flex flex-col justify-center items-center min-h-screen text-center px-4">
+    <div className="flex flex-col justify-center items-center text-center pt-30 px-4">
       <p className="mb-4">
         Sistema de Cadastro de Informações Médicas e QR Code.
       </p>
@@ -10,7 +10,7 @@ export default function AboutPage() {
       <p className="mb-4">
         Desenvolvido por João Vitor da Silva Gonçalves – 2025.
       </p>
-      <p className="text-sm text-gray-500">
+      <p className="">
         © 2025 Projeto Acadêmico. Uso sem fins lucrativos.
       </p>
     </div>

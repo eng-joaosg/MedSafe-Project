@@ -124,7 +124,6 @@ export class ClinicalInfoController {
   @ApiResponse({ status: 401, description: 'Usuário não autenticado ou token inválido.' })
   async generateQrCodePdf(@Req() req: Request, @Res() res: Response) {
     const clinicalInfoId: string | undefined = (req as any).user?.clinicalInfo;
-
     if (!clinicalInfoId) {
       throw new BadRequestException('Token não contém clinicalInfoId');
     }
@@ -137,7 +136,7 @@ export class ClinicalInfoController {
 
     const publicCode: string = clinicalInfo.publicCode;
 
-    const qrUrl: string = `${this.configService.get('FRONT_URL')}/public-access/${clinicalInfoId}`;
+    const qrUrl: string = `${this.configService.get('FRONT_URL')}/public-access/${clinicalInfo.id}`;
 
     const pdfBuffer: Buffer = await this.clinicalInfoService.generatePublicQrPdf(qrUrl, publicCode);
 

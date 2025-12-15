@@ -11,7 +11,7 @@ import OneColumnTable from '@/components/tables/oneColumnTable';
 export default function PublicAccessPage() {
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id ?? '';
-
+  console.log
   const [code, setCode] = useState('');
   const [data, setData] = useState<ClinicalInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,9 @@ export default function PublicAccessPage() {
     setMessage('');
 
     try {
+      console.log('Antes')
       const res = await getPublicData(id, code);
+      console.log('Depois', res)
       if ((res as any)?.statusCode && (res as any)?.message) {
         switch ((res as any).statusCode) {
           case 404:

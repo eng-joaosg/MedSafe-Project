@@ -95,10 +95,9 @@ export class ClinicalInfoService implements IClinicalInfoService {
     doc.fontSize(12).text('Recorte e coloque em seu crachá, ou onde desejar.', { align: 'center' });
     doc.y += spacingAfterCode;
     if (env === 'development') {
-      doc.fontSize(12).text(`Link do perfil (apenas em dev): ${qrUrl}`, { align: 'center' });
+      doc.fontSize(9).text(`Link do perfil (apenas em dev): ${qrUrl}`, { align: 'center' });
     }
     doc.end();
-
     return finishedPromise;
   }
 }

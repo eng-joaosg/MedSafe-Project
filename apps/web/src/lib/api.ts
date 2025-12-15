@@ -497,12 +497,11 @@ export async function resetPassword(email: string, code: string, newPassword: st
 }
 
 // QR Code clínico
-export async function getClinicalInfoQrCode(requestId: string, cookie: string): Promise<Blob> {
-  if (!requestId) throw new Error('O x-request-id é obrigatório.');
+export async function getClinicalInfoQrCode(): Promise<Blob> {
   try {
     const res = await fetch(`${API_BASE_URL}/clinical-info/qr-code`, {
       method: 'GET',
-      headers: { 'x-request-id': requestId, 'Content-Type': 'application/pdf', Cookie: cookie },
+      headers: {'Content-Type': 'application/pdf'},
       credentials: 'include',
     });
     if (!res.ok) throw new Error('Não foi possível obter o QR Code em PDF.');
@@ -513,6 +512,7 @@ export async function getClinicalInfoQrCode(requestId: string, cookie: string): 
 }
 
 export async function getPublicData(id: string, code: string): Promise<ClinicalInfo> {
+  console.log('ID na API:', id, 'Code:', code);
   if (!id || !/^[0-9a-fA-F-]{36}$/.test(id)) throw new Error('Usuário inválido.');
   if (!code || code.length !== 6) throw new Error('O código deve conter exatamente 6 caracteres.');
 
@@ -526,6 +526,7 @@ export async function getPublicData(id: string, code: string): Promise<ClinicalI
     try { data = await res.json(); } catch {}
 
     if (!res.ok) {
+      console.log(res);
       switch (res.status) {
         case 404: throw new Error('Usuário inválido.');
         case 401: throw new Error('Código incorreto.');

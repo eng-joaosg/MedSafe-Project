@@ -446,7 +446,6 @@ export class GatewayController {
         undefined,
         { code },
       );
-      console.log(data);
       this.applyHeadersToResponse(res, headers);
       return data;
     } catch (err: any) {

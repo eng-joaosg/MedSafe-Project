@@ -97,7 +97,7 @@ export function useSaveClinicalInfo({
     if (current.sex !== original.sex) return false;
     if (current.dateOfBirth !== original.dateOfBirth) return false;
     if (current.otherInfo !== original.otherInfo) return false;
-
+    if (current.publicCode !== original.publicCode) return false;
     const contactsEqual =
       JSON.stringify(current.contacts) === JSON.stringify(original.contacts);
     if (!contactsEqual) return false;
