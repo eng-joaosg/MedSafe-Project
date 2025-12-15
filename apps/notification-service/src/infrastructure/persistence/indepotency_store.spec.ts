@@ -10,7 +10,7 @@ interface MockDynamoDBClient extends DynamoDBClient {
 // Mock do cliente DynamoDB, agora tipado corretamente
 const mockClient: MockDynamoDBClient = {
   send: jest.fn(),
-} as unknown as MockDynamoDBClient; // Forçamos o tipo para incluir as funções mock do Jest
+} as unknown as MockDynamoDBClient;
 
 // Mock para CommonLogger, essencial para evitar erros de importação/runtime
 jest.mock('../../common/logger/common.logger', () => ({
@@ -36,7 +36,6 @@ describe('IdempotencyStore Check Logic', () => {
     } as any;
 
     // Instancia a loja, injetando o mockClient
-    // Note que o construtor espera DynamoDBClient, mas o TypeScipt aceita o Mock
     store = new IdempotencyStore(tableName, mockConfigService, mockClient);
   });
 
@@ -72,7 +71,8 @@ describe('IdempotencyStore Check Logic', () => {
     });
 
     it('should return false immediately in DEV environment', async () => {
-      (mockConfigService.get as jest.Mock).mockReturnValue('DEV');
+      // Corrigido: usar "development" em minúsculas
+      (mockConfigService.get as jest.Mock).mockReturnValue('development');
       store = new IdempotencyStore(tableName, mockConfigService, mockClient);
 
       expect(await store.check(id)).toBe(false);
