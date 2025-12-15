@@ -59,7 +59,7 @@ export default function AllergiesSection({ userItems, systemOptions, setUserItem
   })();
 
   return (
-    <div className="w-full mx-auto border-grayscale-200 border-x-0 md:border-x pb-4">
+    <div className="w-full mx-auto border-grayscale-200 border-x-0 md:border-x">
       <h3 className="text-grayscale-100 font-semibold text-left text-lg p-4">Alergias:</h3>
 
       {userItems.map((a, i) => (

@@ -155,11 +155,6 @@ export const handler = async (event: LambdaEvent) => {
       let body: unknown;
       let statusCode = 200;
       const route = event.resource ?? event.rawPath ?? event.routeKey;
-      CommonLogger.info(
-        'AUTH-SERVICE',
-        'REQUEST_RECEIVED',
-        `Rota: ${route} | Método: ${event.httpMethod ?? event.requestContext?.http?.method}`,
-      );
       switch (route) {
         // ================= LOGIN =================
         case '/production/auth/client-user/login': {
@@ -332,7 +327,7 @@ export const handler = async (event: LambdaEvent) => {
         }
 
         // ================= PUBLIC ACCESS ALERT =================
-        case '/production/auth/public/clinical-info-access-alert': {
+        case '/production/auth/clinical-info-access-alert': {
           const handlerInstance = appContext.get(PublicAccessAlertHandler);
           const id = event.queryStringParameters?.id;
           if (!id) {

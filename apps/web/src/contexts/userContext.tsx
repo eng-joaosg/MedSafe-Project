@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { refreshToken } from '@/lib/api';
 
 interface UserState {
   id: string | null;
@@ -38,11 +39,45 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<UserState>(defaultUser);
   const [isLoggedOut, setIsLoggedOut] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
-    const stored = sessionStorage.getItem('user');
-    if (stored) setUserState(JSON.parse(stored));
-    
-    setIsMounted(true);
+    let mounted = true;
+
+    async function restoreSession() {
+      const stored = sessionStorage.getItem('user');
+      if (stored) {
+        setUserState(JSON.parse(stored));
+        setIsMounted(true);
+        return;
+      }
+
+      // Tenta refresh token do servidor
+      try {
+        const session = await refreshToken();
+        if (session?.id && mounted) {
+          const newUser = {
+            id: session.id,
+            firstName: session.firstName ?? '',
+            lastName: session.lastName ?? '',
+            clinicalInfoId: session.clinicalInfoId ?? null,
+            role: session.role ?? '',
+          };
+          setUserState(newUser);
+          sessionStorage.setItem('user', JSON.stringify(newUser));
+          setIsLoggedOut(false);
+        }
+      } catch (err) {
+        console.warn('Não foi possível restaurar a sessão:', err);
+      } finally {
+        if (mounted) setIsMounted(true);
+      }
+    }
+
+    restoreSession();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const setUser = (newUser: UserState | ((prev: UserState) => UserState)) => {
@@ -64,7 +99,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   return (
     <UserContext.Provider value={{ user, setUser, clearUser, isLoggedOut, setLoggedOut }}>
-      {/* Renderiza os filhos SOMENTE após a montagem (e carregamento do sessionStorage) */}
+      {/* Renderiza os filhos SOMENTE após a montagem e tentativa de restaurar sessão */}
       {isMounted ? children : null}
     </UserContext.Provider>
   );

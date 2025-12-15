@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [showVerificationButton, setShowVerificationButton] = useState(false); 
+  const [showVerificationButton, setShowVerificationButton] = useState(false);
 
   async function handleLogin() {
     setMessage("");
@@ -43,16 +43,32 @@ export default function LoginPage() {
       router.push('/client-user');
 
     } catch (err: any) {
-      // Detecta pelo message do erro
-      if (err.message?.includes("não foi verificada")) {
+      const backendMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "";
+
+      if (
+        typeof backendMessage === "string" &&
+        backendMessage.toLowerCase().includes("verificada")
+      ) {
         setMessage("Conta ainda não verificada.");
         setShowVerificationButton(true);
-      } else if (err.message?.includes("Email ou senha")) {
+      } else if (
+        typeof backendMessage === "string" &&
+        backendMessage.toLowerCase().includes("email") &&
+        backendMessage.toLowerCase().includes("senha")
+      ) {
         setMessage("Email ou senha incorretos.");
       } else {
-        setMessage(err.message || "Erro inesperado ao fazer login.");
+        setMessage(
+          typeof backendMessage === "string"
+            ? backendMessage
+            : "Erro inesperado ao fazer login."
+        );
       }
-    } finally {
+    }
+    finally {
       setLoading(false);
     }
   }

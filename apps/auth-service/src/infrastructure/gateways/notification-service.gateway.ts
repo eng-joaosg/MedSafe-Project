@@ -13,18 +13,12 @@ export class NotificationGateway implements OnModuleInit, INotificationGateway {
   constructor(private readonly config: ConfigService) {}
 
   onModuleInit() {
-    const env = this.config.get<string>('NODE_ENV') || 'development';
+    const env = this.config.get<string>('NODE_ENV');
 
-    if (env === 'development') {
-      CommonLogger.info('NotificationGateway', 'INICIALIZAÇÃO', 'Modo de desenvolvimento ativo. As mensagens serão apenas logadas.');
-      return;
-    }
-
-    const queueUrl = this.config.get<string>('SQS_QUEUE_URL');
-    if (!queueUrl) {
+    this.queueUrl = this.config.get<string>('SQS_QUEUE_URL')!;
+    if (!this.queueUrl) {
       throw new ConfigurationException('Configuração inválida: SQS_QUEUE_URL não definido no ambiente.');
     }
-    this.queueUrl = queueUrl;
 
     if (env === 'staging') {
       const region = this.config.get<string>('AWS_REGION');
@@ -39,27 +33,17 @@ export class NotificationGateway implements OnModuleInit, INotificationGateway {
         region,
         credentials: { accessKeyId, secretAccessKey },
       });
+
       CommonLogger.info('NotificationGateway', 'INICIALIZAÇÃO', 'Modo staging: SQS inicializado com variáveis de ambiente.');
     }
 
     if (env === 'production') {
-      const region = process.env.AWS_REGION;
-      if (!region) {
-        throw new ConfigurationException('Configuração inválida: AWS_REGION não definido.');
-      }
-      this.sqsClient = new SQSClient({ region });
-      CommonLogger.info('NotificationGateway', 'INICIALIZAÇÃO', 'Modo produção: SQS inicializado com IAM role da Lambda.');
+      this.sqsClient = new SQSClient({});
+      CommonLogger.info('NotificationGateway', 'INICIALIZAÇÃO', 'Modo produção: SQS inicializado com IAM role da Lambda ou instância.');
     }
   }
 
   async publish(message: Record<string, any>): Promise<void> {
-    const env = this.config.get<string>('NODE_ENV') || 'development';
-
-    if (env === 'development') {
-      console.log('[DEV] Mensagem publicada (simulada):', message);
-      return;
-    }
-
     if (!this.sqsClient || !this.queueUrl) {
       throw new ConfigurationException('SQS Client ou Queue URL não inicializados.');
     }

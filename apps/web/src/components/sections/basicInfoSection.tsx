@@ -32,7 +32,7 @@ export default function BasicInfoSection({
 }: BasicInfoSectionProps) {
   return (
     <div className="w-full flex flex-col items-center">
-      <div className="w-full mx-auto border-grayscale-200 border-t md:border-x pb-2">
+      <div className="w-full mx-auto border-grayscale-200 border-t md:border-x pb-4">
         <h2 className="text-grayscale-100 text-lg font-semibold mb-3 text-left p-4">Dados básicos:</h2>
         <Input fieldName="Nome" value={firstName} onChange={setFirstName} placeholder="Digite seu nome" editable={editable} />
         <Input fieldName="Sobrenome" value={lastName} onChange={setLastName} placeholder="Digite seu sobrenome" editable={editable} />

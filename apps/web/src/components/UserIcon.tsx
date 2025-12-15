@@ -13,21 +13,23 @@ interface UserIconProps {
 }
 
 export default function UserIcon({ className = '', onClick }: UserIconProps) {
-  const { user, setUser, clearUser, isLoggedOut, setLoggedOut } = useUser();
+  const { user, setUser, clearUser, setLoggedOut } = useUser();
   const { setClinicalInfo } = useClinicalInfo();
   const { resetAll: resetAllClinicalOptions } = useClinicalOptions();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [hydrated, setHydrated] = useState(false); // <--- chave
+  const [hydrated, setHydrated] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const pathname = usePathname();
   const router = useRouter();
 
+  // Marca que o componente já foi montado (client-side)
   useEffect(() => {
-    setHydrated(true); // Só consideramos cliente depois da montagem
+    setHydrated(true);
   }, []);
 
+  // Fecha o menu se clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
@@ -38,7 +40,39 @@ export default function UserIcon({ className = '', onClick }: UserIconProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!hydrated) return null; // <--- Não renderiza nada no SSR
+  // ⚡ Refresh token apenas uma vez após montar
+  useEffect(() => {
+    let mounted = true;
+
+    const tryRefreshToken = async () => {
+      if (user.id || loading) return;
+      setLoading(true);
+      try {
+        const session = await refreshToken();
+        if (mounted && session?.id) {
+          setUser({
+            id: session.id,
+            firstName: session.firstName || '',
+            lastName: session.lastName || '',
+            clinicalInfoId: session.clinicalInfoId ?? null,
+            role: session.role!,
+          });
+        }
+      } catch {
+        handleLogout();
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    tryRefreshToken();
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // roda só uma vez no mount
+
+  if (!hydrated) return null; // evita SSR
 
   const handleLogout = async () => {
     try {
@@ -64,39 +98,15 @@ export default function UserIcon({ className = '', onClick }: UserIconProps) {
     router.push('/auth/delete-account');
   };
 
-  const handleClick = async () => {
-    const willOpen = !open;
-    setOpen(willOpen);
+  const handleClick = () => {
+    setOpen((prev) => !prev);
     onClick?.();
-
-    if (willOpen && !user.id && !loading && !isLoggedOut) {
-      setLoading(true);
-      try {
-        const session = await refreshToken();
-        if (session?.id && session.role !== 'public') {
-          setUser({
-            id: session.id,
-            firstName: session.firstName || '',
-            lastName: session.lastName || '',
-            clinicalInfoId: session.clinicalInfoId ?? null,
-            role: session.role!,
-          });
-          setLoggedOut(false);
-        } else {
-          await handleLogout();
-        }
-      } catch {
-        await handleLogout();
-      } finally {
-        setLoading(false);
-      }
-    }
   };
 
-  const isLoggedIn = !!user.id && user.role !== 'public';
+  const isLoggedIn = !!user.id;
 
+  // ⚡ Opções dinâmicas baseadas na página
   let options: { label: string; action: () => void }[] = [];
-
   if (isLoggedIn) {
     if (pathname === '/client-user') {
       options = [
@@ -152,7 +162,7 @@ export default function UserIcon({ className = '', onClick }: UserIconProps) {
 
       {open && (
         <div className="absolute right-0 mt-2 w-48 bg-primary-900 text-grayscale-200 shadow-lg rounded-md p-2 transition-opacity duration-200 z-50">
-          {options.map(opt => (
+          {options.map((opt) => (
             <button
               key={opt.label}
               onClick={() => {

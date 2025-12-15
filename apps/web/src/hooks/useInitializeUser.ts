@@ -1,4 +1,3 @@
-// hooks/useInitializeUser.ts
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -49,7 +48,7 @@ interface InitializeResult {
 
 export function useInitializeUser(): InitializeResult {
   const router = useRouter();
-  const pathname = usePathname(); // pega a rota atual
+  const pathname = usePathname();
   const { user, setUser, isLoggedOut } = useUser();
   const { clinicalInfo, setClinicalInfo } = useClinicalInfo();
   const {
@@ -68,9 +67,9 @@ export function useInitializeUser(): InitializeResult {
   const [sex, setSex] = useState('');
   const [birth, setBirth] = useState('');
   const [contacts, setContacts] = useState<EmergencyContact[]>([
-    { id: 1, firstName: '', lastName: '', ddd: null, phone: null, relationship: '' },
-    { id: 2, firstName: '', lastName: '', ddd: null, phone: null, relationship: '' },
-    { id: 3, firstName: '', lastName: '', ddd: null, phone: null, relationship: '' },
+    { firstName: '', lastName: '', ddd: null, phone: null, relationship: '' },
+    { firstName: '', lastName: '', ddd: null, phone: null, relationship: '' },
+    { firstName: '', lastName: '', ddd: null, phone: null, relationship: '' },
   ]);
   const [diseases, setDiseases] = useState<string[]>(['']);
   const [medications, setMedications] = useState<Medication[]>([{ name: '', dosage: null, usageInterval: null }]);
@@ -86,7 +85,25 @@ export function useInitializeUser(): InitializeResult {
     async function initialize() {
       if (!mounted) return;
 
-      // ⚡ Só inicializa dados clínicos se estiver na rota /client-user ou filhos
+      // Carrega opções do sistema independentemente do clinical info
+      if (
+        !diseaseOptionsFromContext.length ||
+        !medicationOptionsFromContext.length ||
+        !allergyOptionsFromContext.length ||
+        !surgeryOptionsFromContext.length
+      ) {
+        try {
+          const options = await getAllClinicalInfo();
+          options.diseases?.forEach(addDisease);
+          options.medications?.forEach(addMedication);
+          options.allergies?.forEach(addAllergy);
+          options.surgeries?.forEach(addSurgery);
+        } catch (err) {
+          console.error('Erro ao carregar opções do sistema:', err);
+        }
+      }
+
+      // Inicialização de dados clínicos apenas na rota /client-user
       if (!pathname.startsWith('/client-user')) {
         setLoading(false);
         return;
@@ -101,13 +118,14 @@ export function useInitializeUser(): InitializeResult {
 
         let currentUser = user;
 
-        // Se usuário ainda não definido, tenta refresh token
+        // Se usuário ainda não definido, tenta refresh token uma única vez
         if (!user.id) {
           const session = await refreshToken();
           if (!session) {
             router.replace('/auth/login');
             return;
           }
+
           const newUser = {
             id: session.id,
             clinicalInfoId: session.clinicalInfoId,
@@ -134,46 +152,31 @@ export function useInitializeUser(): InitializeResult {
         if (info) {
           setBlood(info.bloodType || '');
           setSex(info.sex || '');
-          setBirth(new Date(info.dateOfBirth).toISOString().slice(0, 10));
-          setDiseases(info.diseases.length ? info.diseases : ['']);
-          setAllergies(info.allergies.length ? info.allergies : [{ name: '', severity: '' }]);
-          setSurgeries(info.surgeries.length ? info.surgeries : ['']);
-          setMedications(info.medications.length ? info.medications : [{ name: '', dosage: null, usageInterval: null }]);
+
+          // Corrige caso não exista data de nascimento ainda
+          const birthDate = info.dateOfBirth ? new Date(info.dateOfBirth) : null;
+          setBirth(birthDate ? birthDate.toISOString().slice(0, 10) : '');
+
+          setDiseases(info.diseases?.length ? info.diseases : ['']);
+          setAllergies(info.allergies?.length ? info.allergies : [{ name: '', severity: '' }]);
+          setSurgeries(info.surgeries?.length ? info.surgeries : ['']);
+          setMedications(info.medications?.length ? info.medications : [{ name: '', dosage: null, usageInterval: null }]);
           setAdditionalInfo(info.otherInfo || '');
           setContacts(
             info.contacts?.length
-              ? info.contacts.map((c, idx) => ({
-                  id: idx + 1,
+              ? info.contacts.map((c) => ({
                   firstName: c.firstName || '',
                   lastName: c.lastName || '',
                   ddd: c.ddd ?? null,
                   phone: c.phone ?? null,
                   relationship: c.relationship || '',
                 }))
-              : contacts
+              : [{ firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }]
           );
 
           const finalPublicCode = info.publicCode ?? generatePublicCode();
           setPublicCode(finalPublicCode);
           setOriginalData({ ...info, publicCode: finalPublicCode });
-        }
-
-        // Carrega opções do sistema caso estejam vazias
-        if (
-          !diseaseOptionsFromContext.length ||
-          !medicationOptionsFromContext.length ||
-          !allergyOptionsFromContext.length ||
-          !surgeryOptionsFromContext.length
-        ) {
-          try {
-            const options = await getAllClinicalInfo();
-            options.diseases.forEach(addDisease);
-            options.medications.forEach(addMedication);
-            options.allergies.forEach(addAllergy);
-            options.surgeries.forEach(addSurgery);
-          } catch (err) {
-            console.error('Erro ao carregar opções do sistema:', err);
-          }
         }
       } finally {
         if (mounted) setLoading(false);
