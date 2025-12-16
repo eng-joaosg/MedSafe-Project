@@ -140,6 +140,22 @@ export const handler = async (event: LambdaEvent) => {
     const initialContext = new Map<string, any>();
     initialContext.set('requestId', finalRequestId);
     const timeout = 30000;
+
+    // ======== Tratamento global de CORS OPTIONS ========
+    if ((event.httpMethod ?? event.requestContext?.http?.method)?.toUpperCase() === 'OPTIONS') {
+      return {
+        statusCode: 204,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': configService.get('CORS_ORIGIN') ?? 'http://localhost:3000',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Headers': 'Content-Type, X-API-KEY',
+          'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+        },
+        body: '',
+      };
+    }
+
     return await requestContext.run<Promise<any>>(async () => {
       CommonLogger.setRequestContext(requestContext);
 
