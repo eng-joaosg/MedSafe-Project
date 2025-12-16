@@ -16,11 +16,13 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 5000;
   const apiVersion = configService.get<string>('API_VERSION') || '1.0';
+  const corsOriginsEnv = configService.get<string>('CORS_ORIGINS') || 'http://localhost:3000';
+  const corsAllowedOrigins = corsOriginsEnv.split(',').map((origin) => origin.trim());
 
   // -----------------------------
   // Middleware para requestId
   // -----------------------------
-  app.use((req, res, next) => {
+  app.use((req, next) => {
     const requestId = req.headers['x-request-id'] as string | undefined;
     requestContext.run(() => {
       if (requestId) {
@@ -28,6 +30,13 @@ async function bootstrap() {
       }
       next();
     });
+  });
+
+  app.enableCors({
+    origin: corsAllowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-KEY', 'Cookie'],
+    credentials: true,
   });
 
   // -----------------------------
