@@ -99,12 +99,10 @@ function lambdaResponseWithCookie(body: unknown, token: string, maxAgeSeconds: n
 export const handler = async (event: LambdaEvent) => {
   const requestId = ulid();
   const isApiGateway = !!event.httpMethod || !!event.requestContext?.http?.method;
-  const timeout = configService.get<number>('TIMEOUT') || 30000;
   const withTimeout = async <T>(maybePromise: T | Promise<T>, ms: number): Promise<T> => {
     const promise = maybePromise instanceof Promise ? maybePromise : Promise.resolve(maybePromise);
     return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout de ${ms}ms`)), ms))]);
   };
-
   const logDuration = (start: number, action?: string) => {
     const duration = Date.now() - start;
     CommonLogger.info('Timing', 'REQUEST_DURATION', `${action ?? 'unknown'} - ${duration}ms`);
@@ -141,7 +139,7 @@ export const handler = async (event: LambdaEvent) => {
     const finalRequestId = headers['x-request-id'] ?? requestId;
     const initialContext = new Map<string, any>();
     initialContext.set('requestId', finalRequestId);
-
+    const timeout = 30000;
     return await requestContext.run<Promise<any>>(async () => {
       CommonLogger.setRequestContext(requestContext);
 
