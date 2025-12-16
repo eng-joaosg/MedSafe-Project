@@ -22,7 +22,7 @@ async function bootstrap() {
   // -----------------------------
   // Middleware para requestId
   // -----------------------------
-  app.use((req, next) => {
+  app.use((req, res, next) => {
     const requestId = req.headers['x-request-id'] as string | undefined;
     requestContext.run(() => {
       if (requestId) {
