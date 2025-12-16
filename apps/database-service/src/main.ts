@@ -6,13 +6,11 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { CommonLogger } from './common/common-logger';
 import { GlobalExceptionFilter } from './presentation/filters/global-exception.filter';
 import { TimingInterceptor } from './presentation/interceptors/timming.interceptor';
-import { RequestContextService } from './common/request-context/context-context.service';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  const requestContext = app.get(RequestContextService);
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 5000;
   const apiVersion = configService.get<string>('API_VERSION') || '1.0';
@@ -20,29 +18,19 @@ async function bootstrap() {
   const corsAllowedOrigins = corsOriginsEnv.split(',').map((origin) => origin.trim());
 
   // -----------------------------
-  // Middleware para requestId
+  // Middleware para cookies (JWT HttpOnly)
   // -----------------------------
-  app.use((req, next) => {
-    const requestId = req.headers['x-request-id'] as string | undefined;
-    requestContext.run(() => {
-      if (requestId) {
-        requestContext.set('requestId', requestId);
-      }
-      next();
-    });
-  });
+  app.use(cookieParser());
 
+  // -----------------------------
+  // CORS
+  // -----------------------------
   app.enableCors({
     origin: corsAllowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-KEY', 'Cookie'],
     credentials: true,
   });
-
-  // -----------------------------
-  // Middleware para cookies (JWT HttpOnly)
-  // -----------------------------
-  app.use(cookieParser());
 
   // -----------------------------
   // Pipes globais
