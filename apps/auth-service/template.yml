@@ -62,7 +62,7 @@ Resources:
           HASH_SALT_ROUNDS: 10
           AUTH_SERVICE_API_KEY: !Ref AuthServiceApiKey
           TIMEMOUT: 30000
-          CORS_ORIGIN: http://177.16.162.33,https://www.medsafe.goncdev.com.br
+          CORS_ORIGIN: https://www.medsafe.goncdev.com.br
           SQS_QUEUE_URL: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
 
 Outputs:

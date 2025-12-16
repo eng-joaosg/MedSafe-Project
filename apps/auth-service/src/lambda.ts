@@ -284,6 +284,7 @@ export const handler = async (event: LambdaEvent) => {
 
         // ================= REGISTER =================
         case '/production/auth/client-user/register': {
+          CommonLogger.info('AUTH-SERVICE', 'REGISTER_CLIENT_USER EVENT', event);
           const handlerInstance = appContext.get(RegisterClientUserHandler);
           const payload: RegisterClientUserPayload = event.body ? JSON.parse(event.body) : ({} as RegisterClientUserPayload);
           body = await withTimeout(handlerInstance.execute(payload), timeout);
