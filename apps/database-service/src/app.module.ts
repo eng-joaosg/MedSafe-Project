@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ApplicationModule } from './application/application.module';
@@ -6,6 +6,7 @@ import { RequestContextService } from './common/request-context/context-context.
 import { ClientUserAuthController } from './presentation/controllers/client-user.controller';
 import { ClinicalInfoController } from './presentation/controllers/clinical-info.controller';
 import { PublicClinicalInfoController } from './presentation/controllers/public.controller';
+import { RequestIdMiddleware } from './presentation/middlewares/request-id.middleware';
 
 @Module({
   imports: [
@@ -27,4 +28,8 @@ import { PublicClinicalInfoController } from './presentation/controllers/public.
   providers: [RequestContextService],
   exports: [RequestContextService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}
