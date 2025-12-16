@@ -28,8 +28,8 @@ async function bootstrap() {
       if (requestId) {
         requestContext.set('requestId', requestId);
       }
-      next();
     });
+    next();
   });
 
   app.enableCors({
