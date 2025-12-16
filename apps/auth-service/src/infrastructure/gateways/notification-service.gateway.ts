@@ -48,6 +48,12 @@ export class NotificationGateway implements OnModuleInit, INotificationGateway {
       throw new ConfigurationException('SQS Client ou Queue URL não inicializados.');
     }
 
+    CommonLogger.info(
+      'NotificationGateway',
+      'PUBLICAÇÃO_INICIADA',
+      `Preparando para enviar mensagem ao SQS: tipo=${message.type}, e-mail=${message.payload?.email || 'não informado'}`,
+    );
+
     try {
       const command = new SendMessageCommand({
         QueueUrl: this.queueUrl,
@@ -58,8 +64,8 @@ export class NotificationGateway implements OnModuleInit, INotificationGateway {
 
       CommonLogger.info(
         'NotificationGateway',
-        'PUBLICAÇÃO',
-        `Mensagem publicada no SQS: tipo: ${message.type}, e-mail: ${message.payload?.email || 'não informado'}.`,
+        'PUBLICAÇÃO_CONCLUÍDA',
+        `Mensagem publicada no SQS com sucesso: tipo=${message.type}, e-mail=${message.payload?.email || 'não informado'}`,
       );
     } catch (err: any) {
       CommonLogger.error('NotificationGateway', 'FALHA_PUBLICAÇÃO', `Erro ao publicar mensagem no SQS: ${err.message}`, err);
