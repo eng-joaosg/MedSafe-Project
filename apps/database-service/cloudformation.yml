@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MedSafe Database Service Stack Deployment (EC2 + EIP + Docker + CloudWatch Logs + Script de Atualização)
+Description: MedSafe Database Service Stack Deployment (EC2 + Docker + CloudWatch Logs + Script de Atualização) - Subrede Privada
 
 Parameters:
   ApiPort:
@@ -60,7 +60,7 @@ Resources:
       KeyName: !Ref EC2KeyPair
       SubnetId: !Ref SubnetId
       SecurityGroupIds:
-        - sg-059005d2361dc27d6   # SG existente
+        - sg-059005d2361dc27d6
       ImageId: ami-077aec33f15de0896
       IamInstanceProfile: !Ref EC2InstanceProfile
       Tags:
@@ -85,7 +85,7 @@ Resources:
           docker pull devjoaosg/medsafe-database-service:latest
           docker stop medsafe-database-service || true
           docker rm medsafe-database-service || true
-          docker run -d -p 80:5000 --restart=always --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
+          docker run -d -p 80:5000 --restart=always --name medsafe-database-service \
             -e NODE_ENV=${NodeEnv} \
             -e PORT=${ApiPort} \
             -e SERVICE_NAME=${ServiceName} \
@@ -106,20 +106,7 @@ Resources:
           # Rodar pela primeira vez
           /home/ubuntu/update-container.sh
 
-  # Elastic IP
-  DatabaseServiceEIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-
-  # EIP Association
-  DatabaseServiceEIPAssociation:
-    Type: AWS::EC2::EIPAssociation
-    Properties:
-      InstanceId: !Ref DatabaseServiceEC2Instance
-      AllocationId: eipalloc-0c95ae1750ad0954d
-
 Outputs:
-  EC2PublicIP:
-    Description: IP público fixo da EC2
-    Value: !Ref DatabaseServiceEIP
+  EC2InstanceId:
+    Description: ID da EC2 privada
+    Value: !Ref DatabaseServiceEC2Instance
