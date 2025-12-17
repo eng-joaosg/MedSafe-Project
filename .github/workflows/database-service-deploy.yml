@@ -64,18 +64,15 @@ jobs:
           aws cloudformation deploy \
             --stack-name MedSafe-Database-Stack \
             --template-file apps/database-service/cloudformation.yml \
+            --region sa-east-1 \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
               NodeEnv=production \
-              Port=5000 \
+              ApiPort=5000 \
               ServiceName=database-service \
               FrontUrl=http://177.16.162.33 \
               CorsOrigins=https://www.medsafe.goncdev.com.br,http://177.16.162.33 \
-              RequestTimeoutMs=7000 \
-              EC2KeyPair="${{ secrets.EC2_KEY_NAME}}" \
-              VpcId=vpc-0d3b446d45264fea7 \
-              SubnetId=subnet-0ac4c6abfbd794fdf \
-              IAMRoleName=MedSafe-DatabaseService \
+              EC2KeyPair="${{ secrets.EC2_KEY_NAME }}" \
               DBConnectionString="${{ secrets.DB_CONNECTION_STRING }}" \
               JWTSecret="${{ secrets.JWT_SECRET }}" \
               XAuthServiceApiKey="${{ secrets.DATABASE_SERVICE_X_AUTH_SERVICE_API_KEY }}"
