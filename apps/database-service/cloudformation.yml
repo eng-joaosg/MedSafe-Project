@@ -20,6 +20,12 @@ Parameters:
   EC2KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
     Default: medsafe-prod-key
+  VpcId:
+    Type: String
+    Default: vpc-04525554ee64b6bfa
+  SubnetId:
+    Type: String
+    Default: subnet-0cfd6c625ee99d905
   DBConnectionString:
     Type: String
     NoEcho: true
