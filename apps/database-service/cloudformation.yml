@@ -52,7 +52,7 @@ Resources:
       LogGroupName: /medsafe/database-service
       RetentionInDays: 30
 
-  # EC2 Instance for Database-Service
+  # EC2 Instance for Medsafe Database-Service
   DatabaseServiceEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
