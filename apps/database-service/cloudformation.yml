@@ -20,12 +20,6 @@ Parameters:
   EC2KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
     Default: medsafe-prod-key
-  VpcId:
-    Type: String
-    Default: vpc-04525554ee64b6bfa
-  SubnetId:
-    Type: String
-    Default: subnet-0cfd6c625ee99d905
   DBConnectionString:
     Type: String
     NoEcho: true
@@ -58,7 +52,6 @@ Resources:
     Properties:
       InstanceType: t3.micro
       KeyName: !Ref EC2KeyPair
-      SubnetId: !Ref SubnetId
       SecurityGroupIds:
         - sg-059005d2361dc27d6
       ImageId: ami-077aec33f15de0896
