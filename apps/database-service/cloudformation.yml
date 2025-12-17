@@ -22,10 +22,10 @@ Parameters:
     Default: medsafe-prod-key
   VpcId:
     Type: String
-    Default: vpc-0d3b446d45264fea7
+    Default: vpc-04525554ee64b6bfa
   SubnetId:
     Type: String
-    Default: subnet-0ac4c6abfbd794fdf
+    Default: subnet-0cfd6c625ee99d905
   DBConnectionString:
     Type: String
     NoEcho: true
@@ -37,22 +37,6 @@ Parameters:
     NoEcho: true
 
 Resources:
-
-  # Security Group
-  DatabaseServiceSG:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for MedSafe Database Service API
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: !Ref ApiPort
-          ToPort: !Ref ApiPort
-          CidrIp: 177.16.162.33/32
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 177.16.162.33/32
 
   # IAM Instance Profile
   EC2InstanceProfile:
@@ -76,7 +60,7 @@ Resources:
       KeyName: !Ref EC2KeyPair
       SubnetId: !Ref SubnetId
       SecurityGroupIds:
-        - !Ref DatabaseServiceSG
+        - sg-059005d2361dc27d6   # SG existente
       ImageId: ami-077aec33f15de0896
       IamInstanceProfile: !Ref EC2InstanceProfile
       Tags:
@@ -136,10 +120,6 @@ Resources:
       AllocationId: eipalloc-0c95ae1750ad0954d
 
 Outputs:
-  SecurityGroupId:
-    Description: ID do Security Group
-    Value: !Ref DatabaseServiceSG
-
   EC2PublicIP:
     Description: IP público fixo da EC2
     Value: !Ref DatabaseServiceEIP
