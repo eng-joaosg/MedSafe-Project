@@ -101,7 +101,7 @@ Resources:
           docker pull devjoaosg/medsafe-database-service:latest
           docker stop medsafe-database-service || true
           docker rm medsafe-database-service || true
-          docker run -d --restart=always --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
+          docker run -d -p 80:5000 --restart=always --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
             -e NODE_ENV=${NodeEnv} \
             -e PORT=${ApiPort} \
             -e SERVICE_NAME=${ServiceName} \
