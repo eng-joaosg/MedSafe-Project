@@ -67,7 +67,7 @@ Resources:
       RetentionInDays: 30
 
   # ========================================================
-  # EC2 Instance
+  # EC2 Instance for Database Service
   # ========================================================
   DatabaseServiceEC2Instance:
     Type: AWS::EC2::Instance
