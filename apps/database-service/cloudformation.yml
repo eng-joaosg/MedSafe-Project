@@ -5,54 +5,70 @@ Parameters:
   ApiPort:
     Type: Number
     Default: 5000
+
   NodeEnv:
     Type: String
     Default: production
+
   ServiceName:
     Type: String
     Default: database-service
+
   FrontUrl:
     Type: String
     Default: http://177.16.162.33
+
   CorsOrigins:
     Type: String
     Default: http://177.16.162.33
+
   EC2KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
     Default: medsafe-prod-key
+
   VpcId:
     Type: String
     Default: vpc-04525554ee64b6bfa
+
   SubnetId:
     Type: String
     Default: subnet-0cfd6c625ee99d905
+
   DBConnectionString:
     Type: String
     NoEcho: true
+
   JWTSecret:
     Type: String
     NoEcho: true
+
   XAuthServiceApiKey:
     Type: String
     NoEcho: true
 
 Resources:
 
+  # ========================================================
   # IAM Instance Profile
+  # ========================================================
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
         - MedSafe-DatabaseService
 
+  # ========================================================
   # CloudWatch Log Group
+  # ========================================================
   DatabaseServiceLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /medsafe/database-service
       RetentionInDays: 30
 
-  # EC2 Instance for Medsafe Database-Service
+  # ========================================================
+  # EC2 Instance
+  # ========================================================
   DatabaseServiceEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -63,29 +79,60 @@ Resources:
         - sg-059005d2361dc27d6
       ImageId: ami-077aec33f15de0896
       IamInstanceProfile: !Ref EC2InstanceProfile
+
       Tags:
         - Key: Name
           Value: medsafe-database-service
+
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
           set -e
 
-          # Instala Docker
-          sudo apt update -y
-          sudo apt install -y docker.io
-          sudo systemctl enable docker
-          sudo systemctl start docker
+          exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
 
-          # Script de atualização do container
+          echo "===> Iniciando UserData"
+
+          apt-get update -y
+          apt-get install -y ca-certificates curl gnupg lsb-release
+
+          install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          chmod a+r /etc/apt/keyrings/docker.gpg
+
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+          https://download.docker.com/linux/ubuntu \
+          $(lsb_release -cs) stable" \
+          > /etc/apt/sources.list.d/docker.list
+
+          apt-get update -y
+
+          apt-get install -y \
+            docker-ce \
+            docker-ce-cli \
+            containerd.io \
+            docker-buildx-plugin \
+            docker-compose-plugin
+
+          systemctl enable docker
+          systemctl start docker
+          usermod -aG docker ubuntu
+
+          echo "===> Docker instalado"
+
           cat <<'EOF' > /home/ubuntu/update-container.sh
           #!/bin/bash
           set -e
-          echo "Atualizando container MedSafe Database Service..."
+
           docker pull devjoaosg/medsafe-database-service:latest
+
           docker stop medsafe-database-service || true
           docker rm medsafe-database-service || true
-          docker run -d -p 80:5000 --restart=always --name medsafe-database-service \
+
+          docker run -d \
+            --name medsafe-database-service \
+            --restart=always \
+            -p 80:5000 \
             -e NODE_ENV=${NodeEnv} \
             -e PORT=${ApiPort} \
             -e SERVICE_NAME=${ServiceName} \
@@ -103,10 +150,12 @@ Resources:
 
           chmod +x /home/ubuntu/update-container.sh
 
-          # Rodar pela primeira vez
+          echo "===> Subindo container"
           /home/ubuntu/update-container.sh
+
+          echo "===> UserData finalizado com sucesso"
 
 Outputs:
   EC2InstanceId:
-    Description: ID da EC2 privada
+    Description: ID da EC2
     Value: !Ref DatabaseServiceEC2Instance
