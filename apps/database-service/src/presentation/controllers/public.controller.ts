@@ -2,7 +2,7 @@ import { Controller, Get, Query, BadRequestException, Inject } from '@nestjs/com
 import { ApiTags, ApiOperation, ApiQuery, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import type { IClinicalInfoService } from '../../application/contracts/i-clinical-info.service';
 import { CLINICAL_INFO_SERVICE } from '../../common/contants/tokens.contants';
-import { ClinicalInfoDto } from 'src/application/dtos/clinical-info.dto';
+import { ClinicalInfoDto } from '../../application/dtos/clinical-info.dto';
 
 @ApiTags('public')
 @Controller('public')

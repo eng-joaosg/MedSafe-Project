@@ -1,3 +1,8 @@
+import { ApiResponse, ApiTags, ApiBody, ApiOperation, ApiQuery, ApiSecurity } from '@nestjs/swagger';
+import { ApiKeyGuardForAuthService } from '../guards/api-key-for-auth-service.guard';
+import { ClientUserModel } from '../../application/models/client-user.model';
+import type { IClientUserService } from '../../application/contracts/i-client-user.service';
+import { CLIENT_USER_SERVICE } from '../../common/contants/tokens.contants';
 import {
   Controller,
   Get,
@@ -14,11 +19,6 @@ import {
   Patch,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiResponse, ApiTags, ApiBody, ApiOperation, ApiQuery, ApiSecurity } from '@nestjs/swagger';
-import { ApiKeyGuardForAuthService } from '../guards/api-key-for-auth-service.guard';
-import { ClientUserModel } from '../../application/models/client-user.model';
-import type { IClientUserService } from '../../application/contracts/i-client-user.service';
-import { CLIENT_USER_SERVICE } from '../../common/contants/tokens.contants';
 
 @ApiTags('client-user')
 @ApiSecurity('api-key')
