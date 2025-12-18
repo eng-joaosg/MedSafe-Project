@@ -77,7 +77,7 @@ Resources:
       SubnetId: !Ref SubnetId
       SecurityGroupIds:
         - sg-059005d2361dc27d6
-      ImageId: ami-077aec33f15de0896
+      ImageId: ami-0484b27e9143d1299
       IamInstanceProfile: !Ref EC2InstanceProfile
 
       Tags:
