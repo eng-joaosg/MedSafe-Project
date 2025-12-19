@@ -167,7 +167,8 @@ export const handler = async (event: LambdaEvent) => {
       const start = Date.now();
       let body: unknown;
       let statusCode = 200;
-      const route = event.rawPath;
+      const rawPath = event.rawPath ?? '';
+      const route = rawPath.replace(/^\/production/, '');
       switch (route) {
         // ================= LOGIN =================
         case '/auth/client-user/login': {
