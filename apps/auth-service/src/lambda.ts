@@ -108,6 +108,7 @@ export const handler = async (event: LambdaEvent) => {
   };
 
   const validateAuth = async (headers: Record<string, string>) => {
+    CommonLogger.info('AuthService', 'VALIDATE_AUTH', `Headers received: ${JSON.stringify(headers)}`);
     const cookieHeader = headers['cookie'] || headers['Cookie'] || '';
     if (!cookieHeader || typeof cookieHeader !== 'string') throw new AppException('Usuário não autenticado', 401);
 
