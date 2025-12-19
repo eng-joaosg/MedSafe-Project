@@ -82,7 +82,7 @@ function lambdaResponse(body: unknown, statusCode = 200) {
 
 function lambdaResponseWithCookie(body: unknown, token: string, maxAgeSeconds: number = 60 * 60 * 2, statusCode: number = 200) {
   const cookie = `auth_token=${token}; HttpOnly; Secure; SameSite=None; Path=/; Domain=.goncdev.com.br; Max-Age=${maxAgeSeconds}`;
-
+  CommonLogger.info('Handler', 'SET_COOKIE', cookie);
   return {
     statusCode,
     headers: {
