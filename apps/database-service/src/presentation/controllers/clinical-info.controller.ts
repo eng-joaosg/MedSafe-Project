@@ -114,6 +114,30 @@ export class ClinicalInfoController {
     await this.clinicalInfoService.deleteById(clinicalInfoId);
   }
 
+  @Delete('delete-recent')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Deleta um clinical info usando o clinicalInfoId passado na query string, se tiver sido criado nos últimos 40 segundos.',
+  })
+  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 400, description: 'clinicalInfoId ausente, inválido ou registro criado há mais de 40 segundos.' })
+  @ApiResponse({ status: 401, description: 'Usuário não autenticado ou token inválido.' })
+  async deleteRecentById(@Req() req: Request): Promise<void> {
+    const clinicalInfoId = req.query.clinicalInfoId as string | undefined;
+
+    if (!clinicalInfoId) {
+      throw new BadRequestException('Query string não contém clinicalInfoId');
+    }
+
+    const justCreated = await this.clinicalInfoService.justCreated(clinicalInfoId);
+
+    if (!justCreated) {
+      throw new BadRequestException('O registro não pode ser deletado, pois foi criado há mais de 40 segundos.');
+    }
+
+    await this.clinicalInfoService.deleteById(clinicalInfoId);
+  }
+
   @Get('qr-code')
   @ApiOperation({ summary: 'Gera e retorna o PDF com QR Code usando o clinicalInfoId do JWT.' })
   @ApiResponse({

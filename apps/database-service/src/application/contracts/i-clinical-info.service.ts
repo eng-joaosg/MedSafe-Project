@@ -7,6 +7,7 @@ export interface IClinicalInfoService {
   deleteById(id: string): Promise<void>;
   generatePublicQrPdf(qrUrl: string, publicCode: string);
   getByPublicCode(id: string, code: string): Promise<ClinicalInfoDto>;
+  justCreated(id: string): Promise<boolean>;
   getAllClinicalInfo(): Promise<{
     surgeries: string[];
     diseases: string[];

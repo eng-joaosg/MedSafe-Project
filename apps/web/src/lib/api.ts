@@ -309,11 +309,14 @@ export async function createAndAssociateClinicalInfo(
   } catch (err) {
     console.error('Falha ao associar clinicalInfo, deletando registro criado...', err);
     try {
-      await fetch(`${API_BASE_URL}/clinical-info?clinicalInfoId=${encodeURIComponent(created.id)}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
+      await fetch(
+        `${API_BASE_URL}/clinical-info/delete-recent?clinicalInfoId=${encodeURIComponent(created.id)}`,
+        {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        }
+      );
     } catch (deleteErr) {
       console.error('Erro ao deletar clinicalInfo após falha de associação:', deleteErr);
     }

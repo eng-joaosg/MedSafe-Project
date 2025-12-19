@@ -59,6 +59,16 @@ export class ClinicalInfoService implements IClinicalInfoService {
   }> {
     return await this.clinicalInfoRepository.getAllClinicalInfo();
   }
+  async justCreated(id: string): Promise<boolean> {
+    const user: ClinicalInfoDto = await this.getById(id);
+    if (!user) return false;
+
+    const now = new Date();
+    const createdAt = user.createdAt!;
+    const diffSeconds = (now.getTime() - createdAt.getTime()) / 1000;
+
+    return diffSeconds <= 40;
+  }
 
   async generatePublicQrPdf(qrUrl: string, publicCode: string): Promise<Buffer> {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
