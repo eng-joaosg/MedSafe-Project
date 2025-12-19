@@ -82,17 +82,15 @@ function lambdaResponse(body: unknown, statusCode = 200) {
 
 function lambdaResponseWithCookie(body: unknown, token: string, maxAgeSeconds: number = 60 * 60 * 2, statusCode: number = 200) {
   const cookie = `auth_token=${token}; HttpOnly; Secure; SameSite=None; Path=/; Domain=.goncdev.com.br; Max-Age=${maxAgeSeconds}`;
-  CommonLogger.info('Handler', 'SET_COOKIE', cookie);
   return {
     statusCode,
     headers: {
       'Content-Type': 'application/json',
+      'Set-Cookie': cookie,
       'Access-Control-Allow-Origin': configService.get('CORS_ORIGIN') ?? 'https://www.medsafe.goncdev.com.br',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS, PUT',
-    },
-    multiValueHeaders: {
-      'Set-Cookie': [cookie],
+      'Access-Control-Allow-Headers': 'Content-Type, X-API-KEY',
     },
     body: body != null ? JSON.stringify(body) : '',
   };
@@ -190,7 +188,6 @@ export const handler = async (event: LambdaEvent) => {
           const { accessToken, ...sessionWithoutToken } = session;
 
           logDuration(start, route);
-
           return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken);
         }
 
