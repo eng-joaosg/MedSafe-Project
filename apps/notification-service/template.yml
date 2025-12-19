@@ -48,6 +48,7 @@ Resources:
           SQS_QUEUE_URL: https://sqs.sa-east-1.amazonaws.com/326993352985/medsafe-auth-to-notification
           SQS_QUEUE_NAME: medsafe-auth-to-notification
           MAIN_MAIL_SENDER: API
+          FRONTEND_URL: https://www.medsafe.goncdev.com.br
           USE_FALLBACK: true
 
   NotificationSQSTrigger:
