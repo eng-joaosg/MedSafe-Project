@@ -36,6 +36,7 @@ export interface LambdaEvent {
   queryStringParameters?: Record<string, string>;
   isBase64Encoded?: boolean;
   headers?: Record<string, string>;
+  cookies?: string[];
   body?: string | null;
   version?: string;
   routeKey?: string;
@@ -108,11 +109,17 @@ export const handler = async (event: LambdaEvent) => {
     CommonLogger.info('Timing', 'REQUEST_DURATION', `${action ?? 'unknown'} - ${duration}ms`);
   };
 
-  const validateAuth = async (headers: Record<string, string>) => {
-    CommonLogger.info('AuthService', 'VALIDATE_AUTH', `Headers received: ${JSON.stringify(headers)}`);
-    const cookieHeader = headers['cookie'] || headers['Cookie'] || '';
-    if (!cookieHeader || typeof cookieHeader !== 'string') throw new AppException('Usuário não autenticado', 401);
+  const validateAuth = async (headers: Record<string, string>, eventCookies?: string[]) => {
+    let cookieHeader = '';
+    if (eventCookies && eventCookies.length > 0) {
+      cookieHeader = eventCookies.join('; ');
+    } else {
+      cookieHeader = headers['cookie'] || headers['Cookie'] || '';
+    }
 
+    if (!cookieHeader || typeof cookieHeader !== 'string') {
+      throw new AppException('Usuário não autenticado', 401);
+    }
     const cookies: Record<string, string> = {};
     cookieHeader.split(/; */).forEach((pair) => {
       const index = pair.indexOf('=');
@@ -124,8 +131,7 @@ export const handler = async (event: LambdaEvent) => {
     });
 
     const token = cookies['auth_token'];
-    if (!token) throw new AppException('Usuário não autenticado', 401);
-
+    if (!token) throw new AppException('Token auth_token não encontrado', 401);
     const payload = await tokenService.verifyToken(token).catch(() => null);
     if (!payload) throw new AppException('Token inválido ou expirado', 401);
 
@@ -201,7 +207,7 @@ export const handler = async (event: LambdaEvent) => {
 
         // ================= REFRESH TOKEN =================
         case '/auth/refresh-token': {
-          const authPayload = await validateAuth(headers);
+          const authPayload = await validateAuth(headers, event.cookies);
           const userId = authPayload.sub;
           const role = authPayload.role;
           const handlerInstance = appContext.get(RefreshTokenHandler);
@@ -215,7 +221,7 @@ export const handler = async (event: LambdaEvent) => {
         // ================= DELETE ACCOUNT =================
         case '/auth/client-user/delete-account': {
           const handlerInstance = appContext.get(DeleteClientUserHandler);
-          const authPayload = await validateAuth(headers);
+          const authPayload = await validateAuth(headers, event.cookies);
           const userId = authPayload.sub;
           const parsedBody: { password: string } = event.body ? JSON.parse(event.body) : {};
           const password = parsedBody.password;
@@ -247,7 +253,7 @@ export const handler = async (event: LambdaEvent) => {
         // ================= VERIFY PASSWORD =================
         case '/auth/verify-password': {
           const handlerInstance = appContext.get(VerifyPasswordHandler);
-          const authPayload = await validateAuth(headers);
+          const authPayload = await validateAuth(headers, event.cookies);
           const userId = authPayload.sub;
           const parsedBody: { password: string } = event.body ? JSON.parse(event.body) : {};
           const password = parsedBody.password;
@@ -259,7 +265,7 @@ export const handler = async (event: LambdaEvent) => {
         // ================= CHANGE NAME =================
         case '/auth/client-user/change-name': {
           const handlerInstance = appContext.get(ChangeNameClientUserHandler);
-          const authPayload = await validateAuth(headers);
+          const authPayload = await validateAuth(headers, event.cookies);
           const userId = authPayload.sub;
           const parsedBody: { newFirstName: string; newLastName: string } = event.body ? JSON.parse(event.body) : {};
           const newFirstName = parsedBody.newFirstName;
@@ -275,7 +281,7 @@ export const handler = async (event: LambdaEvent) => {
         // ================= CHANGE PASSWORD =================
         case '/auth/change-password': {
           const handlerInstance = appContext.get(ChangePasswordClientUserHandler);
-          const authPayload = await validateAuth(headers);
+          const authPayload = await validateAuth(headers, event.cookies);
           const userId = authPayload.sub;
           const parsedBody: { password: string; newPassword: string } = event.body ? JSON.parse(event.body) : {};
           const password = parsedBody.password;
@@ -321,7 +327,7 @@ export const handler = async (event: LambdaEvent) => {
         // ================= ASSOCIATE CLINICAL INFO =================
         case '/auth/client-user/associate-clinical-info': {
           const handlerInstance = appContext.get(AssociateClinicalInfoHandler);
-          const authPayload = await validateAuth(headers);
+          const authPayload = await validateAuth(headers, event.cookies);
           const userId = authPayload.sub;
 
           const clinicalInfoId = event.queryStringParameters?.clinicalInfoId as string;
