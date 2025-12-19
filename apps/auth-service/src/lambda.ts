@@ -155,7 +155,7 @@ export const handler = async (event: LambdaEvent) => {
         body: '',
       };
     }
-    CommonLogger.info('AUTH-SERVICE', 'REQUEST_RECEIVED', `Route: teste, Event: ${event as string}`);
+    CommonLogger.info('AUTH-SERVICE', 'REQUEST_RECEIVED', JSON.stringify(event));
     return await requestContext.run<Promise<any>>(async () => {
       CommonLogger.setRequestContext(requestContext);
 
