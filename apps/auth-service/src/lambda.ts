@@ -69,12 +69,12 @@ async function getApp(): Promise<INestApplicationContext> {
 function lambdaResponse(body: unknown, statusCode = 200) {
   return {
     statusCode,
-    multiValueHeaders: {
-      'Content-Type': ['application/json'],
-      'Access-Control-Allow-Origin': [configService.get('CORS_ORIGIN') ?? 'http://localhost:3000'],
-      'Access-Control-Allow-Credentials': ['true'],
-      'Access-Control-Allow-Headers': ['Content-Type'],
-      'Access-Control-Allow-Methods': ['GET, POST, PATCH, DELETE, OPTIONS, PUT'],
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': configService.get('CORS_ORIGIN') ?? 'http://localhost:3000',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS, PUT',
     },
     body: body != null ? JSON.stringify(body) : '',
   };
@@ -84,14 +84,14 @@ function lambdaResponseWithCookie(body: unknown, token: string, maxAgeSeconds: n
   const cookie = `auth_token=${token}; HttpOnly; Secure; SameSite=None; Path=/; Domain=.goncdev.com.br; Max-Age=${maxAgeSeconds}`;
   return {
     statusCode,
-    multiValueHeaders: {
-      'Content-Type': ['application/json'],
-      'Set-Cookie': [cookie],
-      'Access-Control-Allow-Origin': [configService.get('CORS_ORIGIN') ?? 'https://www.medsafe.goncdev.com.br'],
-      'Access-Control-Allow-Credentials': ['true'],
-      'Access-Control-Allow-Methods': ['GET, POST, PATCH, DELETE, OPTIONS, PUT'],
-      'Access-Control-Allow-Headers': ['Content-Type, X-API-KEY'],
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': configService.get('CORS_ORIGIN') ?? 'https://www.medsafe.goncdev.com.br',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS, PUT',
+      'Access-Control-Allow-Headers': 'Content-Type, X-API-KEY',
     },
+    cookies: [cookie],
     body: body != null ? JSON.stringify(body) : '',
   };
 }
