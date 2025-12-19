@@ -136,7 +136,7 @@ Resources:
             -e NODE_ENV=${NodeEnv} \
             -e PORT=${ApiPort} \
             -e SERVICE_NAME=${ServiceName} \
-            -e FRONT_URL=${FrontUrl} \
+            -e FRONT_URL=https://www.medsafe.goncdev.com.br \
             -e CORS_ORIGINS=${CorsOrigins} \
             -e DB_CONNECTION_STRING=${DBConnectionString} \
             -e JWT_SECRET=${JWTSecret} \

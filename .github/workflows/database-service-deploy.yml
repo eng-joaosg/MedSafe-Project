@@ -70,7 +70,6 @@ jobs:
               NodeEnv=production \
               ApiPort=5000 \
               ServiceName=database-service \
-              FrontUrl=https://www.medsafe.goncdev.com.br/ \
               CorsOrigins=https://www.medsafe.goncdev.com.br,http://177.16.162.33 \
               EC2KeyPair="${{ secrets.EC2_KEY_NAME }}" \
               DBConnectionString="${{ secrets.DB_CONNECTION_STRING }}" \
