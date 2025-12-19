@@ -155,7 +155,7 @@ export const handler = async (event: LambdaEvent) => {
         body: '',
       };
     }
-
+    CommonLogger.info('AUTH-SERVICE', 'REQUEST_RECEIVED', `Route: ${route}, Event: ${event as string}`);
     return await requestContext.run<Promise<any>>(async () => {
       CommonLogger.setRequestContext(requestContext);
 
@@ -169,7 +169,6 @@ export const handler = async (event: LambdaEvent) => {
       let body: unknown;
       let statusCode = 200;
       const route = event.resource ?? event.rawPath ?? event.routeKey;
-      CommonLogger.info('AUTH-SERVICE', 'REQUEST_RECEIVED', `Route: ${route}, Event: ${event as string}`);
       switch (route) {
         // ================= LOGIN =================
         case '/auth/client-user/login': {
