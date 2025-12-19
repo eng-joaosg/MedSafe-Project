@@ -7,6 +7,7 @@ import { ClientUserAuthController } from './presentation/controllers/client-user
 import { ClinicalInfoController } from './presentation/controllers/clinical-info.controller';
 import { PublicClinicalInfoController } from './presentation/controllers/public.controller';
 import { RequestIdMiddleware } from './presentation/middlewares/request-id.middleware';
+import { HealthController } from './presentation/controllers/health.controller';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { RequestIdMiddleware } from './presentation/middlewares/request-id.middl
     ApplicationModule,
   ],
 
-  controllers: [ClientUserAuthController, ClinicalInfoController, PublicClinicalInfoController],
+  controllers: [ClientUserAuthController, ClinicalInfoController, PublicClinicalInfoController, HealthController],
   providers: [RequestContextService],
   exports: [RequestContextService],
 })

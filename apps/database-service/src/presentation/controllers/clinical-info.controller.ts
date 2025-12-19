@@ -1,3 +1,10 @@
+import { ApiResponse, ApiTags, ApiOperation, ApiBody, ApiSecurity } from '@nestjs/swagger';
+import type { IClinicalInfoService } from '../../application/contracts/i-clinical-info.service';
+import { CLINICAL_INFO_SERVICE } from '../../common/contants/tokens.contants';
+import { ClinicalInfoDto } from 'src/application/dtos/clinical-info.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
 import {
   Controller,
   Get,
@@ -15,13 +22,6 @@ import {
   Res,
   Req,
 } from '@nestjs/common';
-import { ApiResponse, ApiTags, ApiOperation, ApiBody, ApiSecurity } from '@nestjs/swagger';
-import type { IClinicalInfoService } from '../../application/contracts/i-clinical-info.service';
-import { CLINICAL_INFO_SERVICE } from '../../common/contants/tokens.contants';
-import { ClinicalInfoDto } from 'src/application/dtos/clinical-info.dto';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { ConfigService } from '@nestjs/config';
-import type { Request, Response } from 'express';
 
 @ApiTags('clinical-info')
 @ApiSecurity('jwt')

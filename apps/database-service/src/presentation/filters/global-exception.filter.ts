@@ -3,10 +3,6 @@ import { BaseExceptionFilter } from '@nestjs/core';
 import { CommonLogger } from 'src/common/common-logger';
 import { AppException, ConfigurationException, RemoteServiceError } from 'src/common/exceptions/app.exceptions';
 
-/**
- * Sanitiza mensagens de erro, evitando exposição de dados sensíveis
- * ou objetos não serializáveis diretamente nos logs.
- */
 function sanitizeError(error: unknown): string {
   if (!error) return '';
 
@@ -17,7 +13,6 @@ function sanitizeError(error: unknown): string {
   }
 
   try {
-    // Remove campos sensíveis comuns
     const sanitized: Record<string, any> = {
       ...(error as Record<string, any>),
     };
@@ -28,7 +23,6 @@ function sanitizeError(error: unknown): string {
 
     return JSON.stringify(sanitized);
   } catch {
-    // fallback para objetos não serializáveis (ciclos de referência, proxies, etc.)
     return '[unserializable error object]';
   }
 }

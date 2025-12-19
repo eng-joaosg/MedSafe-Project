@@ -1,74 +1,74 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MedSafe Database Service Stack Deployment (EC2 + EIP + Docker + CloudWatch Logs + Script de Atualização)
+Description: MedSafe Database Service Stack Deployment (EC2 + Docker + CloudWatch Logs + Script de Atualização) - Subrede Privada
 
 Parameters:
   ApiPort:
     Type: Number
     Default: 5000
+
   NodeEnv:
     Type: String
     Default: production
+
   ServiceName:
     Type: String
     Default: database-service
+
   FrontUrl:
     Type: String
     Default: http://177.16.162.33
+
   CorsOrigins:
     Type: String
     Default: http://177.16.162.33
+
   EC2KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
     Default: medsafe-prod-key
+
   VpcId:
     Type: String
-    Default: vpc-0d3b446d45264fea7
+    Default: vpc-04525554ee64b6bfa
+
   SubnetId:
     Type: String
-    Default: subnet-0ac4c6abfbd794fdf
+    Default: subnet-0cfd6c625ee99d905
+
   DBConnectionString:
     Type: String
     NoEcho: true
+
   JWTSecret:
     Type: String
     NoEcho: true
+
   XAuthServiceApiKey:
     Type: String
     NoEcho: true
 
 Resources:
 
-  # Security Group
-  DatabaseServiceSG:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for MedSafe Database Service API
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: !Ref ApiPort
-          ToPort: !Ref ApiPort
-          CidrIp: 177.16.162.33/32
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 177.16.162.33/32
-
+  # ========================================================
   # IAM Instance Profile
+  # ========================================================
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
         - MedSafe-DatabaseService
 
+  # ========================================================
   # CloudWatch Log Group
+  # ========================================================
   DatabaseServiceLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /medsafe/database-service
       RetentionInDays: 30
 
-  # EC2 Instance
+  # ========================================================
+  # EC2 Instance for Database Service
+  # ========================================================
   DatabaseServiceEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -76,32 +76,63 @@ Resources:
       KeyName: !Ref EC2KeyPair
       SubnetId: !Ref SubnetId
       SecurityGroupIds:
-        - !Ref DatabaseServiceSG
+        - sg-059005d2361dc27d6
       ImageId: ami-077aec33f15de0896
       IamInstanceProfile: !Ref EC2InstanceProfile
+
       Tags:
         - Key: Name
           Value: medsafe-database-service
+
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
           set -e
 
-          # Instala Docker
-          sudo apt update -y
-          sudo apt install -y docker.io
-          sudo systemctl enable docker
-          sudo systemctl start docker
+          exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
 
-          # Script de atualização do container
+          echo "===> Iniciando UserData"
+
+          apt-get update -y
+          apt-get install -y ca-certificates curl gnupg lsb-release
+
+          install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          chmod a+r /etc/apt/keyrings/docker.gpg
+
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+          https://download.docker.com/linux/ubuntu \
+          $(lsb_release -cs) stable" \
+          > /etc/apt/sources.list.d/docker.list
+
+          apt-get update -y
+
+          apt-get install -y \
+            docker-ce \
+            docker-ce-cli \
+            containerd.io \
+            docker-buildx-plugin \
+            docker-compose-plugin
+
+          systemctl enable docker
+          systemctl start docker
+          usermod -aG docker ubuntu
+
+          echo "===> Docker instalado"
+
           cat <<'EOF' > /home/ubuntu/update-container.sh
           #!/bin/bash
           set -e
-          echo "Atualizando container MedSafe Database Service..."
+
           docker pull devjoaosg/medsafe-database-service:latest
+
           docker stop medsafe-database-service || true
           docker rm medsafe-database-service || true
-          docker run -d --restart=always --name medsafe-database-service -p ${ApiPort}:${ApiPort} \
+
+          docker run -d \
+            --name medsafe-database-service \
+            --restart=always \
+            -p 80:5000 \
             -e NODE_ENV=${NodeEnv} \
             -e PORT=${ApiPort} \
             -e SERVICE_NAME=${ServiceName} \
@@ -119,27 +150,12 @@ Resources:
 
           chmod +x /home/ubuntu/update-container.sh
 
-          # Rodar pela primeira vez
+          echo "===> Subindo container"
           /home/ubuntu/update-container.sh
 
-  # Elastic IP
-  DatabaseServiceEIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-
-  # EIP Association
-  DatabaseServiceEIPAssociation:
-    Type: AWS::EC2::EIPAssociation
-    Properties:
-      InstanceId: !Ref DatabaseServiceEC2Instance
-      AllocationId: eipalloc-0c95ae1750ad0954d
+          echo "===> UserData finalizado com sucesso"
 
 Outputs:
-  SecurityGroupId:
-    Description: ID do Security Group
-    Value: !Ref DatabaseServiceSG
-
-  EC2PublicIP:
-    Description: IP público fixo da EC2
-    Value: !Ref DatabaseServiceEIP
+  EC2InstanceId:
+    Description: ID da EC2
+    Value: !Ref DatabaseServiceEC2Instance
