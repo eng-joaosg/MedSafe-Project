@@ -68,8 +68,6 @@ export function useInitializeUser(): InitializeResult {
   const [birth, setBirth] = useState('');
   const [contacts, setContacts] = useState<EmergencyContact[]>([
     { firstName: '', lastName: '', ddd: null, phone: null, relationship: '' },
-    { firstName: '', lastName: '', ddd: null, phone: null, relationship: '' },
-    { firstName: '', lastName: '', ddd: null, phone: null, relationship: '' },
   ]);
   const [diseases, setDiseases] = useState<string[]>(['']);
   const [medications, setMedications] = useState<Medication[]>([{ name: '', dosage: null, usageInterval: null }]);
@@ -85,7 +83,7 @@ export function useInitializeUser(): InitializeResult {
     async function initialize() {
       if (!mounted) return;
 
-      // Carrega opções do sistema independentemente do clinical info
+      // Carrega opções globais
       if (
         !diseaseOptionsFromContext.length ||
         !medicationOptionsFromContext.length ||
@@ -103,47 +101,35 @@ export function useInitializeUser(): InitializeResult {
         }
       }
 
-      // Inicialização de dados clínicos apenas na rota /client-user
       if (!pathname.startsWith('/client-user')) {
         setLoading(false);
         return;
       }
 
       try {
-        // Redireciona se deslogado
         if (isLoggedOut) {
           router.replace('/auth/login');
           return;
         }
-
-        let currentUser = user;
-
-        // Se usuário ainda não definido, tenta refresh token uma única vez
         if (!user.id) {
           const session = await refreshToken();
+
           if (!session) {
             router.replace('/auth/login');
             return;
           }
 
-          const newUser = {
+          setUser({
             id: session.id,
             clinicalInfoId: session.clinicalInfoId,
             firstName: session.firstName ?? '',
             lastName: session.lastName ?? '',
             role: session.role?.toString() ?? '',
-          };
-          setUser(newUser);
-          currentUser = newUser;
-
-          if (session.role !== 'client') {
-            router.replace('/auth/login');
-            return;
-          }
+          });
+          return;
         }
-
-        // Inicializa dados clínicos: prioriza contexto, depois backend
         let info: ClinicalInfo | null = clinicalInfo || null;
+
         if (!info) {
           info = await getClinicalInfo();
           if (info) setClinicalInfo(info);
@@ -153,7 +139,6 @@ export function useInitializeUser(): InitializeResult {
           setBlood(info.bloodType || '');
           setSex(info.sex || '');
 
-          // Corrige caso não exista data de nascimento ainda
           const birthDate = info.dateOfBirth ? new Date(info.dateOfBirth) : null;
           setBirth(birthDate ? birthDate.toISOString().slice(0, 10) : '');
 
@@ -171,7 +156,7 @@ export function useInitializeUser(): InitializeResult {
                   phone: c.phone ?? null,
                   relationship: c.relationship || '',
                 }))
-              : [{ firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }]
+              : [{ firstName: '', lastName: '', ddd: null, phone: null, relationship: '' }],
           );
 
           const finalPublicCode = info.publicCode ?? generatePublicCode();
@@ -188,7 +173,7 @@ export function useInitializeUser(): InitializeResult {
     return () => {
       mounted = false;
     };
-  }, [user, isLoggedOut, clinicalInfo, pathname]);
+  }, [user.id, isLoggedOut, clinicalInfo, pathname]);
 
   return {
     loading,

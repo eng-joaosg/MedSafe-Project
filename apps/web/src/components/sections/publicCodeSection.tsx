@@ -18,7 +18,6 @@ export default function PublicCodeSection({
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // garante atualização quando o código vier do backend depois
   useEffect(() => {
     setCode(initialCode ?? null);
   }, [initialCode]);
@@ -51,10 +50,10 @@ export default function PublicCodeSection({
 
         {editable && (
           <EditSaveButton
-            label={code ? 'Gerar nova senha' : 'Gerar senha'}
+            label={code ? 'Nova senha' : 'Gerar senha'}
             onClick={handleClickGenerate}
             loading={loading}
-            widthClass="w-44"
+            widthClass="w-30"
           />
         )}
       </div>
