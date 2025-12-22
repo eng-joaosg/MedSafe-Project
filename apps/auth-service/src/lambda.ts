@@ -213,7 +213,6 @@ export const handler = async (event: LambdaEvent) => {
           const handlerInstance = appContext.get(RefreshTokenHandler);
           const session: SessionDto = await withTimeout(handlerInstance.execute(userId, role), timeout);
           const { accessToken, ...sessionWithoutToken } = session;
-
           logDuration(start, route);
           return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
         }
@@ -270,10 +269,8 @@ export const handler = async (event: LambdaEvent) => {
           const parsedBody: { newFirstName: string; newLastName: string } = event.body ? JSON.parse(event.body) : {};
           const newFirstName = parsedBody.newFirstName;
           const newLastName = parsedBody.newLastName;
-
           const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), newFirstName, newLastName), timeout);
           const { accessToken, ...sessionWithoutToken } = session;
-
           logDuration(start, route);
           return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
         }
@@ -286,11 +283,8 @@ export const handler = async (event: LambdaEvent) => {
           const parsedBody: { password: string; newPassword: string } = event.body ? JSON.parse(event.body) : {};
           const password = parsedBody.password;
           const newPassword = parsedBody.newPassword;
-
           const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), password, newPassword), timeout);
-
           const { accessToken } = session;
-
           logDuration(start, route);
           return lambdaResponseWithCookie(null, accessToken?.accessToken ?? '', 7200, 200);
         }
@@ -329,10 +323,8 @@ export const handler = async (event: LambdaEvent) => {
           const handlerInstance = appContext.get(AssociateClinicalInfoHandler);
           const authPayload = await validateAuth(headers, event.cookies);
           const userId = authPayload.sub;
-
           const clinicalInfoId = event.queryStringParameters?.clinicalInfoId as string;
           const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), clinicalInfoId), timeout);
-
           if (!session?.accessToken?.accessToken) {
             throw new AppException('Falha ao atualizar o token após associar informações clínicas', 500);
           }
