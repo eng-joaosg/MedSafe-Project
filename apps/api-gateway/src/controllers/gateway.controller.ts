@@ -85,20 +85,32 @@ export class GatewayController {
       }
     }
 
-    // 🍪 Cookies (adaptados para DEV)
+    // Cookies
     if (cookies?.length) {
+      const isDev = process.env.NODE_ENV !== 'production';
+
       cookies.forEach((cookie) => {
-        const sanitizedCookie = this.sanitizeDevCookie(cookie);
-        res.append('Set-Cookie', sanitizedCookie);
+        let finalCookie = cookie;
+
+        if (isDev) {
+          finalCookie = this.sanitizeDevCookie(cookie);
+        }
+
+        res.append('Set-Cookie', finalCookie);
       });
     }
   }
 
   private sanitizeDevCookie(cookie: string): string {
-    return cookie
-      .replace(/;\s*Secure/gi, '')
-      .replace(/;\s*SameSite=None/gi, '')
-      .replace(/;\s*Domain=[^;]+/gi, '');
+    return (
+      cookie
+        // remove Secure (localhost não suporta)
+        .replace(/;\s*Secure/gi, '')
+        // remove SameSite=None (exige Secure)
+        .replace(/;\s*SameSite=None/gi, '')
+        // remove Domain (localhost não aceita domain custom)
+        .replace(/;\s*Domain=[^;]+/gi, '')
+    );
   }
 
   // ================= Helper para garantir objeto JSON =================
@@ -340,9 +352,10 @@ export class GatewayController {
   async logout(@Headers('x-request-id') requestId: string, @Headers('cookie') cookie: string, @Res({ passthrough: true }) res: Response) {
     CommonLoggerGateway.logStart('Gateway', 'LOGOUT', 'N/A', requestId);
 
-    const { headers, body } = await this.invokeAndHandle('/auth/logout', 'POST', null, requestId, undefined, cookie);
+    const { headers, cookies, body, statusCode } = await this.invokeAndHandle('/auth/logout', 'POST', null, requestId, undefined, cookie);
+    this.applyHeadersToResponse(res, headers, cookies);
+    res.status(statusCode ?? 200);
 
-    this.applyHeadersToResponse(res, headers);
     return this.parseBody(body);
   }
 
@@ -356,9 +369,17 @@ export class GatewayController {
   ) {
     CommonLoggerGateway.logStart('Gateway', 'DELETE_ACCOUNT', 'N/A', requestId);
 
-    const { headers, body } = await this.invokeAndHandle('/auth/client-user/delete-account', 'DELETE', dto, requestId, undefined, cookie);
+    const { headers, cookies, body, statusCode } = await this.invokeAndHandle(
+      '/auth/client-user/delete-account',
+      'DELETE',
+      dto,
+      requestId,
+      undefined,
+      cookie,
+    );
+    this.applyHeadersToResponse(res, headers, cookies);
+    res.status(statusCode ?? 204);
 
-    this.applyHeadersToResponse(res, headers);
     return this.parseBody(body);
   }
 

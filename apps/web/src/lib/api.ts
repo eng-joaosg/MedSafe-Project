@@ -180,6 +180,7 @@ export async function login(payload: { email: string; password: string }): Promi
   }
 
   const data = await res.json();
+
   return {
     id: data.id,
     firstName: data.firstName ?? null,
