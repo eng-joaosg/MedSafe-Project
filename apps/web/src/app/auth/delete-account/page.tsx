@@ -56,7 +56,7 @@ export default function DeleteAccountPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6">
+    <div className="max-w-md mx-auto md:max-w-lg">
       <h1 className="text-2xl font-semibold mb-6 ">Apagar conta</h1>
 
       <Input

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useUser } from '@/contexts/userContext';
 import { useClinicalInfo } from '@/contexts/clinicalInfoContext';
 import { useClinicalOptions } from '@/contexts/clinicalOptionsContext';
-import { refreshToken, logout } from '@/lib/api';
+import { logout } from '@/lib/api';
 import { usePathname, useRouter } from 'next/navigation';
 
 interface UserIconProps {
@@ -13,11 +13,10 @@ interface UserIconProps {
 }
 
 export default function UserIcon({ className = '', onClick }: UserIconProps) {
-  const { user, setUser, clearUser, setLoggedOut } = useUser();
+  const { user, clearUser, setLoggedOut } = useUser();
   const { setClinicalInfo } = useClinicalInfo();
   const { resetAll: resetAllClinicalOptions } = useClinicalOptions();
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -39,38 +38,6 @@ export default function UserIcon({ className = '', onClick }: UserIconProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // ⚡ Refresh token apenas uma vez após montar
-  useEffect(() => {
-    let mounted = true;
-
-    const tryRefreshToken = async () => {
-      if (user.id || loading) return;
-      setLoading(true);
-      try {
-        const session = await refreshToken();
-        if (mounted && session?.id) {
-          setUser({
-            id: session.id,
-            firstName: session.firstName || '',
-            lastName: session.lastName || '',
-            clinicalInfoId: session.clinicalInfoId ?? null,
-            role: session.role!,
-          });
-        }
-      } catch {
-        handleLogout();
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    tryRefreshToken();
-    return () => {
-      mounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // roda só uma vez no mount
 
   if (!hydrated) return null; // evita SSR
 

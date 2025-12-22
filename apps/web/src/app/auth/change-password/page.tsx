@@ -75,7 +75,7 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="flex flex-col items-center pt-20 px-6 min-h-screen bg-grayscale-10">
+    <div className="flex flex-col items-center pt-20 md:max-w-lg min-h-screen bg-grayscale-10">
       <h2 className="text-2xl font-semibold mb-6">Alterar Senha</h2>
 
       <div className="w-full max-w-md space-y-4">
