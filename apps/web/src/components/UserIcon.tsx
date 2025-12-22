@@ -23,12 +23,10 @@ export default function UserIcon({ className = '', onClick }: UserIconProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Marca que o componente já foi montado (client-side)
   useEffect(() => {
     setHydrated(true);
   }, []);
 
-  // Fecha o menu se clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
@@ -39,7 +37,7 @@ export default function UserIcon({ className = '', onClick }: UserIconProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!hydrated) return null; // evita SSR
+  if (!hydrated) return null;
 
   const handleLogout = async () => {
     try {
@@ -72,7 +70,6 @@ export default function UserIcon({ className = '', onClick }: UserIconProps) {
 
   const isLoggedIn = !!user.id;
 
-  // ⚡ Opções dinâmicas baseadas na página
   let options: { label: string; action: () => void }[] = [];
   if (isLoggedIn) {
     if (pathname === '/client-user') {
