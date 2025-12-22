@@ -72,7 +72,7 @@ function lambdaResponse(body: unknown, statusCode = 200) {
     statusCode,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': configService.get('CORS_ORIGIN') ?? 'http://localhost:3000',
+      'Access-Control-Allow-Origin': configService.get('CORS_ORIGINS') ?? 'https://www.medsafe.goncdev.com.br',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS, PUT',
@@ -81,13 +81,13 @@ function lambdaResponse(body: unknown, statusCode = 200) {
   };
 }
 
-function lambdaResponseWithCookie(body: unknown, token: string, maxAgeSeconds: number = 60 * 60 * 2, statusCode: number = 200) {
+function lambdaResponseWithCookie(body: unknown, token: string, maxAgeSeconds: number = 60 * 60, statusCode: number = 200) {
   const cookie = `auth_token=${token}; HttpOnly; Secure; SameSite=None; Path=/; Domain=.goncdev.com.br; Max-Age=${maxAgeSeconds}`;
   return {
     statusCode,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': configService.get('CORS_ORIGIN') ?? 'https://www.medsafe.goncdev.com.br',
+      'Access-Control-Allow-Origin': configService.get('CORS_ORIGINS') ?? 'https://www.medsafe.goncdev.com.br',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS, PUT',
       'Access-Control-Allow-Headers': 'Content-Type, X-API-KEY',
@@ -154,7 +154,7 @@ export const handler = async (event: LambdaEvent) => {
         statusCode: 204,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': configService.get('CORS_ORIGIN') ?? 'http://localhost:3000',
+          'Access-Control-Allow-Origin': configService.get('CORS_ORIGINS') ?? 'https://www.medsafe.goncdev.com.br',
           'Access-Control-Allow-Credentials': 'true',
           'Access-Control-Allow-Headers': 'Content-Type, X-API-KEY',
           'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
@@ -214,7 +214,7 @@ export const handler = async (event: LambdaEvent) => {
           const session: SessionDto = await withTimeout(handlerInstance.execute(userId, role), timeout);
           const { accessToken, ...sessionWithoutToken } = session;
           logDuration(start, route);
-          return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
+          return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 3600);
         }
 
         // ================= DELETE ACCOUNT =================
@@ -272,7 +272,7 @@ export const handler = async (event: LambdaEvent) => {
           const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), newFirstName, newLastName), timeout);
           const { accessToken, ...sessionWithoutToken } = session;
           logDuration(start, route);
-          return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
+          return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 3600);
         }
 
         // ================= CHANGE PASSWORD =================
@@ -286,7 +286,7 @@ export const handler = async (event: LambdaEvent) => {
           const session: SessionDto = await withTimeout(handlerInstance.execute(userId.toString(), password, newPassword), timeout);
           const { accessToken } = session;
           logDuration(start, route);
-          return lambdaResponseWithCookie(null, accessToken?.accessToken ?? '', 7200, 200);
+          return lambdaResponseWithCookie(null, accessToken?.accessToken ?? '', 3600, 200);
         }
 
         // ================= FIND EMAIL =================
@@ -333,7 +333,7 @@ export const handler = async (event: LambdaEvent) => {
 
           logDuration(start, route);
 
-          return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 7200);
+          return lambdaResponseWithCookie(sessionWithoutToken, accessToken.accessToken, 3600);
         }
 
         // ================= PUBLIC ACCESS ALERT =================

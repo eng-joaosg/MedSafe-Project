@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ClinicalInfo, getClinicalInfo } from '@/lib/api';
+import { createContext, useContext, useState, ReactNode } from 'react';
+import { ClinicalInfo } from '@/lib/api';
 
 // ------------------------------------------------------
 // TIPOS
@@ -11,6 +11,7 @@ interface ClinicalInfoContextType {
   clinicalInfo: ClinicalInfo | null;
   setClinicalInfo: (data: ClinicalInfo | null) => void;
   loading: boolean;
+  setLoading: (value: boolean) => void;
 }
 
 // ------------------------------------------------------
@@ -20,7 +21,8 @@ interface ClinicalInfoContextType {
 const ClinicalInfoContext = createContext<ClinicalInfoContextType>({
   clinicalInfo: null,
   setClinicalInfo: () => {},
-  loading: true,
+  loading: false,
+  setLoading: () => {},
 });
 
 export const useClinicalInfo = () => useContext(ClinicalInfoContext);
@@ -31,33 +33,13 @@ export const useClinicalInfo = () => useContext(ClinicalInfoContext);
 
 export function ClinicalInfoProvider({ children }: { children: ReactNode }) {
   const [clinicalInfo, setClinicalInfo] = useState<ClinicalInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false); // Adicionado para controlar a hidratação
-
-  // -----------------------------------------
-  // Carregar do backend ao montar
-  // -----------------------------------------
-  useEffect(() => {
-    const fetchInfo = async () => {
-      setLoading(true);
-      try {
-        const data = await getClinicalInfo();
-        setClinicalInfo(data);
-      } catch (err) {
-        console.error('Erro ao carregar ClinicalInfo:', err);
-        setClinicalInfo(null);
-      } finally {
-        setLoading(false);
-        setIsMounted(true); // Garante que a primeira renderização no cliente seja concluída
-      }
-    };
-
-    fetchInfo();
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   return (
-    <ClinicalInfoContext.Provider value={{ clinicalInfo, setClinicalInfo, loading }}>
-      {isMounted ? children : null} {/* Renderização condicional para hidratação */}
+    <ClinicalInfoContext.Provider
+      value={{ clinicalInfo, setClinicalInfo, loading, setLoading }}
+    >
+      {children}
     </ClinicalInfoContext.Provider>
   );
 }
